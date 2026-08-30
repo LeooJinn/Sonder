@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { FlatList, Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Stack, useFocusEffect, useRouter } from 'expo-router';
 import { loadGarage, type SavedVehicle } from '../lib/garage';
 import { signOut } from '../lib/auth';
@@ -48,11 +48,16 @@ export default function GarageScreen() {
             style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
             onPress={() => router.push(`/vehicle/${item.vin}`)}
           >
-            <Text style={styles.cardTitle}>
-              {item.year} {item.make} {item.model}
-            </Text>
-            {item.trim ? <Text style={styles.cardTrim}>{item.trim}</Text> : null}
-            <Text style={styles.cardVin}>{item.vin}</Text>
+            {item.coverUrl ? (
+              <Image source={{ uri: item.coverUrl }} style={styles.cover} />
+            ) : null}
+            <View style={styles.cardBody}>
+              <Text style={styles.cardTitle}>
+                {item.year} {item.make} {item.model}
+              </Text>
+              {item.trim ? <Text style={styles.cardTrim}>{item.trim}</Text> : null}
+              <Text style={styles.cardVin}>{item.vin}</Text>
+            </View>
           </Pressable>
         )}
         // Only show the empty state once we've actually checked storage,
@@ -90,9 +95,11 @@ const styles = StyleSheet.create({
     borderRadius: 6,
     borderLeftWidth: 3,
     borderLeftColor: colors.accent,
-    padding: 16,
+    overflow: 'hidden',
   },
   cardPressed: { opacity: 0.7 },
+  cover: { width: '100%', height: 170, backgroundColor: colors.background },
+  cardBody: { padding: 16 },
   cardTitle: { color: colors.text, fontSize: 18, fontWeight: '700' },
   cardTrim: { color: colors.textMuted, fontSize: 14, marginTop: 1 },
   cardVin: {
