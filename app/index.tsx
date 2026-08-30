@@ -2,6 +2,7 @@ import { useCallback, useState } from 'react';
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Stack, useFocusEffect, useRouter } from 'expo-router';
 import { loadGarage, type SavedVehicle } from '../lib/garage';
+import { signOut } from '../lib/auth';
 import { colors, mono } from '../lib/theme';
 
 export default function GarageScreen() {
@@ -27,7 +28,16 @@ export default function GarageScreen() {
 
   return (
     <View style={styles.screen}>
-      <Stack.Screen options={{ title: 'Garage' }} />
+      <Stack.Screen
+        options={{
+          title: 'Garage',
+          headerRight: () => (
+            <Pressable onPress={signOut} hitSlop={8}>
+              <Text style={styles.signOut}>Sign out</Text>
+            </Pressable>
+          ),
+        }}
+      />
 
       <FlatList
         data={garage}
@@ -72,6 +82,8 @@ export default function GarageScreen() {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
   list: { padding: 20, gap: 12, flexGrow: 1 },
+
+  signOut: { color: colors.accent, fontSize: 14, fontWeight: '600' },
 
   card: {
     backgroundColor: colors.surface,
