@@ -90,6 +90,9 @@ supported on the platform.
 
 ---
 
-## License
+## Copyright
 
-MIT. See [LICENSE](LICENSE).
+© 2026 Jiaxiang Jin. All rights reserved.
+
+This source is published for reference. It is not licensed for reuse, redistribution, or
+commercial use.
