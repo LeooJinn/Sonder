@@ -21,13 +21,13 @@ Very early. This is being built in public, one working slice at a time.
 
 **What works today**
 
-- Enter a 17-character VIN
-- Decode it against the [NHTSA vPIC](https://vpic.nhtsa.dot.gov/api/) database
+- Enter a 17-character VIN and decode it against the [NHTSA vPIC](https://vpic.nhtsa.dot.gov/api/) database
 - See year, make, model, trim, engine, drivetrain, body class, and assembly plant
+- Save vehicles to a garage that persists on the device
+- Browse the garage, open a vehicle, remove it
 
 **What's next**
 
-- The garage — save decoded vehicles, browse them, open one
 - Build log — mods, service, repairs and milestones against a vehicle
 - Photos
 - Accounts, and ownership transfer between them
@@ -72,9 +72,17 @@ infrastructure.
 ## Project layout
 
 ```
-App.tsx        UI — screens and components
-lib/vin.ts     VIN validation and vPIC decoding
-assets/        icons and splash
+app/                    screens — a file's path is its route
+  _layout.tsx           wraps every screen
+  index.tsx             /              the garage
+  add.tsx               /add           VIN entry
+  vehicle/[vin].tsx     /vehicle/:vin  one car
+components/             shared UI
+lib/
+  vin.ts                VIN validation and vPIC decoding
+  garage.ts             on-device storage
+  theme.ts              colours in one place
+assets/                 icons and splash
 ```
 
 The rule: `lib/` knows nothing about the UI, and the UI knows nothing about HTTP. Keeping
