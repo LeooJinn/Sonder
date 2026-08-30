@@ -83,7 +83,11 @@ export default function VehicleScreen() {
       ) : (
         <View style={styles.entries}>
           {entries.map((entry) => (
-            <EntryCard key={entry.id} entry={entry} />
+            <EntryCard
+              key={entry.id}
+              entry={entry}
+              onPress={() => router.push(`/vehicle/${vin}/entry/${entry.id}`)}
+            />
           ))}
         </View>
       )}

@@ -116,6 +116,34 @@ export async function addEntry(input: NewLogEntry): Promise<LogEntry> {
   return entry;
 }
 
+/** One entry by id, or null if it no longer exists. */
+export async function findEntry(id: string): Promise<LogEntry | null> {
+  const all = await loadAll();
+  return all.find((entry) => entry.id === id) ?? null;
+}
+
+/**
+ * Change an existing entry.
+ *
+ * The patch is Partial<NewLogEntry>, so callers can send only the fields
+ * they're changing — and cannot touch id or createdAt, because those record
+ * facts about the entry's identity and origin rather than its content.
+ */
+export async function updateEntry(id: string, patch: Partial<NewLogEntry>): Promise<LogEntry> {
+  const all = await loadAll();
+  const index = all.findIndex((entry) => entry.id === id);
+
+  if (index === -1) {
+    throw new Error('That entry no longer exists.');
+  }
+
+  const updated: LogEntry = { ...all[index], ...patch };
+  // Build a new array rather than mutating in place — same discipline as
+  // React state, and it keeps this function free of side effects on its input.
+  await saveAll(all.map((entry, i) => (i === index ? updated : entry)));
+  return updated;
+}
+
 /** Remove one entry. Silently does nothing if the id isn't found. */
 export async function removeEntry(id: string): Promise<void> {
   const all = await loadAll();
