@@ -18,7 +18,16 @@ export type SavedVehicle = DecodedVehicle & {
   /** When this owner added the car — the ownership's creation, not the vehicle's. */
   addedAt: string;
   /** Newest build log photo, used as the garage card's cover. */
-  coverUrl?: string;
+  cover?: Cover;
+};
+
+export type Cover = {
+  url: string;
+  /**
+   * Width over height. Carried so the card can size itself to the real photo
+   * instead of forcing every image into one fixed box and distorting it.
+   */
+  aspectRatio: number;
 };
 
 /** Postgres columns are snake_case; the app is camelCase. This is the seam. */
@@ -92,19 +101,21 @@ export async function findOwnershipId(vin: string): Promise<string | null> {
  * most recent photo per vehicle" is a top-1-per-group problem, which is
  * awkward over PostgREST and trivial in JavaScript at this scale.
  */
-async function loadCovers(ownershipIds: string[]): Promise<Map<string, string>> {
-  const covers = new Map<string, string>();
+async function loadCovers(ownershipIds: string[]): Promise<Map<string, Cover>> {
+  const covers = new Map<string, Cover>();
   if (ownershipIds.length === 0) return covers;
 
   const { data, error } = await supabase
     .from('photos')
-    .select('storage_path, entries!inner(ownership_id, occurred_on, created_at)')
+    .select('storage_path, width, height, entries!inner(ownership_id, occurred_on, created_at)')
     .in('entries.ownership_id', ownershipIds);
 
   if (error) throw new Error(error.message);
 
   type CoverRow = {
     storage_path: string;
+    width: number | null;
+    height: number | null;
     entries: { ownership_id: string; occurred_on: string; created_at: string };
   };
 
@@ -117,9 +128,15 @@ async function loadCovers(ownershipIds: string[]): Promise<Map<string, string>> 
   });
 
   for (const row of rows) {
-    if (!covers.has(row.entries.ownership_id)) {
-      covers.set(row.entries.ownership_id, publicUrl(row.storage_path));
-    }
+    if (covers.has(row.entries.ownership_id)) continue;
+
+    // Clamp the shape of the card. A very tall portrait photo would otherwise
+    // push the rest of the garage off screen; a panorama would render as a
+    // sliver. Within the clamp the image is never distorted.
+    const natural = row.width && row.height ? row.width / row.height : 4 / 3;
+    const aspectRatio = Math.min(Math.max(natural, 3 / 4), 16 / 9);
+
+    covers.set(row.entries.ownership_id, { url: publicUrl(row.storage_path), aspectRatio });
   }
 
   return covers;
@@ -145,7 +162,7 @@ export async function loadGarage(): Promise<SavedVehicle[]> {
 
   return rows.map((row) => ({
     ...toSavedVehicle(row.vehicles as unknown as VehicleRow, row.created_at),
-    coverUrl: covers.get(row.id),
+    cover: covers.get(row.id),
   }));
 }
 

@@ -47,8 +47,12 @@ export default function GarageScreen() {
             style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
             onPress={() => router.push(`/vehicle/${item.vin}`)}
           >
-            {item.coverUrl ? (
-              <Image source={{ uri: item.coverUrl }} style={styles.cover} />
+            {item.cover ? (
+              <Image
+                source={{ uri: item.cover.url }}
+                style={[styles.cover, { aspectRatio: item.cover.aspectRatio }]}
+                resizeMode="cover"
+              />
             ) : null}
             <View style={styles.cardBody}>
               <Text style={styles.cardTitle}>
@@ -97,7 +101,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   cardPressed: { opacity: 0.7 },
-  cover: { width: '100%', height: 170, backgroundColor: colors.background },
+  cover: { width: '100%', backgroundColor: colors.background },
   cardBody: { padding: 16 },
   cardTitle: { color: colors.text, fontSize: 18, fontWeight: '700' },
   cardTrim: { color: colors.textMuted, fontSize: 14, marginTop: 1 },

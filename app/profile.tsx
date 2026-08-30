@@ -14,6 +14,7 @@ import { Stack, useRouter } from 'expo-router';
 import { loadMyProfile, updateMyProfile } from '../lib/profile';
 import { signOut } from '../lib/auth';
 import { supabase } from '../lib/supabase';
+import { RegionPicker } from '../components/RegionPicker';
 import { colors, mono } from '../lib/theme';
 
 export default function ProfileScreen() {
@@ -106,15 +107,9 @@ export default function ProfileScreen() {
 
         <View style={styles.field}>
           <Text style={styles.label}>Region</Text>
-          <TextInput
-            style={styles.input}
-            value={region}
-            onChangeText={setRegion}
-            placeholder="Bay Area, CA"
-            placeholderTextColor={colors.disabled}
-          />
+          <RegionPicker value={region} onChange={setRegion} />
           <Text style={styles.hint}>
-            City or region only — never a precise address. Cars get stolen.
+            Region only — never a precise address. Cars get stolen.
           </Text>
         </View>
 
