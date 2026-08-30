@@ -27,12 +27,14 @@ Very early. This is being built in public, one working slice at a time.
 - Browse the garage, open a vehicle, remove it
 - Log mods, service, repairs and milestones against a vehicle, with dates,
   odometer readings, costs and the parts fitted
+- Edit and delete entries
+- Accounts — sign up and sign in with email and password
 
 **What's next**
 
-- Entry detail and editing
+- Move the garage and build log to Postgres so data follows the account
+- Ownership periods, so a passport transfers when the car sells
 - Photos
-- Accounts, and ownership transfer between them
 
 ---
 
@@ -45,8 +47,14 @@ your phone.
 git clone https://github.com/LeooJinn/Sonder.git
 cd Sonder
 npm install
+cp .env.example .env
 npm start
 ```
+
+Accounts need a [Supabase](https://supabase.com) project. Create a free one, then
+put its Project URL and anon key into `.env` — both are under Project Settings → API.
+Environment variables are read at build time, so restart with `npx expo start -c`
+after changing them.
 
 Then either scan the QR code with Expo Go (Android: scan from inside the app — iOS: use the
 stock Camera app), or enter the `exp://` URL from the terminal manually. Your phone and
@@ -64,7 +72,8 @@ No API keys required — vPIC is a free public service.
 |---|---|
 | **App** | React Native + Expo, TypeScript |
 | **VIN data** | NHTSA vPIC API |
-| **Planned backend** | Supabase (Postgres, auth, storage) |
+| **Auth** | Supabase |
+| **Storage** | On-device for now; Postgres next |
 
 Deliberately boring choices. The interesting problem here is the community, not the
 infrastructure.
