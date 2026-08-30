@@ -2,7 +2,6 @@ import { useCallback, useState } from 'react';
 import { FlatList, Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Stack, useFocusEffect, useRouter } from 'expo-router';
 import { loadGarage, type SavedVehicle } from '../lib/garage';
-import { signOut } from '../lib/auth';
 import { colors, mono } from '../lib/theme';
 
 export default function GarageScreen() {
@@ -32,8 +31,8 @@ export default function GarageScreen() {
         options={{
           title: 'Garage',
           headerRight: () => (
-            <Pressable onPress={signOut} hitSlop={8}>
-              <Text style={styles.signOut}>Sign out</Text>
+            <Pressable onPress={() => router.push('/profile')} hitSlop={8}>
+              <Text style={styles.signOut}>Profile</Text>
             </Pressable>
           ),
         }}
