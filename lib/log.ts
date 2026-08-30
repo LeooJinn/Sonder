@@ -1,18 +1,18 @@
 /**
  * The build log: everything that has happened to a vehicle.
  *
- * Every entry for every vehicle lives under a single storage key, mirroring
- * the shape this will take in Postgres — one `entries` table with a
- * vehicle_vin column. Reading one vehicle's log means loading all entries
- * and filtering, which is cheap at this scale and keeps cross-vehicle
- * questions ("everything I spent this year") a filter rather than a scan
- * across many keys.
+ * Entries belong to an OWNERSHIP, not to a vehicle. That is what lets a car's
+ * history survive being sold while keeping each owner credited with their own
+ * work: the buyer gets a new ownership, and the seller's entries stay attached
+ * to the seller's period.
+ *
+ * Parts are a separate table rather than a nested column, so that "every car
+ * running this part" is eventually a query rather than a full scan.
  */
 
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as Crypto from 'expo-crypto';
+import { supabase } from './supabase';
+import { findOwnershipId } from './garage';
 
-/** What kind of event this was. Drives the icon and colour, not the shape. */
 export type EntryKind = 'mod' | 'service' | 'repair' | 'milestone';
 
 export const ENTRY_KINDS: EntryKind[] = ['mod', 'service', 'repair', 'milestone'];
@@ -24,139 +24,190 @@ export const KIND_LABELS: Record<EntryKind, string> = {
   milestone: 'Milestone',
 };
 
-/** A part fitted as part of an entry. Nested, because a part is never viewed alone. */
 export type Part = {
   brand: string;
   name: string;
   partNumber?: string;
-  /** Integer cents. Never a decimal — see costCents below. */
+  /** Integer cents. Floating point cannot represent decimals exactly. */
   costCents?: number;
 };
 
 export type LogEntry = {
-  /** Generated UUID. Nothing about an entry is naturally unique. */
   id: string;
-  /** Which vehicle this belongs to. The foreign key. */
+  /** Kept in the app's shape even though the database links via ownership. */
   vehicleVin: string;
   kind: EntryKind;
   title: string;
   notes?: string;
-  /**
-   * The day the work happened: "YYYY-MM-DD". A calendar date, not a
-   * timestamp — nobody cares that the clutch went in at 14:32.
-   * This format sorts correctly as a plain string, which is why it's used.
-   */
+  /** "YYYY-MM-DD": the day the work happened, not when it was recorded. */
   occurredOn: string;
   odometer?: number;
-  /**
-   * Integer cents. Floating point cannot represent most decimals exactly
-   * (0.1 + 0.2 === 0.30000000000000004), so money is always stored as a
-   * whole number of the smallest unit and formatted for display.
-   */
   costCents?: number;
-  /** Always an array. Empty, never undefined — callers never have to null-check. */
   parts: Part[];
-  /** When the record was created, which is not when the work happened. */
   createdAt: string;
 };
 
-/**
- * What a caller supplies when adding an entry: everything except the fields
- * this module generates. Omit<T, K> is the built-in type for "T without K".
- */
 export type NewLogEntry = Omit<LogEntry, 'id' | 'createdAt'>;
 
-const STORAGE_KEY = 'sonder.log.v1';
+type PartRow = {
+  brand: string;
+  name: string;
+  part_number: string | null;
+  cost_cents: number | null;
+  position: number;
+};
 
-/** Every entry for every vehicle, unsorted. Internal — callers want loadEntries. */
-async function loadAll(): Promise<LogEntry[]> {
-  const raw = await AsyncStorage.getItem(STORAGE_KEY);
-  if (!raw) return [];
+type EntryRow = {
+  id: string;
+  kind: EntryKind;
+  title: string;
+  notes: string | null;
+  occurred_on: string;
+  odometer: number | null;
+  cost_cents: number | null;
+  created_at: string;
+  parts: PartRow[];
+};
 
-  try {
-    return JSON.parse(raw) as LogEntry[];
-  } catch {
-    // Same policy as the garage: corrupted storage starts clean rather than
-    // crashing the app. Losing a log is bad; a permanently unopenable app is worse.
-    return [];
-  }
-}
+const ENTRY_COLUMNS =
+  'id, kind, title, notes, occurred_on, odometer, cost_cents, created_at, parts (brand, name, part_number, cost_cents, position)';
 
-async function saveAll(entries: LogEntry[]): Promise<void> {
-  await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
-}
-
-/**
- * One vehicle's log, newest first.
- *
- * Sorting on occurredOn works as a string comparison because "YYYY-MM-DD" is
- * zero-padded and ordered largest unit first — lexicographic order and
- * chronological order are the same thing. createdAt breaks ties so that two
- * entries logged for the same day keep a stable, sensible order.
- */
-export async function loadEntries(vin: string): Promise<LogEntry[]> {
-  const all = await loadAll();
-  return all
-    .filter((entry) => entry.vehicleVin === vin)
-    .sort((a, b) => {
-      const byDate = b.occurredOn.localeCompare(a.occurredOn);
-      return byDate !== 0 ? byDate : b.createdAt.localeCompare(a.createdAt);
-    });
-}
-
-/** Add an entry. Generates the id and createdAt; the caller supplies the rest. */
-export async function addEntry(input: NewLogEntry): Promise<LogEntry> {
-  const entry: LogEntry = {
-    ...input,
-    id: Crypto.randomUUID(),
-    createdAt: new Date().toISOString(),
+function toLogEntry(row: EntryRow, vin: string): LogEntry {
+  return {
+    id: row.id,
+    vehicleVin: vin,
+    kind: row.kind,
+    title: row.title,
+    notes: row.notes ?? undefined,
+    occurredOn: row.occurred_on,
+    odometer: row.odometer ?? undefined,
+    costCents: row.cost_cents ?? undefined,
+    createdAt: row.created_at,
+    parts: [...(row.parts ?? [])]
+      .sort((a, b) => a.position - b.position)
+      .map((part) => ({
+        brand: part.brand,
+        name: part.name,
+        partNumber: part.part_number ?? undefined,
+        costCents: part.cost_cents ?? undefined,
+      })),
   };
-
-  await saveAll([entry, ...(await loadAll())]);
-  return entry;
 }
 
-/** One entry by id, or null if it no longer exists. */
+/** Replace an entry's parts wholesale. Simpler and safer than diffing rows. */
+async function replaceParts(entryId: string, parts: Part[]): Promise<void> {
+  const { error: deleteError } = await supabase.from('parts').delete().eq('entry_id', entryId);
+  if (deleteError) throw new Error(deleteError.message);
+
+  if (parts.length === 0) return;
+
+  const { error: insertError } = await supabase.from('parts').insert(
+    parts.map((part, index) => ({
+      entry_id: entryId,
+      brand: part.brand,
+      name: part.name,
+      part_number: part.partNumber ?? null,
+      cost_cents: part.costCents ?? null,
+      position: index,
+    }))
+  );
+  if (insertError) throw new Error(insertError.message);
+}
+
+/** One vehicle's log, newest first. Empty if the user doesn't own that VIN. */
+export async function loadEntries(vin: string): Promise<LogEntry[]> {
+  const ownershipId = await findOwnershipId(vin);
+  if (!ownershipId) return [];
+
+  const { data, error } = await supabase
+    .from('entries')
+    .select(ENTRY_COLUMNS)
+    .eq('ownership_id', ownershipId)
+    .order('occurred_on', { ascending: false })
+    .order('created_at', { ascending: false });
+
+  if (error) throw new Error(error.message);
+  return (data as unknown as EntryRow[]).map((row) => toLogEntry(row, vin));
+}
+
+/** One entry by id. RLS means this returns null for entries you can't reach. */
 export async function findEntry(id: string): Promise<LogEntry | null> {
-  const all = await loadAll();
-  return all.find((entry) => entry.id === id) ?? null;
+  const { data, error } = await supabase
+    .from('entries')
+    .select(`${ENTRY_COLUMNS}, ownerships!inner(vehicles!inner(vin))`)
+    .eq('id', id)
+    .maybeSingle();
+
+  if (error) throw new Error(error.message);
+  if (!data) return null;
+
+  const row = data as unknown as EntryRow & { ownerships: { vehicles: { vin: string } } };
+  return toLogEntry(row, row.ownerships.vehicles.vin);
 }
 
-/**
- * Change an existing entry.
- *
- * The patch is Partial<NewLogEntry>, so callers can send only the fields
- * they're changing — and cannot touch id or createdAt, because those record
- * facts about the entry's identity and origin rather than its content.
- */
-export async function updateEntry(id: string, patch: Partial<NewLogEntry>): Promise<LogEntry> {
-  const all = await loadAll();
-  const index = all.findIndex((entry) => entry.id === id);
+export async function addEntry(input: NewLogEntry): Promise<LogEntry> {
+  const ownershipId = await findOwnershipId(input.vehicleVin);
+  if (!ownershipId) throw new Error('That vehicle is not in your garage.');
 
-  if (index === -1) {
-    throw new Error('That entry no longer exists.');
+  const { data, error } = await supabase
+    .from('entries')
+    .insert({
+      ownership_id: ownershipId,
+      kind: input.kind,
+      title: input.title,
+      notes: input.notes ?? null,
+      occurred_on: input.occurredOn,
+      odometer: input.odometer ?? null,
+      cost_cents: input.costCents ?? null,
+    })
+    .select('id, created_at')
+    .single();
+
+  if (error) throw new Error(error.message);
+
+  await replaceParts(data.id, input.parts);
+
+  return { ...input, id: data.id, createdAt: data.created_at };
+}
+
+/** Change an entry. Callers send only what changed; id and createdAt are fixed. */
+export async function updateEntry(id: string, patch: Partial<NewLogEntry>): Promise<void> {
+  const columns: Record<string, unknown> = {};
+  if (patch.kind !== undefined) columns.kind = patch.kind;
+  if (patch.title !== undefined) columns.title = patch.title;
+  if (patch.notes !== undefined) columns.notes = patch.notes ?? null;
+  if (patch.occurredOn !== undefined) columns.occurred_on = patch.occurredOn;
+  if (patch.odometer !== undefined) columns.odometer = patch.odometer ?? null;
+  if (patch.costCents !== undefined) columns.cost_cents = patch.costCents ?? null;
+
+  if (Object.keys(columns).length > 0) {
+    const { error } = await supabase.from('entries').update(columns).eq('id', id);
+    if (error) throw new Error(error.message);
   }
 
-  const updated: LogEntry = { ...all[index], ...patch };
-  // Build a new array rather than mutating in place — same discipline as
-  // React state, and it keeps this function free of side effects on its input.
-  await saveAll(all.map((entry, i) => (i === index ? updated : entry)));
-  return updated;
+  if (patch.parts !== undefined) {
+    await replaceParts(id, patch.parts);
+  }
 }
 
-/** Remove one entry. Silently does nothing if the id isn't found. */
+/** Remove one entry. Its parts cascade with it. */
 export async function removeEntry(id: string): Promise<void> {
-  const all = await loadAll();
-  await saveAll(all.filter((entry) => entry.id !== id));
+  const { error } = await supabase.from('entries').delete().eq('id', id);
+  if (error) throw new Error(error.message);
 }
 
 /**
- * Remove every entry for a vehicle. Called when the vehicle leaves the garage,
- * so that deleted cars don't leave their history behind in storage forever.
+ * Remove every entry for a vehicle.
+ *
+ * Deleting the ownership already cascades to entries, so this is belt and
+ * braces — kept so callers don't have to know which deletes cascade.
  */
 export async function removeEntriesForVehicle(vin: string): Promise<void> {
-  const all = await loadAll();
-  await saveAll(all.filter((entry) => entry.vehicleVin !== vin));
+  const ownershipId = await findOwnershipId(vin);
+  if (!ownershipId) return;
+
+  const { error } = await supabase.from('entries').delete().eq('ownership_id', ownershipId);
+  if (error) throw new Error(error.message);
 }
 
 /** Today as "YYYY-MM-DD" in the device's local timezone, for date defaults. */
@@ -180,6 +231,5 @@ export function parseCents(input: string): number | undefined {
   const value = Number(cleaned);
   if (!Number.isFinite(value) || value < 0) return undefined;
 
-  // Round rather than truncate: 45.675 * 100 is 4567.499... in floating point.
   return Math.round(value * 100);
 }
