@@ -29,12 +29,14 @@ Very early. This is being built in public, one working slice at a time.
   odometer readings, costs and the parts fitted
 - Edit and delete entries
 - Accounts — sign up and sign in with email and password
+- Everything stored in Postgres, so a garage follows the account to any
+  device and survives reinstalling the app
 
 **What's next**
 
-- Move the garage and build log to Postgres so data follows the account
-- Ownership periods, so a passport transfers when the car sells
+- Transferring a passport when a car is sold
 - Photos
+- Public passports, so a build can be shared
 
 ---
 
@@ -72,8 +74,7 @@ No API keys required — vPIC is a free public service.
 |---|---|
 | **App** | React Native + Expo, TypeScript |
 | **VIN data** | NHTSA vPIC API |
-| **Auth** | Supabase |
-| **Storage** | On-device for now; Postgres next |
+| **Backend** | Supabase — Postgres, auth, row-level security |
 
 Deliberately boring choices. The interesting problem here is the community, not the
 infrastructure.
@@ -91,10 +92,18 @@ app/                    screens — a file's path is its route
 components/             shared UI
 lib/
   vin.ts                VIN validation and vPIC decoding
-  garage.ts             on-device storage
+  garage.ts             vehicles and ownerships
+  log.ts                build log entries and parts
+  auth.ts               session state
+  supabase.ts           database client
   theme.ts              colours in one place
+supabase/migrations/    database schema
 assets/                 icons and splash
 ```
+
+The data model turns on one table. Entries belong to an **ownership period**
+rather than to a vehicle or a person, which is how a car's history survives
+being sold while each owner keeps credit for their own work.
 
 The rule: `lib/` knows nothing about the UI, and the UI knows nothing about HTTP. Keeping
 that line intact is what will make this maintainable as it grows.
