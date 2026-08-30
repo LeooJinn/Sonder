@@ -1,4 +1,4 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { formatCents, KIND_LABELS, type LogEntry } from '../lib/log';
 import { colors } from '../lib/theme';
 
@@ -36,6 +36,22 @@ export function EntryCard({ entry, onPress }: { entry: LogEntry; onPress?: () =>
           {entry.notes}
         </Text>
       ) : null}
+
+      {entry.photos.length > 0 && (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.photos}
+          // Without this, dragging the strip is swallowed by the card's press.
+          onStartShouldSetResponder={() => true}
+        >
+          <View style={styles.photoRow}>
+            {entry.photos.map((photo) => (
+              <Image key={photo.id} source={{ uri: photo.url }} style={styles.photo} />
+            ))}
+          </View>
+        </ScrollView>
+      )}
 
       {entry.parts.length > 0 && (
         <View style={styles.parts}>
@@ -78,6 +94,15 @@ const styles = StyleSheet.create({
 
   title: { color: colors.text, fontSize: 16, fontWeight: '600' },
   notes: { color: colors.textMuted, fontSize: 14, lineHeight: 19 },
+
+  photos: { marginTop: 6, marginHorizontal: -2 },
+  photoRow: { flexDirection: 'row', gap: 8, paddingHorizontal: 2 },
+  photo: {
+    width: 120,
+    height: 90,
+    borderRadius: 4,
+    backgroundColor: colors.background,
+  },
 
   parts: {
     marginTop: 4,

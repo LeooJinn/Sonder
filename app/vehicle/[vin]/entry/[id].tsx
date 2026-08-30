@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { findEntry, removeEntry, updateEntry, type LogEntry } from '../../../../lib/log';
+import { addPhoto, removePhoto } from '../../../../lib/photos';
 import { EntryForm, type EntryFormValues } from '../../../../components/EntryForm';
 import { colors } from '../../../../lib/theme';
 
@@ -21,7 +22,22 @@ export default function EditEntryScreen() {
   }, [id]);
 
   async function handleSubmit(values: EntryFormValues) {
-    await updateEntry(id, values);
+    const { newPhotoUris, removedPhotoIds, ...patch } = values;
+
+    await updateEntry(id, patch);
+
+    // Deletions first, so a failed upload doesn't leave the user looking at
+    // photos they thought they had removed.
+    for (const photoId of removedPhotoIds) {
+      const photo = entry?.photos.find((p) => p.id === photoId);
+      if (photo) await removePhoto(photo);
+    }
+
+    const startPosition = entry?.photos.length ?? 0;
+    for (const [index, uri] of newPhotoUris.entries()) {
+      await addPhoto(id, uri, startPosition + index);
+    }
+
     router.back();
   }
 
@@ -65,7 +81,10 @@ export default function EditEntryScreen() {
           odometer: entry.odometer,
           costCents: entry.costCents,
           parts: entry.parts,
+          newPhotoUris: [],
+          removedPhotoIds: [],
         }}
+        initialPhotos={entry.photos}
         submitLabel="Save changes"
         onSubmit={handleSubmit}
       />

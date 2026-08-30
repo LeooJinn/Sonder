@@ -12,6 +12,7 @@
 
 import { supabase } from './supabase';
 import { findOwnershipId } from './garage';
+import { publicUrl, removePhotosForEntry, type Photo } from './photos';
 
 export type EntryKind = 'mod' | 'service' | 'repair' | 'milestone';
 
@@ -44,16 +45,30 @@ export type LogEntry = {
   odometer?: number;
   costCents?: number;
   parts: Part[];
+  photos: Photo[];
   createdAt: string;
 };
 
-export type NewLogEntry = Omit<LogEntry, 'id' | 'createdAt'>;
+/**
+ * What a caller supplies when creating an entry. Photos are excluded because
+ * they can't exist until the entry does — they're uploaded afterwards, against
+ * the new entry's id.
+ */
+export type NewLogEntry = Omit<LogEntry, 'id' | 'createdAt' | 'photos'>;
 
 type PartRow = {
   brand: string;
   name: string;
   part_number: string | null;
   cost_cents: number | null;
+  position: number;
+};
+
+type PhotoRow = {
+  id: string;
+  storage_path: string;
+  width: number | null;
+  height: number | null;
   position: number;
 };
 
@@ -67,10 +82,11 @@ type EntryRow = {
   cost_cents: number | null;
   created_at: string;
   parts: PartRow[];
+  photos: PhotoRow[];
 };
 
 const ENTRY_COLUMNS =
-  'id, kind, title, notes, occurred_on, odometer, cost_cents, created_at, parts (brand, name, part_number, cost_cents, position)';
+  'id, kind, title, notes, occurred_on, odometer, cost_cents, created_at, parts (brand, name, part_number, cost_cents, position), photos (id, storage_path, width, height, position)';
 
 function toLogEntry(row: EntryRow, vin: string): LogEntry {
   return {
@@ -90,6 +106,15 @@ function toLogEntry(row: EntryRow, vin: string): LogEntry {
         name: part.name,
         partNumber: part.part_number ?? undefined,
         costCents: part.cost_cents ?? undefined,
+      })),
+    photos: [...(row.photos ?? [])]
+      .sort((a, b) => a.position - b.position)
+      .map((photo) => ({
+        id: photo.id,
+        url: publicUrl(photo.storage_path),
+        storagePath: photo.storage_path,
+        width: photo.width ?? undefined,
+        height: photo.height ?? undefined,
       })),
   };
 }
@@ -167,7 +192,8 @@ export async function addEntry(input: NewLogEntry): Promise<LogEntry> {
 
   await replaceParts(data.id, input.parts);
 
-  return { ...input, id: data.id, createdAt: data.created_at };
+  // Photos are uploaded separately by the caller, against this new id.
+  return { ...input, id: data.id, createdAt: data.created_at, photos: [] };
 }
 
 /** Change an entry. Callers send only what changed; id and createdAt are fixed. */
@@ -190,8 +216,13 @@ export async function updateEntry(id: string, patch: Partial<NewLogEntry>): Prom
   }
 }
 
-/** Remove one entry. Its parts cascade with it. */
+/**
+ * Remove one entry. Parts and photo rows cascade with it — but the image
+ * files in storage do not, so they have to go first.
+ */
 export async function removeEntry(id: string): Promise<void> {
+  await removePhotosForEntry(id);
+
   const { error } = await supabase.from('entries').delete().eq('id', id);
   if (error) throw new Error(error.message);
 }
@@ -205,6 +236,18 @@ export async function removeEntry(id: string): Promise<void> {
 export async function removeEntriesForVehicle(vin: string): Promise<void> {
   const ownershipId = await findOwnershipId(vin);
   if (!ownershipId) return;
+
+  const { data, error: listError } = await supabase
+    .from('entries')
+    .select('id')
+    .eq('ownership_id', ownershipId);
+  if (listError) throw new Error(listError.message);
+
+  // Storage objects are invisible to the database, so clear them per entry
+  // before the rows disappear and their paths become unrecoverable.
+  for (const entry of data ?? []) {
+    await removePhotosForEntry(entry.id);
+  }
 
   const { error } = await supabase.from('entries').delete().eq('ownership_id', ownershipId);
   if (error) throw new Error(error.message);

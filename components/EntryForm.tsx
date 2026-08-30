@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import {
+  Image,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -17,6 +18,7 @@ import {
   type EntryKind,
   type Part,
 } from '../lib/log';
+import { pickImages, type Photo } from '../lib/photos';
 import { colors, mono } from '../lib/theme';
 
 /**
@@ -32,6 +34,14 @@ export type EntryFormValues = {
   odometer?: number;
   costCents?: number;
   parts: Part[];
+  /**
+   * Local device URIs chosen but not yet uploaded. The form can't upload them
+   * itself, because a new entry has no id to attach them to until it's saved.
+   * The screen does it afterwards.
+   */
+  newPhotoUris: string[];
+  /** Ids of already-uploaded photos the user removed. Deleted on save. */
+  removedPhotoIds: string[];
 };
 
 const emptyPart = (): Part => ({ brand: '', name: '' });
@@ -43,11 +53,14 @@ function centsToInput(cents: number | undefined): string {
 
 export function EntryForm({
   initial,
+  initialPhotos,
   submitLabel,
   onSubmit,
 }: {
   /** Pre-filled values when editing. Omitted when creating. */
   initial?: EntryFormValues;
+  /** Photos already uploaded against this entry. Editing only. */
+  initialPhotos?: Photo[];
   submitLabel: string;
   onSubmit: (values: EntryFormValues) => Promise<void>;
 }) {
@@ -60,8 +73,27 @@ export function EntryForm({
   );
   const [cost, setCost] = useState(centsToInput(initial?.costCents));
   const [parts, setParts] = useState<Part[]>(initial?.parts ?? []);
+  const [existingPhotos, setExistingPhotos] = useState<Photo[]>(initialPhotos ?? []);
+  const [removedPhotoIds, setRemovedPhotoIds] = useState<string[]>([]);
+  const [newPhotoUris, setNewPhotoUris] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+
+  async function handlePickPhotos() {
+    setError(null);
+    try {
+      const uris = await pickImages();
+      setNewPhotoUris((current) => [...current, ...uris]);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Could not open your photo library.');
+    }
+  }
+
+  /** Removal is staged, not immediate — nothing is deleted until save. */
+  function removeExistingPhoto(id: string) {
+    setExistingPhotos((current) => current.filter((photo) => photo.id !== id));
+    setRemovedPhotoIds((current) => [...current, id]);
+  }
 
   /**
    * State is replaced, not mutated: build a new array containing a new object
@@ -102,6 +134,8 @@ export function EntryForm({
             partNumber: p.partNumber?.trim() || undefined,
             costCents: p.costCents,
           })),
+        newPhotoUris,
+        removedPhotoIds,
       });
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Could not save that entry.');
@@ -166,6 +200,46 @@ export function EntryForm({
             />
           </View>
         </View>
+
+        <View style={styles.partsHeader}>
+          <Text style={styles.label}>Photos</Text>
+          <Pressable onPress={handlePickPhotos}>
+            <Text style={styles.addPart}>+ Add photos</Text>
+          </Pressable>
+        </View>
+
+        {existingPhotos.length === 0 && newPhotoUris.length === 0 ? (
+          <Text style={styles.noParts}>No photos on this entry.</Text>
+        ) : (
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.photoStrip}>
+            <View style={styles.photoRow}>
+              {existingPhotos.map((photo) => (
+                <View key={photo.id} style={styles.thumbWrap}>
+                  <Image source={{ uri: photo.url }} style={styles.thumb} />
+                  <Pressable style={styles.thumbRemove} onPress={() => removeExistingPhoto(photo.id)}>
+                    <Text style={styles.thumbRemoveText}>×</Text>
+                  </Pressable>
+                </View>
+              ))}
+              {newPhotoUris.map((uri, index) => (
+                <View key={`${uri}-${index}`} style={styles.thumbWrap}>
+                  <Image source={{ uri }} style={styles.thumb} />
+                  <View style={styles.thumbBadge}>
+                    <Text style={styles.thumbBadgeText}>NEW</Text>
+                  </View>
+                  <Pressable
+                    style={styles.thumbRemove}
+                    onPress={() =>
+                      setNewPhotoUris((current) => current.filter((_, i) => i !== index))
+                    }
+                  >
+                    <Text style={styles.thumbRemoveText}>×</Text>
+                  </Pressable>
+                </View>
+              ))}
+            </View>
+          </ScrollView>
+        )}
 
         <View style={styles.partsHeader}>
           <Text style={styles.label}>Parts</Text>
@@ -344,6 +418,48 @@ const styles = StyleSheet.create({
   },
   addPart: { color: colors.accent, fontSize: 13, fontWeight: '600', marginBottom: 8 },
   noParts: { color: colors.textFaint, fontSize: 14, marginBottom: 8 },
+
+  photoStrip: { marginBottom: 12 },
+  photoRow: { flexDirection: 'row', gap: 10 },
+  thumbWrap: { width: 96, height: 96 },
+  thumb: {
+    width: 96,
+    height: 96,
+    borderRadius: 6,
+    backgroundColor: colors.surface,
+  },
+  thumbRemove: {
+    position: 'absolute',
+    top: -6,
+    right: -6,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: colors.accent,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  thumbRemoveText: {
+    color: colors.background,
+    fontSize: 17,
+    fontWeight: '700',
+    lineHeight: 20,
+  },
+  thumbBadge: {
+    position: 'absolute',
+    bottom: 6,
+    left: 6,
+    backgroundColor: colors.background,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 3,
+  },
+  thumbBadgeText: {
+    color: colors.accent,
+    fontSize: 9,
+    fontWeight: '700',
+    letterSpacing: 1,
+  },
 
   partBlock: {
     borderWidth: 1,
