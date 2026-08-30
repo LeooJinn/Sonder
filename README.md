@@ -28,6 +28,7 @@ Very early. This is being built in public, one working slice at a time.
 - Log mods, service, repairs and milestones against a vehicle, with dates,
   odometer readings, costs and the parts fitted
 - Edit and delete entries
+- Attach photos to entries, resized and compressed on the way up
 - Accounts — sign up and sign in with email and password
 - Everything stored in Postgres, so a garage follows the account to any
   device and survives reinstalling the app
@@ -35,8 +36,8 @@ Very early. This is being built in public, one working slice at a time.
 **What's next**
 
 - Transferring a passport when a car is sold
-- Photos
 - Public passports, so a build can be shared
+- Profiles, so work can be attributed to the person who did it
 
 ---
 
