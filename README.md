@@ -25,10 +25,12 @@ Very early. This is being built in public, one working slice at a time.
 - See year, make, model, trim, engine, drivetrain, body class, and assembly plant
 - Save vehicles to a garage that persists on the device
 - Browse the garage, open a vehicle, remove it
+- Log mods, service, repairs and milestones against a vehicle, with dates,
+  odometer readings, costs and the parts fitted
 
 **What's next**
 
-- Build log — mods, service, repairs and milestones against a vehicle
+- Entry detail and editing
 - Photos
 - Accounts, and ownership transfer between them
 
