@@ -12,6 +12,7 @@
 
 import { supabase } from './supabase';
 import { publicUrl } from './photos';
+import { today } from './dates';
 import type { DecodedVehicle } from './vin';
 
 export type SavedVehicle = DecodedVehicle & {
@@ -247,10 +248,52 @@ export async function addVehicle(vehicle: DecodedVehicle): Promise<SavedVehicle>
 }
 
 /**
+ * Mark a car sold.
+ *
+ * Ends the ownership rather than deleting it. The entries written during that
+ * period stay attached to it, so the seller keeps credit for their work and
+ * the next owner inherits a readable history. Ending the period also frees
+ * the partial unique index, letting the buyer open a new one.
+ *
+ * This is the opposite of removeVehicle, which throws the history away.
+ */
+export async function markSold(vin: string, soldOn?: string): Promise<void> {
+  const ownershipId = await findOwnershipId(vin);
+  if (!ownershipId) throw new Error('That vehicle is not in your garage.');
+
+  const { error } = await supabase
+    .from('ownerships')
+    .update({ ended_on: soldOn ?? today() })
+    .eq('id', ownershipId);
+
+  if (error) throw new Error(error.message);
+}
+
+/** Cars the user used to own. Their history is still theirs. */
+export async function loadPastVehicles(): Promise<SavedVehicle[]> {
+  const userId = await requireUserId();
+
+  const { data, error } = await supabase
+    .from('ownerships')
+    .select(`created_at, ended_on, vehicles!inner(${VEHICLE_COLUMNS})`)
+    .eq('owner_id', userId)
+    .not('ended_on', 'is', null)
+    .order('ended_on', { ascending: false });
+
+  if (error) throw new Error(error.message);
+
+  return (data ?? []).map((row) =>
+    toSavedVehicle(row.vehicles as unknown as VehicleRow, row.created_at)
+  );
+}
+
+/**
  * Remove a vehicle from the garage.
  *
  * Deletes the ownership, not the vehicle: the vehicle row belongs to the car,
- * not to you. Entries cascade with the ownership, so the log goes too.
+ * not to you. Entries cascade with the ownership, so the log goes too. Use
+ * markSold instead when the car was actually sold — this is for correcting a
+ * mistake, and it destroys history.
  */
 export async function removeVehicle(vin: string): Promise<void> {
   const ownershipId = await findOwnershipId(vin);

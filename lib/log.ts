@@ -253,14 +253,6 @@ export async function removeEntriesForVehicle(vin: string): Promise<void> {
   if (error) throw new Error(error.message);
 }
 
-/** Today as "YYYY-MM-DD" in the device's local timezone, for date defaults. */
-export function today(): string {
-  const now = new Date();
-  const month = String(now.getMonth() + 1).padStart(2, '0');
-  const day = String(now.getDate()).padStart(2, '0');
-  return `${now.getFullYear()}-${month}-${day}`;
-}
-
 /** 45000 -> "$450.00". Display only; storage stays in cents. */
 export function formatCents(cents: number): string {
   return `$${(cents / 100).toFixed(2)}`;

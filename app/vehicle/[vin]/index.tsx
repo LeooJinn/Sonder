@@ -1,12 +1,13 @@
 import { useCallback, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
-import { findVehicle, removeVehicle, type SavedVehicle } from '../../../lib/garage';
+import { findVehicle, markSold, removeVehicle, type SavedVehicle } from '../../../lib/garage';
+import { loadPriorHistory, type PriorPeriod } from '../../../lib/history';
 import { loadEntries, removeEntriesForVehicle, type LogEntry } from '../../../lib/log';
 import { isPassportPublic, setPassportPublic } from '../../../lib/passport';
 import { SpecList } from '../../../components/SpecList';
 import { EntryCard } from '../../../components/EntryCard';
-import { colors } from '../../../lib/theme';
+import { colors, mono } from '../../../lib/theme';
 
 /**
  * The square brackets in the folder name make this a dynamic route:
@@ -20,7 +21,18 @@ export default function VehicleScreen() {
   const [confirmingRemove, setConfirmingRemove] = useState(false);
   const [isPublic, setIsPublic] = useState(false);
   const [publishError, setPublishError] = useState<string | null>(null);
+  const [prior, setPrior] = useState<PriorPeriod[]>([]);
+  const [confirmingSold, setConfirmingSold] = useState(false);
   const router = useRouter();
+
+  async function handleSold() {
+    if (!confirmingSold) {
+      setConfirmingSold(true);
+      return;
+    }
+    await markSold(vin);
+    router.replace('/');
+  }
 
   async function togglePublic() {
     const next = !isPublic;
@@ -41,14 +53,18 @@ export default function VehicleScreen() {
   // when you come back — same reason the garage list uses this.
   useFocusEffect(
     useCallback(() => {
-      Promise.all([findVehicle(vin), loadEntries(vin), isPassportPublic(vin)]).then(
-        ([found, log, published]) => {
-          setVehicle(found);
-          setEntries(log);
-          setIsPublic(published);
-          setLoaded(true);
-        }
-      );
+      Promise.all([
+        findVehicle(vin),
+        loadEntries(vin),
+        isPassportPublic(vin),
+        loadPriorHistory(vin),
+      ]).then(([found, log, published, history]) => {
+        setVehicle(found);
+        setEntries(log);
+        setIsPublic(published);
+        setPrior(history);
+        setLoaded(true);
+      });
     }, [vin])
   );
 
@@ -120,6 +136,37 @@ export default function VehicleScreen() {
         <Text style={styles.addButtonText}>Add to log</Text>
       </Pressable>
 
+      {prior.length > 0 && (
+        <View style={styles.priorSection}>
+          <Text style={styles.priorHeading}>Before you</Text>
+          <Text style={styles.priorIntro}>
+            Logged by previous owners. You can read it, but it isn&apos;t yours to change.
+          </Text>
+
+          {prior.map((period) => (
+            <View key={period.ownershipId} style={styles.period}>
+              <Text style={styles.periodOwner}>
+                {period.owner.displayName ??
+                  (period.owner.handle ? `@${period.owner.handle}` : 'Previous owner')}
+              </Text>
+              <Text style={styles.periodDates}>
+                {period.startedOn} → {period.endedOn}
+              </Text>
+
+              {period.entries.length === 0 ? (
+                <Text style={styles.periodEmpty}>Nothing logged during this period.</Text>
+              ) : (
+                <View style={styles.periodEntries}>
+                  {period.entries.map((entry) => (
+                    <EntryCard key={entry.id} entry={entry} />
+                  ))}
+                </View>
+              )}
+            </View>
+          ))}
+        </View>
+      )}
+
       <View style={styles.share}>
         <View style={styles.shareText}>
           <Text style={styles.shareTitle}>
@@ -148,13 +195,28 @@ export default function VehicleScreen() {
       {publishError && <Text style={styles.publishError}>{publishError}</Text>}
 
       <Pressable
+        style={({ pressed }) => [styles.sold, pressed && styles.removePressed]}
+        onPress={handleSold}
+      >
+        <Text style={styles.soldText}>
+          {confirmingSold ? 'Tap again — the history stays with the car' : 'I sold this car'}
+        </Text>
+      </Pressable>
+
+      <Pressable
         style={({ pressed }) => [styles.remove, pressed && styles.removePressed]}
         onPress={handleRemove}
       >
         <Text style={styles.removeText}>
-          {confirmingRemove ? 'Tap again to remove vehicle and log' : 'Remove from garage'}
+          {confirmingRemove
+            ? 'Tap again to permanently delete this car and its log'
+            : 'Remove from garage'}
         </Text>
       </Pressable>
+      <Text style={styles.removeHint}>
+        Removing deletes the log for good. If you sold the car, use the option above so its
+        history survives.
+      </Text>
     </ScrollView>
   );
 }
@@ -236,9 +298,46 @@ const styles = StyleSheet.create({
   shareButtonTextOn: { color: colors.background },
   publishError: { color: colors.accent, fontSize: 13, marginTop: 10 },
 
-  remove: { marginTop: 24, paddingVertical: 12, alignItems: 'center' },
+  priorSection: { marginTop: 36 },
+  priorHeading: { color: colors.text, fontSize: 18, fontWeight: '700' },
+  priorIntro: { color: colors.textFaint, fontSize: 13, marginTop: 4, lineHeight: 18 },
+  period: {
+    marginTop: 16,
+    paddingLeft: 14,
+    borderLeftWidth: 1,
+    borderLeftColor: colors.border,
+  },
+  periodOwner: { color: colors.textMuted, fontSize: 14, fontWeight: '600' },
+  periodDates: {
+    color: colors.textFaint,
+    fontSize: 12,
+    fontFamily: mono,
+    marginTop: 2,
+    marginBottom: 10,
+  },
+  periodEmpty: { color: colors.textFaint, fontSize: 13, marginBottom: 4 },
+  periodEntries: { gap: 10 },
+
+  sold: {
+    marginTop: 28,
+    paddingVertical: 13,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 4,
+  },
+  soldText: { color: colors.text, fontSize: 14, fontWeight: '600' },
+
+  remove: { marginTop: 18, paddingVertical: 12, alignItems: 'center' },
   removePressed: { opacity: 0.6 },
   removeText: { color: colors.accent, fontSize: 14, fontWeight: '600' },
+  removeHint: {
+    color: colors.textFaint,
+    fontSize: 12,
+    textAlign: 'center',
+    lineHeight: 17,
+    paddingHorizontal: 16,
+  },
 
   missing: { color: colors.textMuted, fontSize: 15, padding: 20 },
 });

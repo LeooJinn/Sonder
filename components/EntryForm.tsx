@@ -10,14 +10,8 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import {
-  ENTRY_KINDS,
-  KIND_LABELS,
-  parseCents,
-  today,
-  type EntryKind,
-  type Part,
-} from '../lib/log';
+import { ENTRY_KINDS, KIND_LABELS, parseCents, type EntryKind, type Part } from '../lib/log';
+import { today } from '../lib/dates';
 import { pickImages, type Photo } from '../lib/photos';
 import { colors, mono } from '../lib/theme';
 
