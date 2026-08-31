@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -16,6 +16,18 @@ import { colors } from '../lib/theme';
 
 type Mode = 'signIn' | 'signUp';
 
+/** Supabase's own rate limit on resends. Matching it avoids a confusing error. */
+const RESEND_COOLDOWN_SECONDS = 60;
+
+/**
+ * Whether a failed sign-in failed because the address was never confirmed.
+ * Checks the code first and falls back to the message, since the code was
+ * added later and older responses only carry text.
+ */
+function isUnconfirmedEmailError(error: { code?: string; message: string }): boolean {
+  return error.code === 'email_not_confirmed' || /not confirmed/i.test(error.message);
+}
+
 export default function SignInScreen() {
   const [mode, setMode] = useState<Mode>('signIn');
   const [email, setEmail] = useState('');
@@ -24,8 +36,42 @@ export default function SignInScreen() {
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  /** Set when an address exists but hasn't been confirmed, which is what the resend acts on. */
+  const [unconfirmedEmail, setUnconfirmedEmail] = useState<string | null>(null);
+  const [resending, setResending] = useState(false);
+  const [cooldown, setCooldown] = useState(0);
 
   const isSignUp = mode === 'signUp';
+
+  // Ticks the cooldown down once a second. Re-running on each change is what
+  // makes it a countdown; the cleanup stops it when the screen goes away.
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const timer = setTimeout(() => setCooldown((seconds) => seconds - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [cooldown]);
+
+  async function handleResend() {
+    if (!unconfirmedEmail || cooldown > 0 || resending) return;
+
+    setError(null);
+    setNotice(null);
+    setResending(true);
+
+    const { error: resendError } = await supabase.auth.resend({
+      type: 'signup',
+      email: unconfirmedEmail,
+    });
+
+    if (resendError) {
+      setError(resendError.message);
+    } else {
+      setNotice(`New confirmation link sent to ${unconfirmedEmail}.`);
+      setCooldown(RESEND_COOLDOWN_SECONDS);
+    }
+
+    setResending(false);
+  }
 
   async function handleSubmit() {
     setError(null);
@@ -49,7 +95,14 @@ export default function SignInScreen() {
       : await supabase.auth.signInWithPassword({ email: email.trim(), password });
 
     if (authError) {
-      setError(authError.message);
+      // A sign-in blocked purely by an unconfirmed address isn't a dead end —
+      // offer the resend rather than leaving the person stuck at an error.
+      if (isUnconfirmedEmailError(authError)) {
+        setUnconfirmedEmail(email.trim());
+        setError("That email hasn't been confirmed yet.");
+      } else {
+        setError(authError.message);
+      }
       setBusy(false);
       return;
     }
@@ -58,6 +111,7 @@ export default function SignInScreen() {
     // That isn't an error — the account exists, it just isn't usable yet.
     if (isSignUp && !data.session) {
       setNotice(`Account created. Check ${email.trim()} for a confirmation link, then sign in.`);
+      setUnconfirmedEmail(email.trim());
       setMode('signIn');
       setPassword('');
     }
@@ -90,7 +144,14 @@ export default function SignInScreen() {
           <TextInput
             style={styles.input}
             value={email}
-            onChangeText={setEmail}
+            onChangeText={(text) => {
+              setEmail(text);
+              // The resend targets a specific address. Once the field no longer
+              // matches it, offering to resend would send to the old one.
+              if (unconfirmedEmail && text.trim() !== unconfirmedEmail) {
+                setUnconfirmedEmail(null);
+              }
+            }}
             placeholder="you@example.com"
             placeholderTextColor={colors.disabled}
             autoCapitalize="none"
@@ -123,6 +184,33 @@ export default function SignInScreen() {
         {error && <Text style={styles.error}>{error}</Text>}
         {notice && <Text style={styles.notice}>{notice}</Text>}
 
+        {unconfirmedEmail && (
+          <View style={styles.resend}>
+            <Text style={styles.resendTitle}>Didn&apos;t get the email?</Text>
+            <Text style={styles.resendBody}>
+              Check your spam folder first — confirmation emails often land there.
+            </Text>
+            <Pressable
+              onPress={handleResend}
+              disabled={cooldown > 0 || resending}
+              hitSlop={8}
+            >
+              <Text
+                style={[
+                  styles.resendAction,
+                  (cooldown > 0 || resending) && styles.resendActionDisabled,
+                ]}
+              >
+                {resending
+                  ? 'Sending…'
+                  : cooldown > 0
+                    ? `Resend available in ${cooldown}s`
+                    : 'Resend confirmation email'}
+              </Text>
+            </Pressable>
+          </View>
+        )}
+
         <Pressable
           style={({ pressed }) => [
             styles.submit,
@@ -148,6 +236,7 @@ export default function SignInScreen() {
               setMode(isSignUp ? 'signIn' : 'signUp');
               setError(null);
               setNotice(null);
+              setUnconfirmedEmail(null);
             }}
           >
             <Text style={styles.switchLink}>{isSignUp ? 'Sign in' : 'Create an account'}</Text>
@@ -190,6 +279,19 @@ const styles = StyleSheet.create({
   },
 
   error: { color: colors.accent, fontSize: 14, marginBottom: 12, lineHeight: 20 },
+
+  resend: {
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 6,
+    padding: 16,
+    marginBottom: 12,
+    gap: 6,
+  },
+  resendTitle: { color: colors.text, fontSize: 14, fontWeight: '600' },
+  resendBody: { color: colors.textMuted, fontSize: 13, lineHeight: 18 },
+  resendAction: { color: colors.accent, fontSize: 14, fontWeight: '600', marginTop: 4 },
+  resendActionDisabled: { color: colors.textFaint },
   notice: { color: '#8FBF7F', fontSize: 14, marginBottom: 12, lineHeight: 20 },
 
   submit: {
