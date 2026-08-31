@@ -77,6 +77,12 @@ export async function loadPassport(vin: string): Promise<Passport | null> {
                        cylinders, displacement, fuel_type, transmission, plant)`
     )
     .eq('is_public', true)
+    // Only the current ownership. A sold car keeps its previous owners'
+    // periods, and those stay published if they ever were — so without this
+    // a VIN that has changed hands matches several rows and maybeSingle
+    // fails. The partial unique index guarantees at most one open period per
+    // vehicle, which is what makes maybeSingle safe here.
+    .is('ended_on', null)
     .eq('vehicles.vin', vin.toUpperCase())
     .maybeSingle();
 
