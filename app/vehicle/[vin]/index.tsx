@@ -3,6 +3,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { findVehicle, removeVehicle, type SavedVehicle } from '../../../lib/garage';
 import { loadEntries, removeEntriesForVehicle, type LogEntry } from '../../../lib/log';
+import { isPassportPublic, setPassportPublic } from '../../../lib/passport';
 import { SpecList } from '../../../components/SpecList';
 import { EntryCard } from '../../../components/EntryCard';
 import { colors } from '../../../lib/theme';
@@ -17,17 +18,37 @@ export default function VehicleScreen() {
   const [entries, setEntries] = useState<LogEntry[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [confirmingRemove, setConfirmingRemove] = useState(false);
+  const [isPublic, setIsPublic] = useState(false);
+  const [publishError, setPublishError] = useState<string | null>(null);
   const router = useRouter();
+
+  async function togglePublic() {
+    const next = !isPublic;
+    // Optimistic: flip immediately so the toggle feels instant, and put it
+    // back if the write fails.
+    setIsPublic(next);
+    setPublishError(null);
+
+    try {
+      await setPassportPublic(vin, next);
+    } catch (e) {
+      setIsPublic(!next);
+      setPublishError(e instanceof Error ? e.message : 'Could not change sharing.');
+    }
+  }
 
   // Reloads on every focus so an entry added on the next screen shows up
   // when you come back — same reason the garage list uses this.
   useFocusEffect(
     useCallback(() => {
-      Promise.all([findVehicle(vin), loadEntries(vin)]).then(([found, log]) => {
-        setVehicle(found);
-        setEntries(log);
-        setLoaded(true);
-      });
+      Promise.all([findVehicle(vin), loadEntries(vin), isPassportPublic(vin)]).then(
+        ([found, log, published]) => {
+          setVehicle(found);
+          setEntries(log);
+          setIsPublic(published);
+          setLoaded(true);
+        }
+      );
     }, [vin])
   );
 
@@ -99,6 +120,33 @@ export default function VehicleScreen() {
         <Text style={styles.addButtonText}>Add to log</Text>
       </Pressable>
 
+      <View style={styles.share}>
+        <View style={styles.shareText}>
+          <Text style={styles.shareTitle}>
+            {isPublic ? 'Passport is public' : 'Passport is private'}
+          </Text>
+          <Text style={styles.shareBody}>
+            {isPublic
+              ? `Anyone with the link can see this build. /p/${vin}`
+              : 'Only you can see this build log.'}
+          </Text>
+        </View>
+        <Pressable
+          style={({ pressed }) => [
+            styles.shareButton,
+            isPublic && styles.shareButtonOn,
+            pressed && styles.removePressed,
+          ]}
+          onPress={togglePublic}
+        >
+          <Text style={[styles.shareButtonText, isPublic && styles.shareButtonTextOn]}>
+            {isPublic ? 'Unpublish' : 'Publish'}
+          </Text>
+        </Pressable>
+      </View>
+
+      {publishError && <Text style={styles.publishError}>{publishError}</Text>}
+
       <Pressable
         style={({ pressed }) => [styles.remove, pressed && styles.removePressed]}
         onPress={handleRemove}
@@ -162,6 +210,31 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     letterSpacing: 1,
   },
+
+  share: {
+    marginTop: 24,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 6,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+  },
+  shareText: { flex: 1, gap: 3 },
+  shareTitle: { color: colors.text, fontSize: 15, fontWeight: '600' },
+  shareBody: { color: colors.textFaint, fontSize: 13, lineHeight: 18 },
+  shareButton: {
+    borderWidth: 1,
+    borderColor: colors.accent,
+    borderRadius: 4,
+    paddingVertical: 9,
+    paddingHorizontal: 16,
+  },
+  shareButtonOn: { backgroundColor: colors.accent },
+  shareButtonText: { color: colors.accent, fontSize: 13, fontWeight: '700' },
+  shareButtonTextOn: { color: colors.background },
+  publishError: { color: colors.accent, fontSize: 13, marginTop: 10 },
 
   remove: { marginTop: 24, paddingVertical: 12, alignItems: 'center' },
   removePressed: { opacity: 0.6 },

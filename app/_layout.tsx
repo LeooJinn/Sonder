@@ -39,8 +39,11 @@ function RouteGuard() {
     if (loading) return;
 
     const onSignIn = segments[0] === 'sign-in';
+    // Published passports are the one thing a stranger can open. Redirecting
+    // them to sign-in would defeat the point of a shareable link.
+    const onPublicRoute = segments[0] === 'p';
 
-    if (!session && !onSignIn) {
+    if (!session && !onSignIn && !onPublicRoute) {
       router.replace('/sign-in');
     } else if (session && onSignIn) {
       router.replace('/');
