@@ -13,7 +13,7 @@ import {
 import { ENTRY_KINDS, KIND_LABELS, parseCents, type EntryKind, type Part } from '../lib/log';
 import { today } from '../lib/dates';
 import { pickImages, type Photo } from '../lib/photos';
-import { colors, mono } from '../lib/theme';
+import { colors, column, mono } from '../lib/theme';
 
 /**
  * Everything the form collects. Deliberately not a LogEntry: the form knows
@@ -366,7 +366,7 @@ function Field({
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
-  content: { padding: 20, paddingBottom: 48 },
+  content: { padding: 20, paddingBottom: 48, ...column },
 
   label: {
     color: colors.textMuted,

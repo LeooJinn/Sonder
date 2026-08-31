@@ -14,7 +14,7 @@ import { Stack, useRouter } from 'expo-router';
 import { decodeVin, type DecodedVehicle } from '../lib/vin';
 import { addVehicle } from '../lib/garage';
 import { SpecList } from '../components/SpecList';
-import { colors, mono } from '../lib/theme';
+import { colors, column, mono } from '../lib/theme';
 
 export default function AddVehicleScreen() {
   const [vin, setVin] = useState('');
@@ -135,7 +135,7 @@ export default function AddVehicleScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
-  content: { padding: 20 },
+  content: { padding: 20, ...column },
 
   label: {
     color: colors.textMuted,

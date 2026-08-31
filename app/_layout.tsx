@@ -65,15 +65,11 @@ function RouteGuard() {
         headerTintColor: colors.text,
         headerTitleStyle: { fontWeight: '600' },
         headerShadowVisible: false,
-        contentStyle: {
-          backgroundColor: colors.background,
-          // The app is designed for a phone. On a desktop browser a full-width
-          // column stretches every line and blows images up to absurd sizes,
-          // so cap it and centre it.
-          width: '100%',
-          maxWidth: 720,
-          alignSelf: 'center',
-        },
+        // Full width, so the app's own background paints edge to edge. The
+        // reading column is capped inside each screen instead — constraining
+        // it here would shrink the screen itself and expose the navigator's
+        // default light background down either side.
+        contentStyle: { backgroundColor: colors.background },
       }}
     />
   );

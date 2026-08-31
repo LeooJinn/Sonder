@@ -5,7 +5,7 @@ import { loadPassport, type Passport } from '../../lib/passport';
 import { regionLabel } from '../../lib/regions';
 import { SpecList } from '../../components/SpecList';
 import { EntryCard } from '../../components/EntryCard';
-import { colors } from '../../lib/theme';
+import { colors, column } from '../../lib/theme';
 
 /**
  * A published passport. Route: /p/:vin
@@ -97,7 +97,7 @@ export default function PublicPassportScreen() {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
   centered: { justifyContent: 'center', alignItems: 'center', padding: 32, gap: 8 },
-  content: { padding: 20, paddingBottom: 48 },
+  content: { padding: 20, paddingBottom: 48, ...column },
 
   wordmark: {
     color: colors.textFaint,
