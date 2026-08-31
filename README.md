@@ -29,15 +29,19 @@ Very early. This is being built in public, one working slice at a time.
   odometer readings, costs and the parts fitted
 - Edit and delete entries
 - Attach photos to entries, resized and compressed on the way up
-- Accounts — sign up and sign in with email and password
+- Accounts, with a handle, display name and region
+- **Publish a passport** at a link anyone can open without an account
+- **Sell a car** — the history stays with the vehicle. The next owner inherits
+  a readable record of everything before them, and the previous owner keeps
+  credit for their own work
 - Everything stored in Postgres, so a garage follows the account to any
   device and survives reinstalling the app
 
 **What's next**
 
-- Transferring a passport when a car is sold
-- Public passports, so a build can be shared
-- Profiles, so work can be attributed to the person who did it
+- A hosted web build, so passport links work outside localhost
+- Events and meets
+- Marketplace listings
 
 ---
 
