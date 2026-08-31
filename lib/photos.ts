@@ -34,6 +34,8 @@ export type Photo = {
   storagePath: string;
   width?: number;
   height?: number;
+  /** Gallery photos only. Entry photos take their context from the entry. */
+  caption?: string;
 };
 
 type PhotoRow = {
@@ -42,6 +44,7 @@ type PhotoRow = {
   width: number | null;
   height: number | null;
   position: number;
+  caption?: string | null;
 };
 
 /** The public URL for a stored object. Exported so the log can build its own. */
@@ -56,6 +59,7 @@ function toPhoto(row: PhotoRow): Photo {
     storagePath: row.storage_path,
     width: row.width ?? undefined,
     height: row.height ?? undefined,
+    caption: row.caption ?? undefined,
   };
 }
 
@@ -149,6 +153,63 @@ export async function addPhoto(entryId: string, localUri: string, position = 0):
   return toPhoto(data as PhotoRow);
 }
 
+/**
+ * Upload a photo straight to the car, with no log entry attached.
+ *
+ * Shares the whole pipeline with entry photos — same compression, same path
+ * convention, same cleanup — and differs only in which column points at it.
+ */
+export async function addGalleryPhoto(
+  ownershipId: string,
+  localUri: string,
+  caption?: string,
+  position = 0
+): Promise<Photo> {
+  const userId = await requireUserId();
+  const { uri, width, height } = await compress(localUri);
+
+  const storagePath = `${userId}/gallery/${Crypto.randomUUID()}.jpg`;
+  const bytes = await readBytes(uri);
+
+  const { error: uploadError } = await supabase.storage
+    .from(BUCKET)
+    .upload(storagePath, bytes, { contentType: 'image/jpeg' });
+
+  if (uploadError) throw new Error(uploadError.message);
+
+  const { data, error } = await supabase
+    .from('photos')
+    .insert({
+      ownership_id: ownershipId,
+      storage_path: storagePath,
+      width,
+      height,
+      position,
+      caption: caption?.trim() || null,
+    })
+    .select('id, storage_path, width, height, position, caption')
+    .single();
+
+  if (error) {
+    await supabase.storage.from(BUCKET).remove([storagePath]);
+    throw new Error(error.message);
+  }
+
+  return toPhoto(data as PhotoRow);
+}
+
+/** The gallery for one ownership period, newest first. */
+export async function loadGallery(ownershipId: string): Promise<Photo[]> {
+  const { data, error } = await supabase
+    .from('photos')
+    .select('id, storage_path, width, height, position, caption')
+    .eq('ownership_id', ownershipId)
+    .order('position', { ascending: false });
+
+  if (error) throw new Error(error.message);
+  return (data as PhotoRow[]).map(toPhoto);
+}
+
 /** Every photo on an entry, in the order they were added. */
 export async function loadPhotos(entryId: string): Promise<Photo[]> {
   const { data, error } = await supabase
@@ -159,6 +220,16 @@ export async function loadPhotos(entryId: string): Promise<Photo[]> {
 
   if (error) throw new Error(error.message);
   return (data as PhotoRow[]).map(toPhoto);
+}
+
+/** Set or clear a gallery photo's caption. */
+export async function setPhotoCaption(photoId: string, caption: string): Promise<void> {
+  const { error } = await supabase
+    .from('photos')
+    .update({ caption: caption.trim() || null })
+    .eq('id', photoId);
+
+  if (error) throw new Error(error.message);
 }
 
 /** Remove one photo: the file first, then the row. */

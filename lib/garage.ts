@@ -102,42 +102,74 @@ export async function findOwnershipId(vin: string): Promise<string | null> {
  * most recent photo per vehicle" is a top-1-per-group problem, which is
  * awkward over PostgREST and trivial in JavaScript at this scale.
  */
+/**
+ * Clamp the shape of a garage card. A very tall portrait photo would push the
+ * rest of the garage off screen; a panorama would render as a sliver. Within
+ * the clamp the image is never distorted.
+ */
+function coverFrom(storagePath: string, width: number | null, height: number | null): Cover {
+  const natural = width && height ? width / height : 4 / 3;
+  return {
+    url: publicUrl(storagePath),
+    aspectRatio: Math.min(Math.max(natural, 3 / 4), 16 / 9),
+  };
+}
+
 async function loadCovers(ownershipIds: string[]): Promise<Map<string, Cover>> {
   const covers = new Map<string, Cover>();
   if (ownershipIds.length === 0) return covers;
 
-  const { data, error } = await supabase
+  // The gallery is the car's own photos, so it's the natural source for a
+  // cover. Newest first — the same order the gallery grid shows.
+  const { data: galleryData, error: galleryError } = await supabase
+    .from('photos')
+    .select('storage_path, width, height, ownership_id')
+    .in('ownership_id', ownershipIds)
+    .order('position', { ascending: false });
+
+  if (galleryError) throw new Error(galleryError.message);
+
+  type GalleryRow = {
+    storage_path: string;
+    width: number | null;
+    height: number | null;
+    ownership_id: string;
+  };
+
+  for (const row of (galleryData ?? []) as GalleryRow[]) {
+    if (!covers.has(row.ownership_id)) {
+      covers.set(row.ownership_id, coverFrom(row.storage_path, row.width, row.height));
+    }
+  }
+
+  // Fall back to the newest build log photo for cars with an empty gallery,
+  // so a card that already had an image doesn't lose it.
+  const withoutCover = ownershipIds.filter((id) => !covers.has(id));
+  if (withoutCover.length === 0) return covers;
+
+  const { data: entryData, error: entryError } = await supabase
     .from('photos')
     .select('storage_path, width, height, entries!inner(ownership_id, occurred_on, created_at)')
-    .in('entries.ownership_id', ownershipIds);
+    .in('entries.ownership_id', withoutCover);
 
-  if (error) throw new Error(error.message);
+  if (entryError) throw new Error(entryError.message);
 
-  type CoverRow = {
+  type EntryPhotoRow = {
     storage_path: string;
     width: number | null;
     height: number | null;
     entries: { ownership_id: string; occurred_on: string; created_at: string };
   };
 
-  const rows = (data ?? []) as unknown as CoverRow[];
-
-  // Newest entry first, so the first row seen for an ownership is its cover.
-  rows.sort((a, b) => {
+  const rows = ((entryData ?? []) as unknown as EntryPhotoRow[]).sort((a, b) => {
     const byDate = b.entries.occurred_on.localeCompare(a.entries.occurred_on);
     return byDate !== 0 ? byDate : b.entries.created_at.localeCompare(a.entries.created_at);
   });
 
   for (const row of rows) {
-    if (covers.has(row.entries.ownership_id)) continue;
-
-    // Clamp the shape of the card. A very tall portrait photo would otherwise
-    // push the rest of the garage off screen; a panorama would render as a
-    // sliver. Within the clamp the image is never distorted.
-    const natural = row.width && row.height ? row.width / row.height : 4 / 3;
-    const aspectRatio = Math.min(Math.max(natural, 3 / 4), 16 / 9);
-
-    covers.set(row.entries.ownership_id, { url: publicUrl(row.storage_path), aspectRatio });
+    if (!covers.has(row.entries.ownership_id)) {
+      covers.set(row.entries.ownership_id, coverFrom(row.storage_path, row.width, row.height));
+    }
   }
 
   return covers;

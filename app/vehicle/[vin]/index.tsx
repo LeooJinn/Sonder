@@ -1,13 +1,29 @@
 import { useCallback, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
-import { findVehicle, markSold, removeVehicle, type SavedVehicle } from '../../../lib/garage';
+import {
+  findOwnershipId,
+  findVehicle,
+  markSold,
+  removeVehicle,
+  type SavedVehicle,
+} from '../../../lib/garage';
+import {
+  addGalleryPhoto,
+  loadGallery,
+  pickImages,
+  removePhoto,
+  setPhotoCaption,
+  type Photo,
+} from '../../../lib/photos';
+import { Gallery } from '../../../components/Gallery';
 import { loadPriorHistory, type PriorPeriod } from '../../../lib/history';
 import { loadEntries, removeEntriesForVehicle, type LogEntry } from '../../../lib/log';
 import { isPassportPublic, setPassportPublic } from '../../../lib/passport';
 import { SpecList } from '../../../components/SpecList';
 import { EntryCard } from '../../../components/EntryCard';
-import { colors, mono } from '../../../lib/theme';
+import { ConfirmDialog } from '../../../components/ConfirmDialog';
+import { colors, column, mono } from '../../../lib/theme';
 
 /**
  * The square brackets in the folder name make this a dynamic route:
@@ -22,14 +38,34 @@ export default function VehicleScreen() {
   const [isPublic, setIsPublic] = useState(false);
   const [publishError, setPublishError] = useState<string | null>(null);
   const [prior, setPrior] = useState<PriorPeriod[]>([]);
-  const [confirmingSold, setConfirmingSold] = useState(false);
+  const [askingSold, setAskingSold] = useState(false);
+  const [askingRemove, setAskingRemove] = useState(false);
+  const [ownershipId, setOwnershipId] = useState<string | null>(null);
+  const [gallery, setGallery] = useState<Photo[]>([]);
+  const [uploading, setUploading] = useState(false);
   const router = useRouter();
 
-  async function handleSold() {
-    if (!confirmingSold) {
-      setConfirmingSold(true);
-      return;
+  const photoCount =
+    entries.reduce((total, entry) => total + entry.photos.length, 0) + gallery.length;
+
+  async function handleAddGalleryPhotos() {
+    if (!ownershipId) return;
+
+    setUploading(true);
+    try {
+      const uris = await pickImages();
+      // position counts down from the current top so newest sorts first.
+      let position = gallery.length;
+      for (const uri of uris) {
+        const photo = await addGalleryPhoto(ownershipId, uri, undefined, position++);
+        setGallery((current) => [photo, ...current]);
+      }
+    } finally {
+      setUploading(false);
     }
+  }
+
+  async function handleSold() {
     await markSold(vin);
     router.replace('/');
   }
@@ -58,21 +94,20 @@ export default function VehicleScreen() {
         loadEntries(vin),
         isPassportPublic(vin),
         loadPriorHistory(vin),
-      ]).then(([found, log, published, history]) => {
+        findOwnershipId(vin),
+      ]).then(async ([found, log, published, history, ownership]) => {
         setVehicle(found);
         setEntries(log);
         setIsPublic(published);
         setPrior(history);
+        setOwnershipId(ownership);
+        setGallery(ownership ? await loadGallery(ownership) : []);
         setLoaded(true);
       });
     }, [vin])
   );
 
   async function handleRemove() {
-    if (!confirmingRemove) {
-      setConfirmingRemove(true);
-      return;
-    }
     // Delete the log too. Otherwise removing a car leaves its history
     // orphaned in storage with nothing pointing at it.
     await removeEntriesForVehicle(vin);
@@ -102,6 +137,24 @@ export default function VehicleScreen() {
 
       <View style={styles.plate}>
         <SpecList vehicle={vehicle} />
+      </View>
+
+      <View style={styles.gallerySection}>
+        <Gallery
+          photos={gallery}
+          busy={uploading}
+          onAdd={handleAddGalleryPhotos}
+          onRemove={async (photo) => {
+            await removePhoto(photo);
+            setGallery((current) => current.filter((p) => p.id !== photo.id));
+          }}
+          onCaption={async (photo, caption) => {
+            await setPhotoCaption(photo.id, caption);
+            setGallery((current) =>
+              current.map((p) => (p.id === photo.id ? { ...p, caption } : p))
+            );
+          }}
+        />
       </View>
 
       <View style={styles.logHeader}>
@@ -196,34 +249,54 @@ export default function VehicleScreen() {
 
       <Pressable
         style={({ pressed }) => [styles.sold, pressed && styles.removePressed]}
-        onPress={handleSold}
+        onPress={() => setAskingSold(true)}
       >
-        <Text style={styles.soldText}>
-          {confirmingSold ? 'Tap again — the history stays with the car' : 'I sold this car'}
-        </Text>
+        <Text style={styles.soldText}>I sold this car</Text>
       </Pressable>
 
       <Pressable
         style={({ pressed }) => [styles.remove, pressed && styles.removePressed]}
-        onPress={handleRemove}
+        onPress={() => setAskingRemove(true)}
       >
-        <Text style={styles.removeText}>
-          {confirmingRemove
-            ? 'Tap again to permanently delete this car and its log'
-            : 'Remove from garage'}
-        </Text>
+        <Text style={styles.removeText}>Remove from garage</Text>
       </Pressable>
       <Text style={styles.removeHint}>
         Removing deletes the log for good. If you sold the car, use the option above so its
         history survives.
       </Text>
+
+      <ConfirmDialog
+        visible={askingSold}
+        title="Sold this car?"
+        body={`It leaves your garage, but nothing is deleted. Your ${entries.length} ${
+          entries.length === 1 ? 'entry stays' : 'entries stay'
+        } attached to your ownership, and the next owner inherits them as read-only history.`}
+        confirmLabel="Mark as sold"
+        onConfirm={handleSold}
+        onCancel={() => setAskingSold(false)}
+      />
+
+      <ConfirmDialog
+        visible={askingRemove}
+        title="Delete this car and its log?"
+        body="This is permanent and cannot be undone. If you sold the car, cancel and use 'I sold this car' instead so the history survives for the next owner."
+        consequences={[
+          `${entries.length} log ${entries.length === 1 ? 'entry' : 'entries'} deleted`,
+          `${photoCount} ${photoCount === 1 ? 'photo' : 'photos'} deleted`,
+          isPublic ? 'The public passport link stops working' : 'Your ownership record is erased',
+        ]}
+        confirmLabel="Delete forever"
+        confirmPhrase="DELETE"
+        onConfirm={handleRemove}
+        onCancel={() => setAskingRemove(false)}
+      />
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
-  content: { padding: 20, paddingBottom: 40 },
+  content: { padding: 20, paddingBottom: 40, ...column },
 
   title: { color: colors.text, fontSize: 26, fontWeight: '700' },
   trim: { color: colors.textMuted, fontSize: 16, marginTop: 2 },
@@ -236,6 +309,8 @@ const styles = StyleSheet.create({
     borderLeftColor: colors.accent,
     padding: 20,
   },
+
+  gallerySection: { marginTop: 32 },
 
   logHeader: {
     flexDirection: 'row',
