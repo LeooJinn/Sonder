@@ -29,7 +29,9 @@ Very early. This is being built in public, one working slice at a time.
   odometer readings, costs and the parts fitted
 - Edit and delete entries
 - Attach photos to entries, resized and compressed on the way up
-- Accounts, with a handle, display name and region
+- A gallery of the car itself, separate from the maintenance record
+- Accounts, with a handle, display name and region, and account deletion that
+  erases identity without destroying history other people rely on
 - **Publish a passport** at a link anyone can open without an account
 - **Sell a car** — the history stays with the vehicle. The next owner inherits
   a readable record of everything before them, and the previous owner keeps
