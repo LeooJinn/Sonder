@@ -13,11 +13,19 @@ Sonder gives the car its own profile, keyed to its VIN. Mods, service, repairs, 
 photos — a build history that belongs to the vehicle and **transfers when the car sells**.
 Your work stays credited to you. The car keeps its story.
 
+**Live at [imsonder.com](https://www.imsonder.com)** — and every published passport has
+its own link, openable by anyone, no account needed:
+
+```
+https://www.imsonder.com/p/<VIN>
+```
+
 ---
 
 ## Status
 
-Very early. This is being built in public, one working slice at a time.
+Early, but real: deployed, with accounts and a database behind it. Built in public,
+one working slice at a time.
 
 **What works today**
 
@@ -41,7 +49,8 @@ Very early. This is being built in public, one working slice at a time.
 
 **What's next**
 
-- A hosted web build, so passport links work outside localhost
+- Showing a passport's **full ownership chain** — right now a shared link shows
+  only the current owner's chapter, which undersells the whole point
 - Events and meets
 - Marketplace listings
 
@@ -65,6 +74,10 @@ put its Project URL and anon key into `.env` — both are under Project Settings
 Environment variables are read at build time, so restart with `npx expo start -c`
 after changing them.
 
+Apply the migrations in `supabase/migrations/` in filename order, via the SQL Editor.
+They are meant to run once each, in sequence — re-running one fails on objects that
+already exist.
+
 Then either scan the QR code with Expo Go (Android: scan from inside the app — iOS: use the
 stock Camera app), or enter the `exp://` URL from the terminal manually. Your phone and
 computer need to be on the same network.
@@ -81,31 +94,44 @@ No API keys required — vPIC is a free public service.
 |---|---|
 | **App** | React Native + Expo, TypeScript |
 | **VIN data** | NHTSA vPIC API |
-| **Backend** | Supabase — Postgres, auth, row-level security |
+| **Backend** | Supabase — Postgres, auth, storage, row-level security |
+| **Web** | Vercel, deployed from `main` |
 
 Deliberately boring choices. The interesting problem here is the community, not the
 infrastructure.
+
+One consequence worth naming: the anon key ships inside the client, as it is designed to.
+Access is governed entirely by row-level security policies in the migrations, not by that
+key being secret.
 
 ---
 
 ## Project layout
 
 ```
-app/                    screens — a file's path is its route
-  _layout.tsx           wraps every screen
-  index.tsx             /              the garage
-  add.tsx               /add           VIN entry
-  vehicle/[vin].tsx     /vehicle/:vin  one car
-components/             shared UI
+app/                          screens — a file's path is its route
+  _layout.tsx                 wraps every screen, guards the signed-out ones
+  sign-in.tsx    /sign-in     sign in or create an account
+  index.tsx      /            the garage
+  add.tsx        /add         VIN entry
+  profile.tsx    /profile     handle, display name, region
+  vehicle/[vin]/              one car: passport, log, gallery, sale
+  p/[vin].tsx    /p/:vin      a published passport — the only public screen
+components/                   shared UI
 lib/
-  vin.ts                VIN validation and vPIC decoding
-  garage.ts             vehicles and ownerships
-  log.ts                build log entries and parts
-  auth.ts               session state
-  supabase.ts           database client
-  theme.ts              colours in one place
-supabase/migrations/    database schema
-assets/                 icons and splash
+  vin.ts                      VIN validation and vPIC decoding
+  garage.ts                   vehicles and ownerships
+  log.ts                      build log entries and parts
+  photos.ts                   uploads, resizing, storage cleanup
+  passport.ts                 published passports
+  history.ts                  inherited history from previous owners
+  profile.ts / account.ts     identity, and deleting it
+  auth.tsx                    session state
+  supabase.ts                 database client
+  regions.ts / dates.ts       shared value types
+  theme.ts                    colours in one place
+supabase/migrations/          database schema, applied in order
+assets/                       icons and splash
 ```
 
 The data model turns on one table. Entries belong to an **ownership period**
