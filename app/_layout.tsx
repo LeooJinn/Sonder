@@ -62,7 +62,15 @@ function RouteGuard() {
         headerTintColor: colors.text,
         headerTitleStyle: { fontWeight: '600' },
         headerShadowVisible: false,
-        contentStyle: { backgroundColor: colors.background },
+        contentStyle: {
+          backgroundColor: colors.background,
+          // The app is designed for a phone. On a desktop browser a full-width
+          // column stretches every line and blows images up to absurd sizes,
+          // so cap it and centre it.
+          width: '100%',
+          maxWidth: 720,
+          alignSelf: 'center',
+        },
       }}
     />
   );

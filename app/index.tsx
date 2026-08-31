@@ -101,7 +101,10 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   cardPressed: { opacity: 0.7 },
-  cover: { width: '100%', backgroundColor: colors.background },
+  // aspectRatio comes from the photo itself; maxHeight stops a tall portrait
+  // shot from pushing the rest of the garage off screen. Within that box the
+  // image crops rather than distorts.
+  cover: { width: '100%', maxHeight: 260, backgroundColor: colors.background },
   cardBody: { padding: 16 },
   cardTitle: { color: colors.text, fontSize: 18, fontWeight: '700' },
   cardTrim: { color: colors.textMuted, fontSize: 14, marginTop: 1 },
