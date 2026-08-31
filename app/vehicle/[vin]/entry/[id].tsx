@@ -4,6 +4,7 @@ import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { findEntry, removeEntry, updateEntry, type LogEntry } from '../../../../lib/log';
 import { addPhoto, removePhoto } from '../../../../lib/photos';
 import { EntryForm, type EntryFormValues } from '../../../../components/EntryForm';
+import { ConfirmDialog } from '../../../../components/ConfirmDialog';
 import { colors } from '../../../../lib/theme';
 
 /** Edit or delete an existing log entry. Route: /vehicle/:vin/entry/:id */
@@ -11,7 +12,7 @@ export default function EditEntryScreen() {
   const { id } = useLocalSearchParams<{ vin: string; id: string }>();
   const [entry, setEntry] = useState<LogEntry | null>(null);
   const [loaded, setLoaded] = useState(false);
-  const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [askingDelete, setAskingDelete] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -42,10 +43,6 @@ export default function EditEntryScreen() {
   }
 
   async function handleDelete() {
-    if (!confirmingDelete) {
-      setConfirmingDelete(true);
-      return;
-    }
     await removeEntry(id);
     router.back();
   }
@@ -91,12 +88,24 @@ export default function EditEntryScreen() {
 
       <Pressable
         style={({ pressed }) => [styles.delete, pressed && styles.deletePressed]}
-        onPress={handleDelete}
+        onPress={() => setAskingDelete(true)}
       >
-        <Text style={styles.deleteText}>
-          {confirmingDelete ? 'Tap again to delete this entry' : 'Delete entry'}
-        </Text>
+        <Text style={styles.deleteText}>Delete entry</Text>
       </Pressable>
+
+      <ConfirmDialog
+        visible={askingDelete}
+        title="Delete this entry?"
+        body={`"${entry.title}" will be removed from this car's history. This cannot be undone.`}
+        consequences={
+          entry.photos.length > 0
+            ? [`${entry.photos.length} ${entry.photos.length === 1 ? 'photo' : 'photos'} deleted`]
+            : undefined
+        }
+        confirmLabel="Delete entry"
+        onConfirm={handleDelete}
+        onCancel={() => setAskingDelete(false)}
+      />
     </View>
   );
 }

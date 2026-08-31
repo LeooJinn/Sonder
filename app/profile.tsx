@@ -15,7 +15,9 @@ import { loadMyProfile, updateMyProfile } from '../lib/profile';
 import { signOut } from '../lib/auth';
 import { supabase } from '../lib/supabase';
 import { RegionPicker } from '../components/RegionPicker';
-import { colors, mono } from '../lib/theme';
+import { ConfirmDialog } from '../components/ConfirmDialog';
+import { deleteAccount } from '../lib/account';
+import { colors, column, mono } from '../lib/theme';
 
 export default function ProfileScreen() {
   const [handle, setHandle] = useState('');
@@ -26,6 +28,7 @@ export default function ProfileScreen() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
+  const [askingDelete, setAskingDelete] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -141,7 +144,39 @@ export default function ProfileScreen() {
         >
           <Text style={styles.signOutText}>Sign out</Text>
         </Pressable>
+
+        <View style={styles.danger}>
+          <Text style={styles.dangerTitle}>Delete account</Text>
+          <Text style={styles.dangerBody}>
+            Your account, profile and any cars still in your garage are deleted permanently.
+            Cars you sold keep their history for their current owner, with your name removed.
+          </Text>
+          <Pressable
+            style={({ pressed }) => [styles.dangerButton, pressed && styles.savePressed]}
+            onPress={() => setAskingDelete(true)}
+          >
+            <Text style={styles.dangerButtonText}>Delete my account</Text>
+          </Pressable>
+        </View>
       </ScrollView>
+
+      <ConfirmDialog
+        visible={askingDelete}
+        title="Delete your account?"
+        body="This cannot be undone. You will be signed out immediately and will not be able to sign back in with this email."
+        consequences={[
+          'Your profile and handle are released',
+          'Cars still in your garage are deleted, with their logs and photos',
+          'Cars you sold keep their history, with your name removed',
+        ]}
+        confirmLabel="Delete account"
+        confirmPhrase="DELETE MY ACCOUNT"
+        onConfirm={async () => {
+          await deleteAccount();
+          router.replace('/sign-in');
+        }}
+        onCancel={() => setAskingDelete(false)}
+      />
     </KeyboardAvoidingView>
   );
 }
@@ -149,7 +184,7 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
   centered: { justifyContent: 'center' },
-  content: { padding: 20, paddingBottom: 48 },
+  content: { padding: 20, paddingBottom: 48, ...column },
 
   label: {
     color: colors.textMuted,
@@ -189,4 +224,23 @@ const styles = StyleSheet.create({
 
   signOut: { marginTop: 28, paddingVertical: 12, alignItems: 'center' },
   signOutText: { color: colors.accent, fontSize: 14, fontWeight: '600' },
+
+  danger: {
+    marginTop: 40,
+    paddingTop: 24,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+    gap: 8,
+  },
+  dangerTitle: { color: colors.text, fontSize: 15, fontWeight: '600' },
+  dangerBody: { color: colors.textFaint, fontSize: 13, lineHeight: 18 },
+  dangerButton: {
+    marginTop: 6,
+    paddingVertical: 13,
+    alignItems: 'center',
+    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: colors.accent,
+  },
+  dangerButtonText: { color: colors.accent, fontSize: 14, fontWeight: '700' },
 });
