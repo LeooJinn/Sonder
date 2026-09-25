@@ -5,6 +5,10 @@
   "framework": null,
   "rewrites": [
     {
+      "source": "/p/:vin",
+      "destination": "/api/passport-page?vin=:vin"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }
