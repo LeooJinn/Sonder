@@ -1,12 +1,16 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { Link, Stack, useLocalSearchParams } from 'expo-router';
+import { Link, Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { loadPassport, type Passport } from '../../lib/passport';
 import { regionLabel } from '../../lib/regions';
 import { formatCents } from '../../lib/log';
+import { formatAgo, ordinal } from '../../lib/dates';
+import { describeError } from '../../lib/errors';
 import { DataPage } from '../../components/DataPage';
-import { Timeline } from '../../components/Timeline';
-import { colors, column, fonts, type } from '../../lib/theme';
+import { Gallery } from '../../components/Gallery';
+import { Timeline, ownerName, period, summarize } from '../../components/Timeline';
+import { Button, ErrorState } from '../../components/ui';
+import { colors, column, fonts, radius, type } from '../../lib/theme';
 
 /**
  * A published passport. Route: /p/:vin
@@ -20,19 +24,34 @@ export default function PublicPassportScreen() {
   const { vin } = useLocalSearchParams<{ vin: string }>();
   const [passport, setPassport] = useState<Passport | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
 
-  useEffect(() => {
+  const load = useCallback(() => {
+    setLoading(true);
+    setError(null);
     loadPassport(vin)
       .then(setPassport)
-      .catch(() => setPassport(null))
+      .catch((e) => setError(describeError(e)))
       .finally(() => setLoading(false));
   }, [vin]);
+
+  useEffect(load, [load]);
 
   if (loading) {
     return (
       <View style={[styles.screen, styles.centered]}>
         <Stack.Screen options={{ headerShown: false, title: 'Passport' }} />
         <ActivityIndicator color={colors.accent} />
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View style={styles.screen}>
+        <Stack.Screen options={{ headerShown: false, title: 'Passport' }} />
+        <ErrorState message={error} onRetry={load} />
       </View>
     );
   }
@@ -50,11 +69,24 @@ export default function PublicPassportScreen() {
     );
   }
 
-  const { vehicle, entries, owner } = passport;
-  const ownerName = owner.displayName ?? (owner.handle ? `@${owner.handle}` : 'Its owner');
-  const region = regionLabel(owner.region);
-  const spent = entries.reduce((total, e) => total + (e.costCents ?? 0), 0);
-  const photo = entries.find((e) => e.photos.length > 0)?.photos[0]?.url;
+  const { vehicle, chapters, listing } = passport;
+  const current = chapters[0];
+  const keeper = ownerName(current.owner, 'Its owner');
+  const region = regionLabel(current.owner?.region);
+
+  // The car's own gallery first, then any photo from its history.
+  const photo =
+    current.gallery[0]?.url ??
+    chapters.flatMap((c) => c.entries).find((e) => e.photos.length > 0)?.photos[0]?.url ??
+    chapters.find((c) => c.gallery.length > 0)?.gallery[0]?.url;
+  const gallery = chapters.flatMap((c) => c.gallery);
+
+  const holder = [
+    `Kept by ${keeper}${region ? ` in ${region}` : ''}.`,
+    chapters.length > 1 ? `${ordinal(chapters.length)} owner on Sonder.` : '',
+  ]
+    .filter(Boolean)
+    .join(' ');
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
@@ -64,33 +96,65 @@ export default function PublicPassportScreen() {
 
       <View style={styles.topBar}>
         <Text style={styles.wordmark}>Sonder</Text>
-        <Text style={styles.docType}>Vehicle passport</Text>
+        {/* Visitors arrive from a link and have nowhere to go back to; members
+            arrive from For sale or their own car and do. */}
+        {router.canGoBack() ? (
+          <Button label="Back" variant="quiet" onPress={() => router.back()} />
+        ) : (
+          <Text style={styles.docType}>Vehicle passport</Text>
+        )}
       </View>
 
-      <DataPage
-        vehicle={vehicle}
-        photoUrl={photo}
-        holder={`Kept by ${ownerName}${region ? ` in ${region}` : ''}`}
-      />
+      <DataPage vehicle={vehicle} photoUrl={photo} holder={holder} />
+
+      {listing && (
+        <View style={styles.listing}>
+          <Text style={styles.listingLabel}>For sale</Text>
+          <Text style={styles.price}>
+            {listing.askingPriceCents !== undefined
+              ? formatCents(listing.askingPriceCents)
+              : 'Make an offer'}
+          </Text>
+          <Text style={styles.listingMeta}>
+            Listed {formatAgo(listing.listedAt)}
+            {region ? ` in ${region}` : ''}. Everything below is the car&apos;s logged history.
+          </Text>
+          {listing.contact ? (
+            <View style={styles.contact}>
+              <Text style={styles.contactLabel}>Contact the seller</Text>
+              <Text style={styles.contactValue} selectable>
+                {listing.contact}
+              </Text>
+            </View>
+          ) : null}
+        </View>
+      )}
 
       <View style={styles.section}>
         <Timeline
-          chapters={[
-            {
-              key: 'current',
-              title: `${ownerName}'s time with it`,
-              subtitle:
-                entries.length === 0
-                  ? ''
-                  : `${entries.length} ${entries.length === 1 ? 'entry' : 'entries'}${
-                      spent > 0 ? `, ${formatCents(spent)} logged` : ''
-                    }.`,
-              entries,
-              empty: 'Nothing has been logged on this passport yet.',
-            },
-          ]}
+          chapters={chapters.map((chapter, i) => ({
+            key: chapter.ownershipId,
+            title:
+              i === 0
+                ? `${keeper}'s time with it`
+                : `${ownerName(chapter.owner)}'s time with it`,
+            subtitle: [period(chapter.startedOn, chapter.endedOn), summarize(chapter.entries)]
+              .filter(Boolean)
+              .join(' '),
+            entries: chapter.entries,
+            empty:
+              i === 0
+                ? 'Nothing has been logged on this passport yet.'
+                : 'Nothing was logged in this time.',
+          }))}
         />
       </View>
+
+      {gallery.length > 0 && (
+        <View style={styles.section}>
+          <Gallery photos={gallery} />
+        </View>
+      )}
 
       <View style={styles.footer}>
         <Text style={styles.footerLine}>Every car has a life of its own.</Text>
@@ -121,6 +185,25 @@ const styles = StyleSheet.create({
   },
   wordmark: { fontFamily: fonts.displayBold, fontSize: 26, color: colors.accent },
   docType: { fontFamily: fonts.display, fontSize: 16, color: colors.textMuted },
+
+  listing: {
+    marginTop: 16,
+    padding: 20,
+    borderRadius: radius.page,
+    borderWidth: 1,
+    borderColor: colors.accent,
+  },
+  listingLabel: { fontFamily: fonts.bodySemi, fontSize: 15, color: colors.accent },
+  price: { ...type.hero, color: colors.text, marginTop: 4 },
+  listingMeta: { ...type.small, color: colors.textMuted, marginTop: 8 },
+  contact: {
+    marginTop: 16,
+    paddingTop: 14,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+  },
+  contactLabel: { ...type.caption, color: colors.textFaint },
+  contactValue: { ...type.bodyStrong, color: colors.text, marginTop: 2 },
 
   section: { marginTop: 36 },
 

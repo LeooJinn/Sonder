@@ -19,17 +19,19 @@ import {
 import { Gallery } from '../../../components/Gallery';
 import { loadPriorHistory, type PriorPeriod } from '../../../lib/history';
 import {
-  formatCents,
   loadEntries,
   removeEntriesForVehicle,
   type LogEntry,
 } from '../../../lib/log';
 import { isPassportPublic, setPassportPublic } from '../../../lib/passport';
+import { loadMyListing, saveMyListing, type MyListing } from '../../../lib/market';
+import { formatCents, parseCents } from '../../../lib/log';
+import { describeError } from '../../../lib/errors';
 import { formatMonthYear } from '../../../lib/dates';
 import { DataPage } from '../../../components/DataPage';
-import { Timeline, type Chapter } from '../../../components/Timeline';
+import { Timeline, ownerName, period, summarize, type Chapter } from '../../../components/Timeline';
 import { ConfirmDialog } from '../../../components/ConfirmDialog';
-import { Button, SectionHeader } from '../../../components/ui';
+import { Button, ErrorState, Field, SectionHeader } from '../../../components/ui';
 import { colors, column, fonts, radius, type } from '../../../lib/theme';
 
 /** Where a published passport lives. Local web builds link to themselves. */
@@ -39,20 +41,6 @@ function passportUrl(vin: string): string {
       ? window.location.origin
       : 'https://www.imsonder.com';
   return `${origin}/p/${vin}`;
-}
-
-/** "4 entries, $3,149 logged." — the sums a buyer actually asks about. */
-function chapterSummary(entries: LogEntry[]): string {
-  if (entries.length === 0) return '';
-  const spent = entries.reduce((total, e) => total + (e.costCents ?? 0), 0);
-  const count = `${entries.length} ${entries.length === 1 ? 'entry' : 'entries'}`;
-  return spent > 0 ? `${count}, ${formatCents(spent)} logged.` : `${count}.`;
-}
-
-function ownerName(owner: PriorPeriod['owner']): string {
-  if (owner.displayName) return owner.displayName;
-  if (owner.handle) return `@${owner.handle}`;
-  return 'A previous owner';
 }
 
 /**
@@ -67,12 +55,20 @@ export default function VehicleScreen() {
   const [isPublic, setIsPublic] = useState(false);
   const [publishError, setPublishError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [listing, setListing] = useState<MyListing>({ forSale: false });
+  // The switch opens the form; nothing is listed until it's saved.
+  const [listingOpen, setListingOpen] = useState(false);
+  const [price, setPrice] = useState('');
+  const [contact, setContact] = useState('');
+  const [listingBusy, setListingBusy] = useState(false);
+  const [listingError, setListingError] = useState<string | null>(null);
   const [prior, setPrior] = useState<PriorPeriod[]>([]);
   const [askingSold, setAskingSold] = useState(false);
   const [askingRemove, setAskingRemove] = useState(false);
   const [ownershipId, setOwnershipId] = useState<string | null>(null);
   const [gallery, setGallery] = useState<Photo[]>([]);
   const [uploading, setUploading] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const router = useRouter();
 
   const photoCount =
@@ -115,9 +111,48 @@ export default function VehicleScreen() {
 
     try {
       await setPassportPublic(vin, next);
+      // The database delists a car that stops being public; mirror it.
+      if (!next) {
+        setListing((current) => ({ ...current, forSale: false }));
+        setListingOpen(false);
+      }
     } catch (e) {
       setIsPublic(!next);
       setPublishError(e instanceof Error ? e.message : 'Sharing could not be changed. Try again.');
+    }
+  }
+
+  function showListing(next: MyListing) {
+    setListing(next);
+    setListingOpen(next.forSale);
+    setPrice(next.askingPriceCents !== undefined ? String(next.askingPriceCents / 100) : '');
+    setContact(next.contact ?? '');
+  }
+
+  async function saveListing(forSale: boolean) {
+    setListingBusy(true);
+    setListingError(null);
+    const next: MyListing = { forSale, askingPriceCents: parseCents(price), contact };
+    try {
+      await saveMyListing(vin, next);
+      showListing(next);
+    } catch (e) {
+      setListingError(describeError(e));
+    } finally {
+      setListingBusy(false);
+    }
+  }
+
+  function toggleForSale(next: boolean) {
+    setListingError(null);
+    if (next) {
+      setListingOpen(true);
+    } else if (listing.forSale) {
+      // Withdrawing is immediate: nobody should have to hunt for a save
+      // button to stop strangers contacting them.
+      saveListing(false);
+    } else {
+      setListingOpen(false);
     }
   }
 
@@ -135,15 +170,18 @@ export default function VehicleScreen() {
 
   // Reloads on every focus so an entry added on the next screen shows up
   // when you come back — same reason the garage list uses this.
-  useFocusEffect(
-    useCallback(() => {
-      Promise.all([
-        findVehicle(vin),
-        loadEntries(vin),
-        isPassportPublic(vin),
-        loadPriorHistory(vin),
-        findOwnershipId(vin),
-      ]).then(async ([found, log, published, history, ownership]) => {
+  const load = useCallback(() => {
+    setLoadError(null);
+    Promise.all([
+      findVehicle(vin),
+      loadEntries(vin),
+      isPassportPublic(vin),
+      loadPriorHistory(vin),
+      findOwnershipId(vin),
+      loadMyListing(vin),
+    ])
+      .then(async ([found, log, published, history, ownership, myListing]) => {
+        showListing(myListing);
         setVehicle(found);
         setEntries(log);
         setIsPublic(published);
@@ -151,9 +189,11 @@ export default function VehicleScreen() {
         setOwnershipId(ownership);
         setGallery(ownership ? await loadGallery(ownership) : []);
         setLoaded(true);
-      });
-    }, [vin])
-  );
+      })
+      .catch((e) => setLoadError(describeError(e)));
+  }, [vin]);
+
+  useFocusEffect(load);
 
   async function handleRemove() {
     // Delete the log too. Otherwise removing a car leaves its history
@@ -161,6 +201,15 @@ export default function VehicleScreen() {
     await removeEntriesForVehicle(vin);
     await removeVehicle(vin);
     router.replace('/');
+  }
+
+  if (loadError && !loaded) {
+    return (
+      <View style={styles.screen}>
+        <Stack.Screen options={{ title: 'Car' }} />
+        <ErrorState message={loadError} onRetry={load} />
+      </View>
+    );
   }
 
   if (!loaded) return <View style={styles.screen} />;
@@ -182,19 +231,19 @@ export default function VehicleScreen() {
     {
       key: 'mine',
       title: 'Your time with it',
-      subtitle: [`Since ${formatMonthYear(vehicle.addedAt)}.`, chapterSummary(entries)]
-        .filter(Boolean)
-        .join(' '),
+      subtitle: [period(vehicle.addedAt), summarize(entries)].filter(Boolean).join(' '),
       entries,
       empty: 'Nothing logged yet. Mods, service, repairs and milestones all go here.',
       onPressEntry: (entry) => router.push(`/vehicle/${vin}/entry/${entry.id}`),
     },
-    ...prior.map((period) => ({
-      key: period.ownershipId,
-      title: `${ownerName(period.owner)}'s time with it`,
-      subtitle: `${formatMonthYear(period.startedOn)} to ${formatMonthYear(period.endedOn)}. ${chapterSummary(period.entries)}`.trim(),
+    ...prior.map((earlier) => ({
+      key: earlier.ownershipId,
+      title: `${ownerName(earlier.owner)}'s time with it`,
+      subtitle: [period(earlier.startedOn, earlier.endedOn), summarize(earlier.entries)]
+        .filter(Boolean)
+        .join(' '),
       note: 'Logged by a previous owner, so it can be read but not changed.',
-      entries: period.entries,
+      entries: earlier.entries,
       empty: 'Nothing was logged in this time.',
     })),
   ];
@@ -281,6 +330,63 @@ export default function VehicleScreen() {
           )}
 
           {publishError && <Text style={styles.error}>{publishError}</Text>}
+
+          {isPublic && (
+            <View style={styles.linkRow}>
+              <View style={styles.switchRow}>
+                <View style={styles.switchText}>
+                  <Text style={styles.panelTitle}>For sale</Text>
+                  <Text style={styles.panelBody}>
+                    {listing.forSale
+                      ? `Listed under For sale${
+                          listing.askingPriceCents !== undefined
+                            ? ` at ${formatCents(listing.askingPriceCents)}`
+                            : ''
+                        }, with its history attached.`
+                      : 'List it under For sale. Buyers read its whole history before they get in touch.'}
+                  </Text>
+                </View>
+                <Switch
+                  value={listingOpen}
+                  onValueChange={toggleForSale}
+                  disabled={listingBusy}
+                  accessibilityLabel="For sale"
+                  trackColor={{ false: colors.border, true: colors.accent }}
+                  thumbColor={colors.paper}
+                  {...(Platform.OS === 'web' ? { activeThumbColor: colors.paper } : {})}
+                />
+              </View>
+
+              {listingOpen && (
+                <View style={styles.listingForm}>
+                  <Field
+                    label="Asking price"
+                    value={price}
+                    onChangeText={setPrice}
+                    placeholder="18500"
+                    keyboardType="decimal-pad"
+                    hint="Leave it empty to take offers."
+                  />
+                  <Field
+                    label="How buyers reach you"
+                    value={contact}
+                    onChangeText={setContact}
+                    placeholder="Text 555-0100, or DM @yourhandle"
+                    maxLength={200}
+                    hint="Shown on the passport to anyone with the link. Share only what you're happy to."
+                  />
+                  <Button
+                    label={listing.forSale ? 'Save listing' : 'List for sale'}
+                    variant="secondary"
+                    busy={listingBusy}
+                    onPress={() => saveListing(true)}
+                  />
+                </View>
+              )}
+
+              {listingError && <Text style={styles.error}>{listingError}</Text>}
+            </View>
+          )}
         </View>
       </View>
 
@@ -360,6 +466,7 @@ const styles = StyleSheet.create({
   linkActions: { flexDirection: 'row', alignItems: 'center', gap: 20 },
   linkButton: { minHeight: 44, paddingHorizontal: 16 },
   error: { ...type.small, color: colors.danger, marginTop: 12 },
+  listingForm: { marginTop: 4 },
 
   ownershipBody: { ...type.small, color: colors.textMuted, marginBottom: 14 },
   removeButton: { marginTop: 12 },

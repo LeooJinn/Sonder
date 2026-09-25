@@ -210,6 +210,28 @@ export async function loadGallery(ownershipId: string): Promise<Photo[]> {
   return (data as PhotoRow[]).map(toPhoto);
 }
 
+/**
+ * Galleries for several ownership periods in one query, keyed by ownership.
+ * A passport shows every period's gallery, and one round trip per owner
+ * would make a well-travelled car the slowest page in the app.
+ */
+export async function loadGalleries(ownershipIds: string[]): Promise<Map<string, Photo[]>> {
+  const galleries = new Map<string, Photo[]>(ownershipIds.map((id) => [id, []]));
+  if (ownershipIds.length === 0) return galleries;
+
+  const { data, error } = await supabase
+    .from('photos')
+    .select('id, storage_path, width, height, position, caption, ownership_id')
+    .in('ownership_id', ownershipIds)
+    .order('position', { ascending: false });
+
+  if (error) throw new Error(error.message);
+  for (const row of data as (PhotoRow & { ownership_id: string })[]) {
+    galleries.get(row.ownership_id)?.push(toPhoto(row));
+  }
+  return galleries;
+}
+
 /** Every photo on an entry, in the order they were added. */
 export async function loadPhotos(entryId: string): Promise<Photo[]> {
   const { data, error } = await supabase

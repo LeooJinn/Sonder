@@ -14,10 +14,22 @@ import { focusRing, type PressState } from './ui';
 export function RegionPicker({
   value,
   onChange,
+  emptyLabel = 'Not set',
+  placeholder,
+  title = 'Region',
 }: {
   value: string;
   /** Empty string means "not set" — distinct from "unchanged". */
   onChange: (code: string) => void;
+  /** What the empty choice is called: "Not set" on a profile, "Everywhere" in a filter. */
+  emptyLabel?: string;
+  /**
+   * Shown when nothing is chosen, as a value rather than a prompt — a filter
+   * set to "Everywhere" has a meaningful empty state. Without it the trigger
+   * prompts to choose.
+   */
+  placeholder?: string;
+  title?: string;
 }) {
   const [open, setOpen] = useState(false);
   const label = regionLabel(value);
@@ -36,10 +48,10 @@ export function RegionPicker({
         }}
         onPress={() => setOpen(true)}
         accessibilityRole="button"
-        accessibilityLabel={`Region: ${label ?? 'not set'}`}
+        accessibilityLabel={`${title}: ${label ?? emptyLabel}`}
       >
-        <Text style={label ? styles.triggerValue : styles.triggerPlaceholder}>
-          {label ?? 'Choose a region'}
+        <Text style={label || placeholder ? styles.triggerValue : styles.triggerPlaceholder}>
+          {label ?? placeholder ?? 'Choose a region'}
         </Text>
         <Text style={styles.chevron}>Change</Text>
       </Pressable>
@@ -55,7 +67,7 @@ export function RegionPicker({
           {/* Stops a tap inside the sheet from reaching the backdrop above. */}
           <Pressable style={styles.sheet} onPress={() => {}}>
             <View style={styles.sheetHeader}>
-              <Text style={styles.sheetTitle}>Region</Text>
+              <Text style={styles.sheetTitle}>{title}</Text>
               <Pressable onPress={() => setOpen(false)} hitSlop={8}>
                 <Text style={styles.close}>Close</Text>
               </Pressable>
@@ -67,7 +79,7 @@ export function RegionPicker({
                 onPress={() => select('')}
               >
                 <Text style={[styles.optionText, !value && styles.optionTextActive]}>
-                  Not set
+                  {emptyLabel}
                 </Text>
                 {!value && <Text style={styles.tick}>✓</Text>}
               </Pressable>

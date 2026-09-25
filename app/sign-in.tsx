@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { Stack } from 'expo-router';
 import { supabase } from '../lib/supabase';
+import { describeError } from '../lib/errors';
 import { Button, Field, Notice, focusRing, type PressState } from '../components/ui';
 import { colors, fonts, radius, type } from '../lib/theme';
 
@@ -63,7 +64,7 @@ export default function SignInScreen() {
     });
 
     if (resendError) {
-      setError(resendError.message);
+      setError(describeError(resendError));
     } else {
       setNotice(`New confirmation link sent to ${unconfirmedEmail}.`);
       setCooldown(RESEND_COOLDOWN_SECONDS);
@@ -100,7 +101,7 @@ export default function SignInScreen() {
         setUnconfirmedEmail(email.trim());
         setError("That email hasn't been confirmed yet.");
       } else {
-        setError(authError.message);
+        setError(describeError(authError));
       }
       setBusy(false);
       return;

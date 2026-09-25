@@ -2,17 +2,21 @@ import { useCallback, useState } from 'react';
 import { FlatList, Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Stack, useFocusEffect, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { loadGarage, type SavedVehicle } from '../lib/garage';
-import { formatMonthYear } from '../lib/dates';
-import { groupVin } from '../components/DataPage';
-import { Button, focusRing, type PressState } from '../components/ui';
-import { colors, column, fonts, radius, type } from '../lib/theme';
+import { loadGarage, type SavedVehicle } from '../../lib/garage';
+import { useAuth } from '../../lib/auth';
+import { describeError } from '../../lib/errors';
+import { formatMonthYear } from '../../lib/dates';
+import { groupVin } from '../../components/DataPage';
+import { Button, ErrorState, focusRing, type PressState } from '../../components/ui';
+import { colors, column, fonts, radius, type } from '../../lib/theme';
 
 export default function GarageScreen() {
   const [garage, setGarage] = useState<SavedVehicle[]>([]);
   const [loaded, setLoaded] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { session } = useAuth();
 
   /**
    * useFocusEffect runs every time this screen comes into view — including
@@ -20,17 +24,34 @@ export default function GarageScreen() {
    * so a car added on another screen wouldn't show up until a restart.
    *
    * useCallback stops the effect re-running on every render.
+   *
+   * Waits for a session: on a signed-out visit this screen mounts for a
+   * moment before the guard redirects to sign-in, and loading then would
+   * only fail.
    */
-  useFocusEffect(
-    useCallback(() => {
-      loadGarage().then((vehicles) => {
+  const load = useCallback(() => {
+    if (!session) return;
+    setError(null);
+    loadGarage()
+      .then((vehicles) => {
         setGarage(vehicles);
         setLoaded(true);
-      });
-    }, [])
-  );
+      })
+      .catch((e) => setError(describeError(e)));
+  }, [session]);
+
+  useFocusEffect(load);
 
   const isEmpty = loaded && garage.length === 0;
+
+  if (error && !loaded) {
+    return (
+      <View style={[styles.screen, { paddingTop: insets.top }]}>
+        <Stack.Screen options={{ headerShown: false, title: 'Garage' }} />
+        <ErrorState message={error} onRetry={load} />
+      </View>
+    );
+  }
 
   return (
     <View style={[styles.screen, { paddingTop: insets.top }]}>
@@ -51,9 +72,7 @@ export default function GarageScreen() {
                 <Text style={styles.title} accessibilityRole="header">
                   Garage
                 </Text>
-                <Text style={styles.count}>
-                  {garage.length} {garage.length === 1 ? 'car' : 'cars'}
-                </Text>
+                <Button label="Add a car" variant="quiet" onPress={() => router.push('/add')} />
               </View>
             ) : null}
           </View>
@@ -77,14 +96,11 @@ export default function GarageScreen() {
                 The VIN is on the driver&apos;s side of the dashboard, readable through the
                 windshield, and on the sticker inside the driver&apos;s door.
               </Text>
+              <Button label="Add a car" onPress={() => router.push('/add')} style={styles.emptyButton} />
             </View>
           ) : null
         }
       />
-
-      <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 16) }]}>
-        <Button label="Add a car" onPress={() => router.push('/add')} style={styles.footerButton} />
-      </View>
     </View>
   );
 }
@@ -146,7 +162,6 @@ const styles = StyleSheet.create({
     marginTop: 16,
   },
   title: { ...type.hero, color: colors.text },
-  count: { ...type.label, color: colors.textMuted },
 
   card: {
     backgroundColor: colors.paper,
@@ -181,12 +196,5 @@ const styles = StyleSheet.create({
     borderLeftColor: colors.accent,
   },
 
-  footer: {
-    paddingHorizontal: 20,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
-    backgroundColor: colors.background,
-  },
-  footerButton: { width: '100%', maxWidth: 600, alignSelf: 'center' },
+  emptyButton: { marginTop: 28, alignSelf: 'flex-start' },
 });

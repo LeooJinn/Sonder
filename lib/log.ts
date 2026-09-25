@@ -72,7 +72,7 @@ type PhotoRow = {
   position: number;
 };
 
-type EntryRow = {
+export type EntryRow = {
   id: string;
   kind: EntryKind;
   title: string;
@@ -85,10 +85,11 @@ type EntryRow = {
   photos: PhotoRow[];
 };
 
-const ENTRY_COLUMNS =
+/** Entry columns with parts and photos, shared by every query that reads a log. */
+export const ENTRY_COLUMNS =
   'id, kind, title, notes, occurred_on, odometer, cost_cents, created_at, parts (brand, name, part_number, cost_cents, position), photos (id, storage_path, width, height, position)';
 
-function toLogEntry(row: EntryRow, vin: string): LogEntry {
+export function toLogEntry(row: EntryRow, vin: string): LogEntry {
   return {
     id: row.id,
     vehicleVin: vin,

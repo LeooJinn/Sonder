@@ -1,6 +1,6 @@
 import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { formatCents, KIND_LABELS, type LogEntry } from '../lib/log';
-import { formatDay } from '../lib/dates';
+import { formatDay, formatMonthYear } from '../lib/dates';
 import { colors, fonts, KIND_COLORS, radius, type } from '../lib/theme';
 import { focusRing, type PressState } from './ui';
 
@@ -20,6 +20,31 @@ export type Chapter = {
   /** Omitted for chapters that can't be edited. */
   onPressEntry?: (entry: LogEntry) => void;
 };
+
+/** "4 entries, $3,149 logged." — the sums a buyer actually asks about. */
+export function summarize(entries: LogEntry[]): string {
+  if (entries.length === 0) return '';
+  const spent = entries.reduce((total, e) => total + (e.costCents ?? 0), 0);
+  const count = `${entries.length} ${entries.length === 1 ? 'entry' : 'entries'}`;
+  return spent > 0 ? `${count}, ${formatCents(spent)} logged.` : `${count}.`;
+}
+
+/** "Since June 2025." or "April 2008 to June 2025." */
+export function period(startedOn: string, endedOn?: string): string {
+  return endedOn
+    ? `${formatMonthYear(startedOn)} to ${formatMonthYear(endedOn)}.`
+    : `Since ${formatMonthYear(startedOn)}.`;
+}
+
+/** How to name an owner: their display name, their handle, or nobody in particular. */
+export function ownerName(
+  owner: { displayName?: string; handle?: string } | undefined,
+  fallback = 'A previous owner'
+): string {
+  if (owner?.displayName) return owner.displayName;
+  if (owner?.handle) return `@${owner.handle}`;
+  return fallback;
+}
 
 /**
  * The build log as a timeline along the odometer. Mileage sits on the axis

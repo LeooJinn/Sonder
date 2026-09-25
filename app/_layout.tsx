@@ -99,6 +99,9 @@ function RouteGuard() {
         // default light background down either side.
         contentStyle: { backgroundColor: colors.background },
       }}
-    />
+    >
+      {/* The tabs draw their own headers. */}
+      <Stack.Screen name="(tabs)" options={{ headerShown: false, title: 'Sonder' }} />
+    </Stack>
   );
 }

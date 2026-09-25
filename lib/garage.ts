@@ -69,7 +69,7 @@ function toSavedVehicle(row: VehicleRow, addedAt: string): SavedVehicle {
 }
 
 /** The signed-in user's id. Throws if nobody is signed in. */
-async function requireUserId(): Promise<string> {
+export async function requireUserId(): Promise<string> {
   const { data } = await supabase.auth.getUser();
   if (!data.user) throw new Error('You need to be signed in.');
   return data.user.id;

@@ -44,15 +44,22 @@ one working slice at a time.
 - **Sell a car** — the history stays with the vehicle. The next owner inherits
   a readable record of everything before them, and the previous owner keeps
   credit for their own work
+- **The full ownership chain** on a published passport: every owner's time with
+  the car, as one timeline along the odometer. Previous owners are named only
+  if they published their own period
+- **List a car for sale** with an asking price and a contact line. Listings
+  appear under For sale, filterable by region, and every one is a published
+  passport — a buyer reads the history before they get in touch
+- **Meets**: post one to a region, say you're going, and pick which car you're
+  bringing. Members only, and never on a public page
 - Everything stored in Postgres, so a garage follows the account to any
   device and survives reinstalling the app
 
 **What's next**
 
-- Showing a passport's **full ownership chain** — right now a shared link shows
-  only the current owner's chapter, which undersells the whole point
-- Events and meets
-- Marketplace listings
+- Following a car or a member, so a meet or a listing nearby finds you
+- Service reminders from the log: when the next oil change is due, by miles
+  or months
 
 ---
 
@@ -77,6 +84,15 @@ after changing them.
 Apply the migrations in `supabase/migrations/` in filename order, via the SQL Editor.
 They are meant to run once each, in sequence — re-running one fails on objects that
 already exist.
+
+The row-level security policies have tests. They apply every migration to a
+throwaway local Postgres and check, as an anonymous visitor and as signed-in
+members, what each can read and write:
+
+```bash
+npm install --no-save embedded-postgres pg
+node supabase/tests/run.mjs
+```
 
 Then either scan the QR code with Expo Go (Android: scan from inside the app — iOS: use the
 stock Camera app), or enter the `exp://` URL from the terminal manually. Your phone and
@@ -112,10 +128,14 @@ key being secret.
 app/                          screens — a file's path is its route
   _layout.tsx                 wraps every screen, guards the signed-out ones
   sign-in.tsx    /sign-in     sign in or create an account
-  index.tsx      /            the garage
+  (tabs)/                     the three tabs; the group adds nothing to URLs
+    index.tsx    /            the garage
+    market.tsx   /market      cars for sale
+    meets.tsx    /meets       upcoming meets
   add.tsx        /add         VIN entry
   profile.tsx    /profile     handle, display name, region
-  vehicle/[vin]/              one car: passport, log, gallery, sale
+  vehicle/[vin]/              one car: passport, log, gallery, listing, sale
+  meet/          /meet/new    post a meet; /meet/:id to see one and say you're going
   p/[vin].tsx    /p/:vin      a published passport — the only public screen
 components/                   shared UI
 lib/
@@ -123,14 +143,18 @@ lib/
   garage.ts                   vehicles and ownerships
   log.ts                      build log entries and parts
   photos.ts                   uploads, resizing, storage cleanup
-  passport.ts                 published passports
+  passport.ts                 published passports, with every owner's chapter
   history.ts                  inherited history from previous owners
+  market.ts                   listing a car, and browsing listings
+  meets.ts                    meets and who's going
   profile.ts / account.ts     identity, and deleting it
   auth.tsx                    session state
   supabase.ts                 database client
   regions.ts / dates.ts       shared value types
-  theme.ts                    colours in one place
+  errors.ts                   failures as sentences a person can act on
+  theme.ts                    colours, type and radii in one place
 supabase/migrations/          database schema, applied in order
+supabase/tests/               row-level security checks against a local Postgres
 assets/                       icons and splash
 ```
 

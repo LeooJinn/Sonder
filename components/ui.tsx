@@ -180,7 +180,28 @@ export function Notice({ tone, children }: { tone: 'error' | 'success'; children
   );
 }
 
+/**
+ * A screen that couldn't load. Says what went wrong in plain terms and offers
+ * the one thing that usually fixes it.
+ */
+export function ErrorState({ message, onRetry }: { message: string; onRetry: () => void }) {
+  return (
+    <View style={styles.errorState} accessibilityLiveRegion="polite">
+      <Text style={styles.errorTitle} accessibilityRole="header">
+        This didn&apos;t load
+      </Text>
+      <Text style={styles.errorBody}>{message}</Text>
+      <Button label="Try again" variant="secondary" onPress={onRetry} style={styles.errorButton} />
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
+  errorState: { padding: 24, paddingTop: 64, maxWidth: 440, width: '100%', alignSelf: 'center' },
+  errorTitle: { ...type.title, color: colors.text },
+  errorBody: { ...type.body, color: colors.textMuted, marginTop: 8 },
+  errorButton: { marginTop: 24, alignSelf: 'flex-start' },
+
   base: {
     minHeight: 52,
     borderRadius: radius.control,
