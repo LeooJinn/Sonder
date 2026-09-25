@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { groupedRegions, regionLabel } from '../lib/regions';
-import { colors } from '../lib/theme';
+import { colors, fonts, radius, type } from '../lib/theme';
+import { focusRing, type PressState } from './ui';
 
 /**
  * A select, built from a Modal rather than a picker library.
@@ -29,13 +30,18 @@ export function RegionPicker({
   return (
     <>
       <Pressable
-        style={({ pressed }) => [styles.trigger, pressed && styles.triggerPressed]}
+        style={(state) => {
+          const { pressed, focused } = state as PressState;
+          return [styles.trigger, pressed && styles.triggerPressed, focused && focusRing];
+        }}
         onPress={() => setOpen(true)}
+        accessibilityRole="button"
+        accessibilityLabel={`Region: ${label ?? 'not set'}`}
       >
         <Text style={label ? styles.triggerValue : styles.triggerPlaceholder}>
           {label ?? 'Choose a region'}
         </Text>
-        <Text style={styles.chevron}>▾</Text>
+        <Text style={styles.chevron}>Change</Text>
       </Pressable>
 
       <Modal
@@ -99,25 +105,28 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: 4,
-    paddingHorizontal: 13,
-    paddingVertical: 15,
+    borderRadius: radius.input,
+    paddingHorizontal: 14,
+    paddingVertical: 13,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
   triggerPressed: { opacity: 0.8 },
-  triggerValue: { color: colors.text, fontSize: 16 },
-  triggerPlaceholder: { color: colors.disabled, fontSize: 16 },
-  chevron: { color: colors.textMuted, fontSize: 13 },
+  triggerValue: { ...type.body, color: colors.text },
+  triggerPlaceholder: { ...type.body, color: colors.textFaint },
+  chevron: { fontFamily: fonts.bodyMedium, fontSize: 14, color: colors.accent },
 
-  backdrop: { flex: 1, backgroundColor: '#000000AA', justifyContent: 'flex-end' },
+  backdrop: { flex: 1, backgroundColor: '#0A1512B3', justifyContent: 'flex-end' },
   sheet: {
     backgroundColor: colors.background,
-    borderTopLeftRadius: 12,
-    borderTopRightRadius: 12,
+    borderTopLeftRadius: radius.page,
+    borderTopRightRadius: radius.page,
     maxHeight: '75%',
     paddingBottom: 24,
+    width: '100%',
+    maxWidth: 640,
+    alignSelf: 'center',
   },
   sheetHeader: {
     flexDirection: 'row',
@@ -128,16 +137,14 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
   },
-  sheetTitle: { color: colors.text, fontSize: 17, fontWeight: '700' },
-  close: { color: colors.accent, fontSize: 14, fontWeight: '600' },
+  sheetTitle: { ...type.heading, color: colors.text },
+  close: { fontFamily: fonts.bodySemi, fontSize: 15, color: colors.accent },
 
   groupLabel: {
+    ...type.label,
     color: colors.textFaint,
-    fontSize: 10,
-    letterSpacing: 1.4,
-    textTransform: 'uppercase',
     paddingHorizontal: 20,
-    paddingTop: 18,
+    paddingTop: 20,
     paddingBottom: 6,
   },
   option: {
@@ -148,7 +155,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   optionPressed: { backgroundColor: colors.surface },
-  optionText: { color: colors.textMuted, fontSize: 16 },
-  optionTextActive: { color: colors.text, fontWeight: '600' },
-  tick: { color: colors.accent, fontSize: 15, fontWeight: '700' },
+  optionText: { ...type.body, color: colors.textMuted },
+  optionTextActive: { fontFamily: fonts.bodySemi, color: colors.text },
+  tick: { fontFamily: fonts.bodySemi, fontSize: 16, color: colors.accent },
 });

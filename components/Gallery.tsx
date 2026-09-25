@@ -11,7 +11,8 @@ import {
   View,
 } from 'react-native';
 import type { Photo } from '../lib/photos';
-import { colors } from '../lib/theme';
+import { colors, radius, type } from '../lib/theme';
+import { Button, SectionHeader, focusRing, type PressState } from './ui';
 
 /**
  * The car's gallery: photos with no log entry attached.
@@ -38,24 +39,24 @@ export function Gallery({
 
   return (
     <View>
-      <View style={styles.header}>
-        <Text style={styles.heading}>Gallery</Text>
-        {onAdd && (
-          <Pressable onPress={onAdd} disabled={busy} hitSlop={8}>
-            {busy ? (
+      <SectionHeader
+        title="Gallery"
+        action={
+          onAdd ? (
+            busy ? (
               <ActivityIndicator color={colors.accent} size="small" />
             ) : (
-              <Text style={styles.add}>+ Add photos</Text>
-            )}
-          </Pressable>
-        )}
-      </View>
+              <Button label="Add photos" variant="quiet" onPress={onAdd} />
+            )
+          ) : undefined
+        }
+      />
 
       {photos.length === 0 ? (
         <View style={styles.empty}>
           <Text style={styles.emptyText}>
             {onAdd
-              ? 'Photos of the car itself, with no service record attached.'
+              ? 'Photos of the car itself: how it looks, where it has been. The first one becomes the photo on its passport.'
               : 'No photos yet.'}
           </Text>
         </View>
@@ -64,8 +65,10 @@ export function Gallery({
           {photos.map((photo) => (
             <Pressable
               key={photo.id}
-              style={styles.tile}
+              style={(state) => [styles.tile, (state as PressState).focused && focusRing]}
               onPress={() => setViewing(photo)}
+              accessibilityRole="imagebutton"
+              accessibilityLabel={photo.caption || 'Open photo'}
             >
               <Image source={{ uri: photo.url }} style={styles.tileImage} />
               {photo.caption ? <View style={styles.tileCaptionDot} /> : null}
@@ -145,24 +148,21 @@ function PhotoViewer({
                     setDirty(true);
                   }}
                   placeholder="Say something about this shot"
-                  placeholderTextColor={colors.disabled}
+                  placeholderTextColor={colors.textFaint}
                   multiline
                 />
                 {dirty && (
-                  <Pressable
+                  <Button
+                    label="Save caption"
+                    busy={working}
                     style={styles.captionSave}
-                    disabled={working}
                     onPress={async () => {
                       setWorking(true);
                       await onCaption(photo, caption);
                       setDirty(false);
                       setWorking(false);
                     }}
-                  >
-                    <Text style={styles.captionSaveText}>
-                      {working ? 'Saving…' : 'Save caption'}
-                    </Text>
-                  </Pressable>
+                  />
                 )}
               </View>
             ) : photo.caption ? (
@@ -170,14 +170,14 @@ function PhotoViewer({
             ) : null}
 
             <View style={styles.viewerActions}>
-              <Pressable style={styles.viewerClose} onPress={onClose}>
-                <Text style={styles.viewerCloseText}>Close</Text>
-              </Pressable>
+              <Button label="Close" variant="secondary" onPress={onClose} style={styles.viewerButton} />
 
               {onRemove && (
-                <Pressable
-                  style={styles.viewerRemove}
+                <Button
+                  label={confirmingRemove ? 'Tap again to delete' : 'Delete photo'}
+                  variant="danger"
                   disabled={working}
+                  style={styles.viewerButton}
                   onPress={async () => {
                     if (!confirmingRemove) {
                       setConfirmingRemove(true);
@@ -186,11 +186,7 @@ function PhotoViewer({
                     setWorking(true);
                     await onRemove(photo);
                   }}
-                >
-                  <Text style={styles.viewerRemoveText}>
-                    {confirmingRemove ? 'Tap again to delete' : 'Delete photo'}
-                  </Text>
-                </Pressable>
+                />
               )}
             </View>
           </View>
@@ -201,29 +197,20 @@ function PhotoViewer({
 }
 
 const styles = StyleSheet.create({
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'baseline',
-    marginBottom: 12,
-  },
-  heading: { color: colors.text, fontSize: 18, fontWeight: '700' },
-  add: { color: colors.accent, fontSize: 13, fontWeight: '600' },
-
   empty: {
     borderWidth: 1,
     borderColor: colors.border,
     borderStyle: 'dashed',
-    borderRadius: 6,
+    borderRadius: radius.page,
     padding: 20,
   },
-  emptyText: { color: colors.textFaint, fontSize: 14, lineHeight: 20 },
+  emptyText: { ...type.small, color: colors.textFaint },
 
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   tile: {
-    width: '32.4%',
+    width: '32.5%',
     aspectRatio: 1,
-    borderRadius: 4,
+    borderRadius: radius.photo,
     overflow: 'hidden',
     backgroundColor: colors.surface,
   },
@@ -232,56 +219,33 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 6,
     right: 6,
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: colors.accent,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: colors.paper,
   },
 
-  viewerBackdrop: { flex: 1, backgroundColor: '#000000E6' },
+  viewerBackdrop: { flex: 1, backgroundColor: '#0A1512F2' },
   viewerScroll: { flexGrow: 1, justifyContent: 'center', padding: 16 },
-  viewer: { width: '100%', maxWidth: 560, alignSelf: 'center', gap: 14 },
-  viewerImage: { width: '100%', borderRadius: 6, backgroundColor: colors.surface },
+  viewer: { width: '100%', maxWidth: 640, alignSelf: 'center', gap: 16 },
+  viewerImage: { width: '100%', borderRadius: radius.photo, backgroundColor: colors.surface },
 
   captionBlock: { gap: 10 },
   captionInput: {
+    ...type.body,
     backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: 4,
+    borderRadius: radius.input,
     color: colors.text,
-    fontSize: 15,
     padding: 12,
-    minHeight: 64,
+    minHeight: 72,
     textAlignVertical: 'top',
   },
-  captionSave: {
-    alignSelf: 'flex-start',
-    backgroundColor: colors.accent,
-    borderRadius: 4,
-    paddingVertical: 9,
-    paddingHorizontal: 16,
-  },
-  captionSaveText: { color: colors.background, fontSize: 13, fontWeight: '700' },
+  captionSave: { alignSelf: 'flex-start', minHeight: 44 },
 
-  readOnlyCaption: { color: colors.text, fontSize: 15, lineHeight: 21 },
+  readOnlyCaption: { ...type.body, color: colors.text },
 
   viewerActions: { flexDirection: 'row', gap: 10 },
-  viewerClose: {
-    flex: 1,
-    backgroundColor: colors.border,
-    borderRadius: 4,
-    paddingVertical: 13,
-    alignItems: 'center',
-  },
-  viewerCloseText: { color: colors.text, fontSize: 14, fontWeight: '700' },
-  viewerRemove: {
-    flex: 1,
-    borderWidth: 1,
-    borderColor: colors.accent,
-    borderRadius: 4,
-    paddingVertical: 13,
-    alignItems: 'center',
-  },
-  viewerRemoveText: { color: colors.accent, fontSize: 14, fontWeight: '700' },
+  viewerButton: { flex: 1 },
 });

@@ -1,18 +1,17 @@
 import { useEffect, useState } from 'react';
 import {
-  ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from 'react-native';
 import { Stack } from 'expo-router';
 import { supabase } from '../lib/supabase';
-import { colors } from '../lib/theme';
+import { Button, Field, Notice, focusRing, type PressState } from '../components/ui';
+import { colors, fonts, radius, type } from '../lib/theme';
 
 type Mode = 'signIn' | 'signUp';
 
@@ -119,129 +118,129 @@ export default function SignInScreen() {
     setBusy(false);
   }
 
+  function switchMode(next: Mode) {
+    setMode(next);
+    setError(null);
+    setNotice(null);
+    setUnconfirmedEmail(null);
+  }
+
   return (
     <KeyboardAvoidingView
       style={styles.screen}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <Stack.Screen options={{ headerShown: false }} />
+      <Stack.Screen options={{ headerShown: false, title: 'Sign in' }} />
 
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        <View style={styles.brand}>
-          <Text style={styles.wordmark}>SONDER</Text>
-          <Text style={styles.tagline}>Every car has a life of its own.</Text>
+        {/* The cover. Laid out like a passport's: centred, foil, one line
+            saying what the document is. */}
+        <View style={styles.cover}>
+          <View style={styles.coverRule} />
+          <Text style={styles.wordmark} accessibilityRole="header">
+            Sonder
+          </Text>
+          <Text style={styles.docType}>Vehicle passport</Text>
+          <View style={styles.coverRule} />
         </View>
 
-        <Text style={styles.heading}>{isSignUp ? 'Create your account' : 'Welcome back'}</Text>
-        <Text style={styles.sub}>
-          {isSignUp
-            ? 'Your garage and build logs stay with your account.'
-            : 'Sign in to pick up where you left off.'}
+        <Text style={styles.lead}>
+          A logbook that stays with the car. Mods, service and repairs, handed to the next owner
+          when it sells.
         </Text>
 
-        <View style={styles.field}>
-          <Text style={styles.label}>Email</Text>
-          <TextInput
-            style={styles.input}
-            value={email}
-            onChangeText={(text) => {
-              setEmail(text);
-              // The resend targets a specific address. Once the field no longer
-              // matches it, offering to resend would send to the old one.
-              if (unconfirmedEmail && text.trim() !== unconfirmedEmail) {
-                setUnconfirmedEmail(null);
-              }
-            }}
-            placeholder="you@example.com"
-            placeholderTextColor={colors.disabled}
-            autoCapitalize="none"
-            autoCorrect={false}
-            keyboardType="email-address"
-            textContentType="emailAddress"
-          />
+        <View style={styles.tabs} accessibilityRole="tablist">
+          {(['signIn', 'signUp'] as const).map((option) => {
+            const selected = mode === option;
+            return (
+              <Pressable
+                key={option}
+                onPress={() => switchMode(option)}
+                accessibilityRole="tab"
+                accessibilityState={{ selected }}
+                style={(state) => [
+                  styles.tab,
+                  selected && styles.tabSelected,
+                  (state as PressState).focused && focusRing,
+                ]}
+              >
+                <Text style={[styles.tabText, selected && styles.tabTextSelected]}>
+                  {option === 'signIn' ? 'Sign in' : 'Create account'}
+                </Text>
+              </Pressable>
+            );
+          })}
         </View>
 
-        <View style={styles.field}>
-          <View style={styles.labelRow}>
-            <Text style={styles.label}>Password</Text>
-            <Pressable onPress={() => setShowPassword((v) => !v)}>
-              <Text style={styles.toggle}>{showPassword ? 'Hide' : 'Show'}</Text>
-            </Pressable>
-          </View>
-          <TextInput
-            style={styles.input}
-            value={password}
-            onChangeText={setPassword}
-            placeholder={isSignUp ? 'At least 8 characters' : 'Your password'}
-            placeholderTextColor={colors.disabled}
-            secureTextEntry={!showPassword}
-            autoCapitalize="none"
-            autoCorrect={false}
-            textContentType={isSignUp ? 'newPassword' : 'password'}
-          />
-        </View>
+        <Field
+          label="Email"
+          value={email}
+          onChangeText={(text) => {
+            setEmail(text);
+            // The resend targets a specific address. Once the field no longer
+            // matches it, offering to resend would send to the old one.
+            if (unconfirmedEmail && text.trim() !== unconfirmedEmail) {
+              setUnconfirmedEmail(null);
+            }
+          }}
+          placeholder="you@example.com"
+          autoCapitalize="none"
+          autoCorrect={false}
+          keyboardType="email-address"
+          textContentType="emailAddress"
+          autoComplete="email"
+        />
 
-        {error && <Text style={styles.error}>{error}</Text>}
-        {notice && <Text style={styles.notice}>{notice}</Text>}
+        <Field
+          label="Password"
+          value={password}
+          onChangeText={setPassword}
+          placeholder={isSignUp ? 'At least 8 characters' : 'Your password'}
+          secureTextEntry={!showPassword}
+          autoCapitalize="none"
+          autoCorrect={false}
+          textContentType={isSignUp ? 'newPassword' : 'password'}
+          autoComplete={isSignUp ? 'new-password' : 'current-password'}
+          onSubmitEditing={handleSubmit}
+          accessory={
+            <Button
+              label={showPassword ? 'Hide' : 'Show'}
+              variant="quiet"
+              onPress={() => setShowPassword((v) => !v)}
+            />
+          }
+        />
+
+        {error && <Notice tone="error">{error}</Notice>}
+        {notice && <Notice tone="success">{notice}</Notice>}
 
         {unconfirmedEmail && (
           <View style={styles.resend}>
             <Text style={styles.resendTitle}>Didn&apos;t get the email?</Text>
             <Text style={styles.resendBody}>
-              Check your spam folder first — confirmation emails often land there.
+              Check your spam folder first. Confirmation emails often land there.
             </Text>
-            <Pressable
+            <Button
+              variant="quiet"
               onPress={handleResend}
               disabled={cooldown > 0 || resending}
-              hitSlop={8}
-            >
-              <Text
-                style={[
-                  styles.resendAction,
-                  (cooldown > 0 || resending) && styles.resendActionDisabled,
-                ]}
-              >
-                {resending
+              label={
+                resending
                   ? 'Sending…'
                   : cooldown > 0
                     ? `Resend available in ${cooldown}s`
-                    : 'Resend confirmation email'}
-              </Text>
-            </Pressable>
+                    : 'Resend confirmation email'
+              }
+            />
           </View>
         )}
 
-        <Pressable
-          style={({ pressed }) => [
-            styles.submit,
-            pressed && styles.submitPressed,
-            busy && styles.submitDisabled,
-          ]}
+        <Button
+          label={isSignUp ? 'Create account' : 'Sign in'}
           onPress={handleSubmit}
-          disabled={busy}
-        >
-          {busy ? (
-            <ActivityIndicator color={colors.background} />
-          ) : (
-            <Text style={styles.submitText}>{isSignUp ? 'Create account' : 'Sign in'}</Text>
-          )}
-        </Pressable>
-
-        <View style={styles.switch}>
-          <Text style={styles.switchText}>
-            {isSignUp ? 'Already have an account?' : 'New to Sonder?'}
-          </Text>
-          <Pressable
-            onPress={() => {
-              setMode(isSignUp ? 'signIn' : 'signUp');
-              setError(null);
-              setNotice(null);
-              setUnconfirmedEmail(null);
-            }}
-          >
-            <Text style={styles.switchLink}>{isSignUp ? 'Sign in' : 'Create an account'}</Text>
-          </Pressable>
-        </View>
+          busy={busy}
+          style={styles.submit}
+        />
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -249,63 +248,56 @@ export default function SignInScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
-  content: { padding: 28, paddingTop: 80, paddingBottom: 48, maxWidth: 460, width: '100%', alignSelf: 'center' },
-
-  brand: { marginBottom: 56 },
-  wordmark: { color: colors.text, fontSize: 26, fontWeight: '700', letterSpacing: 5 },
-  tagline: { color: colors.textFaint, fontSize: 13, marginTop: 6 },
-
-  heading: { color: colors.text, fontSize: 28, fontWeight: '700' },
-  sub: { color: colors.textMuted, fontSize: 15, marginTop: 6, marginBottom: 32, lineHeight: 21 },
-
-  field: { marginBottom: 18 },
-  labelRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  label: {
-    color: colors.textMuted,
-    fontSize: 11,
-    letterSpacing: 1.5,
-    textTransform: 'uppercase',
-    marginBottom: 8,
+  content: {
+    padding: 24,
+    paddingTop: 72,
+    paddingBottom: 48,
+    maxWidth: 440,
+    width: '100%',
+    alignSelf: 'center',
   },
-  toggle: { color: colors.accent, fontSize: 12, fontWeight: '600', marginBottom: 8 },
-  input: {
+
+  cover: { alignItems: 'center', gap: 14, marginBottom: 40 },
+  coverRule: { width: 56, height: 1, backgroundColor: colors.accent, opacity: 0.6 },
+  wordmark: {
+    fontFamily: fonts.displayBold,
+    fontSize: 80,
+    lineHeight: 78,
+    color: colors.accent,
+    letterSpacing: 1,
+  },
+  docType: { fontFamily: fonts.display, fontSize: 18, color: colors.accent, letterSpacing: 1 },
+
+  lead: { ...type.lead, color: colors.textMuted, textAlign: 'center', marginBottom: 36 },
+
+  tabs: {
+    flexDirection: 'row',
     backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 4,
-    color: colors.text,
-    fontSize: 16,
-    padding: 14,
+    borderRadius: radius.control,
+    padding: 4,
+    marginBottom: 24,
   },
-
-  error: { color: colors.accent, fontSize: 14, marginBottom: 12, lineHeight: 20 },
+  tab: {
+    flex: 1,
+    minHeight: 42,
+    borderRadius: radius.input,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  tabSelected: { backgroundColor: colors.background },
+  tabText: { fontFamily: fonts.bodyMedium, fontSize: 15, color: colors.textMuted },
+  tabTextSelected: { fontFamily: fonts.bodySemi, color: colors.text },
 
   resend: {
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: 6,
+    borderRadius: radius.input,
     padding: 16,
-    marginBottom: 12,
+    marginBottom: 16,
     gap: 6,
   },
-  resendTitle: { color: colors.text, fontSize: 14, fontWeight: '600' },
-  resendBody: { color: colors.textMuted, fontSize: 13, lineHeight: 18 },
-  resendAction: { color: colors.accent, fontSize: 14, fontWeight: '600', marginTop: 4 },
-  resendActionDisabled: { color: colors.textFaint },
-  notice: { color: '#8FBF7F', fontSize: 14, marginBottom: 12, lineHeight: 20 },
+  resendTitle: { ...type.bodyStrong, color: colors.text },
+  resendBody: { ...type.small, color: colors.textMuted, marginBottom: 4 },
 
-  submit: {
-    backgroundColor: colors.accent,
-    borderRadius: 4,
-    paddingVertical: 16,
-    alignItems: 'center',
-    marginTop: 10,
-  },
-  submitPressed: { opacity: 0.8 },
-  submitDisabled: { backgroundColor: colors.disabled },
-  submitText: { color: colors.background, fontSize: 15, fontWeight: '700', letterSpacing: 1 },
-
-  switch: { flexDirection: 'row', justifyContent: 'center', gap: 6, marginTop: 28 },
-  switchText: { color: colors.textMuted, fontSize: 14 },
-  switchLink: { color: colors.accent, fontSize: 14, fontWeight: '600' },
+  submit: { marginTop: 8 },
 });

@@ -253,9 +253,16 @@ export async function removeEntriesForVehicle(vin: string): Promise<void> {
   if (error) throw new Error(error.message);
 }
 
-/** 45000 -> "$450.00". Display only; storage stays in cents. */
+/**
+ * 245000 -> "$2,450", 8950 -> "$89.50". Whole dollars drop the cents, which
+ * are noise on a four-figure part. Display only; storage stays in cents.
+ */
 export function formatCents(cents: number): string {
-  return `$${(cents / 100).toFixed(2)}`;
+  const whole = cents % 100 === 0;
+  return `$${(cents / 100).toLocaleString('en-US', {
+    minimumFractionDigits: whole ? 0 : 2,
+    maximumFractionDigits: 2,
+  })}`;
 }
 
 /** "450", "450.00", "$450" -> 45000. Returns undefined if it isn't a number. */

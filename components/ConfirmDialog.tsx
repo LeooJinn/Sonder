@@ -8,7 +8,11 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { colors, mono } from '../lib/theme';
+import { colors, fonts, radius, type } from '../lib/theme';
+import { focusRing, noOutline, type PressState } from './ui';
+
+/** Red that reads as red on paper; the cover's red is tuned for dark ground. */
+const STAMP_RED = '#A8322C';
 
 /**
  * A confirmation someone has to mean.
@@ -70,14 +74,16 @@ export function ConfirmDialog({
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onCancel}>
       <View style={styles.backdrop}>
         <View style={styles.dialog}>
-          <Text style={styles.title}>{title}</Text>
+          <Text style={styles.title} accessibilityRole="header">
+            {title}
+          </Text>
           <Text style={styles.body}>{body}</Text>
 
           {consequences && consequences.length > 0 && (
             <View style={styles.consequences}>
               {consequences.map((line) => (
                 <Text key={line} style={styles.consequence}>
-                  · {line}
+                  {line}
                 </Text>
               ))}
             </View>
@@ -89,13 +95,14 @@ export function ConfirmDialog({
                 Type <Text style={styles.phrase}>{confirmPhrase}</Text> to confirm
               </Text>
               <TextInput
-                style={styles.phraseInput}
+                style={[styles.phraseInput, noOutline, typed && styles.phraseInputActive]}
                 value={typed}
                 onChangeText={setTyped}
                 autoCapitalize="characters"
                 autoCorrect={false}
                 placeholder={confirmPhrase}
-                placeholderTextColor={colors.disabled}
+                placeholderTextColor={colors.paperLine}
+                accessibilityLabel={`Type ${confirmPhrase} to confirm`}
               />
             </View>
           )}
@@ -107,7 +114,11 @@ export function ConfirmDialog({
                 easy one, and the destructive button should not be where a
                 thumb already is. */}
             <Pressable
-              style={({ pressed }) => [styles.cancel, pressed && styles.pressed]}
+              style={(state) => {
+                const { pressed, focused } = state as PressState;
+                return [styles.cancel, pressed && styles.pressed, focused && focusRing];
+              }}
+              accessibilityRole="button"
               onPress={onCancel}
               disabled={working}
             >
@@ -115,16 +126,22 @@ export function ConfirmDialog({
             </Pressable>
 
             <Pressable
-              style={({ pressed }) => [
-                styles.confirm,
-                !armed && styles.confirmDisabled,
-                pressed && styles.pressed,
-              ]}
+              style={(state) => {
+                const { pressed, focused } = state as PressState;
+                return [
+                  styles.confirm,
+                  !armed && styles.confirmDisabled,
+                  pressed && styles.pressed,
+                  focused && focusRing,
+                ];
+              }}
+              accessibilityRole="button"
+              accessibilityState={{ disabled: !armed || working }}
               onPress={handleConfirm}
               disabled={!armed || working}
             >
               {working ? (
-                <ActivityIndicator color={colors.background} />
+                <ActivityIndicator color={STAMP_RED} />
               ) : (
                 <Text style={[styles.confirmText, !armed && styles.confirmTextDisabled]}>
                   {confirmLabel}
@@ -141,68 +158,71 @@ export function ConfirmDialog({
 const styles = StyleSheet.create({
   backdrop: {
     flex: 1,
-    backgroundColor: '#000000CC',
+    backgroundColor: '#0A1512D9',
     justifyContent: 'center',
-    padding: 24,
+    padding: 20,
   },
   dialog: {
-    backgroundColor: colors.surface,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: colors.border,
+    backgroundColor: colors.paper,
+    borderRadius: radius.page,
     padding: 22,
     width: '100%',
-    maxWidth: 420,
+    maxWidth: 440,
     alignSelf: 'center',
   },
 
-  title: { color: colors.text, fontSize: 19, fontWeight: '700' },
-  body: { color: colors.textMuted, fontSize: 14, lineHeight: 20, marginTop: 8 },
+  title: { ...type.title, color: colors.ink },
+  body: { ...type.small, fontSize: 15, lineHeight: 22, color: colors.inkMuted, marginTop: 8 },
 
   consequences: {
-    marginTop: 14,
-    padding: 12,
-    backgroundColor: colors.background,
-    borderRadius: 6,
+    marginTop: 16,
+    paddingLeft: 12,
+    borderLeftWidth: 2,
+    borderLeftColor: STAMP_RED,
     gap: 4,
   },
-  consequence: { color: colors.accent, fontSize: 13, lineHeight: 18 },
+  consequence: { ...type.small, fontFamily: fonts.bodyMedium, color: STAMP_RED },
 
-  phraseBlock: { marginTop: 18 },
-  phraseLabel: { color: colors.textMuted, fontSize: 13, marginBottom: 8 },
-  phrase: { color: colors.text, fontFamily: mono, fontWeight: '700' },
+  phraseBlock: { marginTop: 20 },
+  phraseLabel: { ...type.small, color: colors.inkMuted, marginBottom: 8 },
+  phrase: { fontFamily: fonts.monoBold, color: colors.ink },
   phraseInput: {
-    backgroundColor: colors.background,
+    backgroundColor: '#F3F6F1',
     borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 4,
-    color: colors.text,
+    borderColor: colors.paperLine,
+    borderRadius: radius.input,
+    color: colors.ink,
     fontSize: 15,
-    fontFamily: mono,
+    fontFamily: fonts.mono,
     letterSpacing: 1,
     padding: 12,
   },
 
-  error: { color: colors.accent, fontSize: 13, marginTop: 12, lineHeight: 18 },
+  phraseInputActive: { borderColor: colors.ink },
 
-  actions: { flexDirection: 'row', gap: 10, marginTop: 20 },
+  error: { ...type.small, color: STAMP_RED, marginTop: 12 },
+
+  actions: { flexDirection: 'row', gap: 10, marginTop: 22 },
   pressed: { opacity: 0.8 },
   cancel: {
     flex: 1,
-    paddingVertical: 13,
+    minHeight: 50,
     alignItems: 'center',
-    borderRadius: 4,
-    backgroundColor: colors.border,
+    justifyContent: 'center',
+    borderRadius: radius.control,
+    backgroundColor: colors.ink,
   },
-  cancelText: { color: colors.text, fontSize: 14, fontWeight: '700' },
+  cancelText: { fontFamily: fonts.bodySemi, fontSize: 15, color: colors.paper },
   confirm: {
     flex: 1,
-    paddingVertical: 13,
+    minHeight: 50,
     alignItems: 'center',
-    borderRadius: 4,
-    backgroundColor: colors.accent,
+    justifyContent: 'center',
+    borderRadius: radius.control,
+    borderWidth: 1,
+    borderColor: STAMP_RED,
   },
-  confirmDisabled: { backgroundColor: colors.disabled },
-  confirmText: { color: colors.background, fontSize: 14, fontWeight: '700' },
-  confirmTextDisabled: { color: colors.textFaint },
+  confirmDisabled: { borderColor: colors.paperLine },
+  confirmText: { fontFamily: fonts.bodySemi, fontSize: 15, color: STAMP_RED },
+  confirmTextDisabled: { color: colors.inkMuted },
 });

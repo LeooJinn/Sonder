@@ -2,8 +2,18 @@ import { useEffect } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import { useFonts } from 'expo-font';
+// Imported weight by weight: the packages' index files pull in every weight
+// and italic, and the web export would ship all of them.
+import { Barlow_400Regular } from '@expo-google-fonts/barlow/400Regular';
+import { Barlow_500Medium } from '@expo-google-fonts/barlow/500Medium';
+import { Barlow_600SemiBold } from '@expo-google-fonts/barlow/600SemiBold';
+import { BarlowCondensed_600SemiBold } from '@expo-google-fonts/barlow-condensed/600SemiBold';
+import { BarlowCondensed_700Bold } from '@expo-google-fonts/barlow-condensed/700Bold';
+import { B612Mono_400Regular } from '@expo-google-fonts/b612-mono/400Regular';
+import { B612Mono_700Bold } from '@expo-google-fonts/b612-mono/700Bold';
 import { AuthProvider, useAuth } from '../lib/auth';
-import { colors } from '../lib/theme';
+import { colors, fonts } from '../lib/theme';
 
 /**
  * The root layout wraps every screen in the app.
@@ -12,6 +22,23 @@ import { colors } from '../lib/theme';
  * session from it.
  */
 export default function RootLayout() {
+  const [fontsLoaded, fontError] = useFonts({
+    Barlow_400Regular,
+    Barlow_500Medium,
+    Barlow_600SemiBold,
+    BarlowCondensed_600SemiBold,
+    BarlowCondensed_700Bold,
+    B612Mono_400Regular,
+    B612Mono_700Bold,
+  });
+
+  // Hold the first paint until the typefaces arrive, so nothing renders in a
+  // fallback font and then jumps. If they fail to load, carry on without
+  // them rather than leaving the app blank.
+  if (!fontsLoaded && !fontError) {
+    return <View style={{ flex: 1, backgroundColor: colors.background }} />;
+  }
+
   return (
     <AuthProvider>
       <StatusBar style="light" />
@@ -63,7 +90,8 @@ function RouteGuard() {
       screenOptions={{
         headerStyle: { backgroundColor: colors.background },
         headerTintColor: colors.text,
-        headerTitleStyle: { fontWeight: '600' },
+        headerTitleStyle: { fontFamily: fonts.display, fontSize: 22 },
+        headerBackTitleStyle: { fontFamily: fonts.body },
         headerShadowVisible: false,
         // Full width, so the app's own background paints edge to edge. The
         // reading column is capped inside each screen instead — constraining

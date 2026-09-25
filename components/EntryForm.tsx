@@ -7,13 +7,13 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from 'react-native';
 import { ENTRY_KINDS, KIND_LABELS, parseCents, type EntryKind, type Part } from '../lib/log';
 import { today } from '../lib/dates';
 import { pickImages, type Photo } from '../lib/photos';
-import { colors, column, mono } from '../lib/theme';
+import { Button, Field, Notice, focusRing, type PressState } from './ui';
+import { colors, column, fonts, KIND_COLORS, radius, type } from '../lib/theme';
 
 /**
  * Everything the form collects. Deliberately not a LogEntry: the form knows
@@ -143,177 +143,202 @@ export function EntryForm({
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        <Text style={styles.label}>Kind</Text>
-        <View style={styles.kinds}>
-          {ENTRY_KINDS.map((option) => (
-            <Pressable
-              key={option}
-              style={[styles.kindChip, kind === option && styles.kindChipActive]}
-              onPress={() => setKind(option)}
-            >
-              <Text style={[styles.kindText, kind === option && styles.kindTextActive]}>
-                {KIND_LABELS[option]}
-              </Text>
-            </Pressable>
-          ))}
+        <Text style={styles.label}>What happened</Text>
+        <View style={styles.kinds} accessibilityRole="radiogroup">
+          {ENTRY_KINDS.map((option) => {
+            const selected = kind === option;
+            const ink = KIND_COLORS[option];
+            return (
+              <Pressable
+                key={option}
+                onPress={() => setKind(option)}
+                accessibilityRole="radio"
+                accessibilityState={{ selected }}
+                style={(state) => [
+                  styles.kind,
+                  selected && { borderColor: ink, backgroundColor: colors.surface },
+                  (state as PressState).focused && focusRing,
+                ]}
+              >
+                <View style={[styles.kindDot, { borderColor: ink }, selected && { backgroundColor: ink }]} />
+                <Text style={[styles.kindText, selected && styles.kindTextSelected]}>
+                  {KIND_LABELS[option]}
+                </Text>
+              </Pressable>
+            );
+          })}
         </View>
 
-        <Field label="Title" value={title} onChange={setTitle} placeholder="Installed coilovers" />
-        <Field
-          label="Date"
-          value={occurredOn}
-          onChange={setOccurredOn}
-          placeholder="YYYY-MM-DD"
-          isMono
-        />
-        <Field
-          label="Notes"
-          value={notes}
-          onChange={setNotes}
-          placeholder="What you did, what to watch out for"
-          multiline
-        />
+        <Field label="Title" value={title} onChangeText={setTitle} placeholder="Installed coilovers" />
 
         <View style={styles.row}>
           <View style={styles.rowItem}>
             <Field
-              label="Odometer"
-              value={odometer}
-              onChange={setOdometer}
-              placeholder="52000"
-              keyboardType="numeric"
+              label="Date"
+              value={occurredOn}
+              onChangeText={setOccurredOn}
+              placeholder="YYYY-MM-DD"
+              hint="Year, month, day"
+              isMono
+              autoCorrect={false}
             />
           </View>
           <View style={styles.rowItem}>
             <Field
-              label="Cost"
-              value={cost}
-              onChange={setCost}
-              placeholder="450.00"
-              keyboardType="decimal-pad"
+              label="Odometer, miles"
+              value={odometer}
+              onChangeText={setOdometer}
+              placeholder="52000"
+              keyboardType="numeric"
+              isMono
             />
           </View>
         </View>
 
-        <View style={styles.partsHeader}>
-          <Text style={styles.label}>Photos</Text>
-          <Pressable onPress={handlePickPhotos}>
-            <Text style={styles.addPart}>+ Add photos</Text>
-          </Pressable>
-        </View>
+        <Field
+          label="Notes"
+          value={notes}
+          onChangeText={setNotes}
+          placeholder="What was done, and what the next person should watch out for"
+          multiline
+        />
 
-        {existingPhotos.length === 0 && newPhotoUris.length === 0 ? (
-          <Text style={styles.noParts}>No photos on this entry.</Text>
-        ) : (
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.photoStrip}>
-            <View style={styles.photoRow}>
-              {existingPhotos.map((photo) => (
-                <View key={photo.id} style={styles.thumbWrap}>
-                  <Image source={{ uri: photo.url }} style={styles.thumb} />
-                  <Pressable style={styles.thumbRemove} onPress={() => removeExistingPhoto(photo.id)}>
-                    <Text style={styles.thumbRemoveText}>×</Text>
-                  </Pressable>
-                </View>
-              ))}
-              {newPhotoUris.map((uri, index) => (
-                <View key={`${uri}-${index}`} style={styles.thumbWrap}>
-                  <Image source={{ uri }} style={styles.thumb} />
-                  <View style={styles.thumbBadge}>
-                    <Text style={styles.thumbBadgeText}>NEW</Text>
-                  </View>
-                  <Pressable
-                    style={styles.thumbRemove}
-                    onPress={() =>
+        <Field
+          label="Total cost"
+          value={cost}
+          onChangeText={setCost}
+          placeholder="450.00"
+          keyboardType="decimal-pad"
+          hint="Optional. Shown on the passport if you publish it."
+        />
+
+        <View style={styles.subsection}>
+          <View style={styles.subsectionHeader}>
+            <Text style={styles.subsectionTitle}>Photos</Text>
+            <Button label="Add photos" variant="quiet" onPress={handlePickPhotos} />
+          </View>
+
+          {existingPhotos.length === 0 && newPhotoUris.length === 0 ? (
+            <Text style={styles.none}>Before and after shots help the next owner most.</Text>
+          ) : (
+            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+              <View style={styles.photoRow}>
+                {existingPhotos.map((photo) => (
+                  <Thumb
+                    key={photo.id}
+                    uri={photo.url}
+                    onRemove={() => removeExistingPhoto(photo.id)}
+                  />
+                ))}
+                {newPhotoUris.map((uri, index) => (
+                  <Thumb
+                    key={`${uri}-${index}`}
+                    uri={uri}
+                    isNew
+                    onRemove={() =>
                       setNewPhotoUris((current) => current.filter((_, i) => i !== index))
                     }
-                  >
-                    <Text style={styles.thumbRemoveText}>×</Text>
-                  </Pressable>
-                </View>
-              ))}
-            </View>
-          </ScrollView>
-        )}
-
-        <View style={styles.partsHeader}>
-          <Text style={styles.label}>Parts</Text>
-          <Pressable onPress={() => setParts((current) => [...current, emptyPart()])}>
-            <Text style={styles.addPart}>+ Add part</Text>
-          </Pressable>
+                  />
+                ))}
+              </View>
+            </ScrollView>
+          )}
         </View>
 
-        {parts.length === 0 ? (
-          <Text style={styles.noParts}>No parts on this entry.</Text>
-        ) : (
-          parts.map((part, index) => (
-            <View key={index} style={styles.partBlock}>
-              <View style={styles.partBlockHeader}>
-                <Text style={styles.partIndex}>Part {index + 1}</Text>
-                <Pressable
-                  onPress={() => setParts((current) => current.filter((_, i) => i !== index))}
-                >
-                  <Text style={styles.removePart}>Remove</Text>
-                </Pressable>
+        <View style={styles.subsection}>
+          <View style={styles.subsectionHeader}>
+            <Text style={styles.subsectionTitle}>Parts</Text>
+            <Button
+              label="Add a part"
+              variant="quiet"
+              onPress={() => setParts((current) => [...current, emptyPart()])}
+            />
+          </View>
+
+          {parts.length === 0 ? (
+            <Text style={styles.none}>
+              Brand and part number make it searchable for the next owner.
+            </Text>
+          ) : (
+            parts.map((part, index) => (
+              <View key={index} style={styles.part}>
+                <View style={styles.partHeader}>
+                  <Text style={styles.partIndex}>Part {index + 1}</Text>
+                  <Button
+                    label="Remove"
+                    variant="quiet"
+                    onPress={() => setParts((current) => current.filter((_, i) => i !== index))}
+                  />
+                </View>
+
+                <Field
+                  label="Part"
+                  value={part.name}
+                  onChangeText={(v) => updatePart(index, { name: v })}
+                  placeholder="500 Series coilovers"
+                />
+
+                <View style={styles.row}>
+                  <View style={styles.rowItem}>
+                    <Field
+                      label="Brand"
+                      value={part.brand}
+                      onChangeText={(v) => updatePart(index, { brand: v })}
+                      placeholder="Fortune Auto"
+                    />
+                  </View>
+                  <View style={styles.rowItem}>
+                    <Field
+                      label="Cost"
+                      value={centsToInput(part.costCents)}
+                      onChangeText={(v) => updatePart(index, { costCents: parseCents(v) })}
+                      placeholder="Optional"
+                      keyboardType="decimal-pad"
+                    />
+                  </View>
+                </View>
+
+                <Field
+                  label="Part number"
+                  value={part.partNumber ?? ''}
+                  onChangeText={(v) => updatePart(index, { partNumber: v })}
+                  placeholder="Optional"
+                  autoCorrect={false}
+                  isMono
+                />
               </View>
+            ))
+          )}
+        </View>
 
-              <View style={styles.row}>
-                <View style={styles.rowItem}>
-                  <Field
-                    label="Brand"
-                    value={part.brand}
-                    onChange={(v) => updatePart(index, { brand: v })}
-                    placeholder="Fortune Auto"
-                  />
-                </View>
-                <View style={styles.rowItem}>
-                  <Field
-                    label="Part"
-                    value={part.name}
-                    onChange={(v) => updatePart(index, { name: v })}
-                    placeholder="500 Series"
-                  />
-                </View>
-              </View>
+        {error && <Notice tone="error">{error}</Notice>}
 
-              <View style={styles.row}>
-                <View style={styles.rowItem}>
-                  <Field
-                    label="Part number"
-                    value={part.partNumber ?? ''}
-                    onChange={(v) => updatePart(index, { partNumber: v })}
-                    placeholder="optional"
-                    isMono
-                  />
-                </View>
-                <View style={styles.rowItem}>
-                  <Field
-                    label="Cost"
-                    value={centsToInput(part.costCents)}
-                    onChange={(v) => updatePart(index, { costCents: parseCents(v) })}
-                    placeholder="optional"
-                    keyboardType="decimal-pad"
-                  />
-                </View>
-              </View>
-            </View>
-          ))
-        )}
-
-        {error && <Text style={styles.error}>{error}</Text>}
-
-        <Pressable
-          style={({ pressed }) => [
-            styles.save,
-            pressed && styles.savePressed,
-            saving && styles.saveDisabled,
-          ]}
-          onPress={handleSubmit}
-          disabled={saving}
-        >
-          <Text style={styles.saveText}>{submitLabel}</Text>
-        </Pressable>
+        <Button label={submitLabel} onPress={handleSubmit} busy={saving} />
       </ScrollView>
     </KeyboardAvoidingView>
+  );
+}
+
+/** A photo on the entry, with a way to take it off again. */
+function Thumb({ uri, isNew, onRemove }: { uri: string; isNew?: boolean; onRemove: () => void }) {
+  return (
+    <View style={styles.thumbWrap}>
+      <Image source={{ uri }} style={styles.thumb} />
+      {isNew ? (
+        <View style={styles.thumbBadge}>
+          <Text style={styles.thumbBadgeText}>Not saved yet</Text>
+        </View>
+      ) : null}
+      <Pressable
+        style={styles.thumbRemove}
+        onPress={onRemove}
+        accessibilityRole="button"
+        accessibilityLabel="Remove photo"
+        hitSlop={6}
+      >
+        <Text style={styles.thumbRemoveText}>×</Text>
+      </Pressable>
+    </View>
   );
 }
 
@@ -329,116 +354,63 @@ function isValidDate(value: string): boolean {
   return parsed.toISOString().slice(0, 10) === value;
 }
 
-/** One labelled text input. Extracted because this form has eleven of them. */
-function Field({
-  label,
-  value,
-  onChange,
-  placeholder,
-  multiline,
-  isMono,
-  keyboardType,
-}: {
-  label: string;
-  value: string;
-  onChange: (value: string) => void;
-  placeholder?: string;
-  multiline?: boolean;
-  isMono?: boolean;
-  keyboardType?: 'numeric' | 'decimal-pad';
-}) {
-  return (
-    <View style={styles.field}>
-      <Text style={styles.label}>{label}</Text>
-      <TextInput
-        style={[styles.input, multiline && styles.inputMultiline, isMono && styles.inputMono]}
-        value={value}
-        onChangeText={onChange}
-        placeholder={placeholder}
-        placeholderTextColor={colors.disabled}
-        multiline={multiline}
-        keyboardType={keyboardType}
-        autoCorrect={!isMono}
-      />
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
-  content: { padding: 20, paddingBottom: 48, ...column },
+  content: { padding: 20, paddingBottom: 56, ...column },
 
-  label: {
-    color: colors.textMuted,
-    fontSize: 11,
-    letterSpacing: 1.5,
-    textTransform: 'uppercase',
-    marginBottom: 8,
-  },
+  label: { ...type.label, color: colors.textMuted, marginBottom: 8 },
 
-  kinds: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 20 },
-  kindChip: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 4,
-    paddingVertical: 8,
+  kinds: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 24 },
+  kind: {
+    flexGrow: 1,
+    flexBasis: '45%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    minHeight: 48,
     paddingHorizontal: 14,
-  },
-  kindChipActive: { backgroundColor: colors.accent, borderColor: colors.accent },
-  kindText: { color: colors.textMuted, fontSize: 13, fontWeight: '600' },
-  kindTextActive: { color: colors.background },
-
-  field: { marginBottom: 18 },
-  input: {
-    backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: 4,
-    color: colors.text,
-    fontSize: 15,
-    padding: 12,
+    borderRadius: radius.control,
   },
-  inputMultiline: { minHeight: 88, textAlignVertical: 'top' },
-  inputMono: { fontFamily: mono, letterSpacing: 1 },
+  kindDot: { width: 12, height: 12, borderRadius: 6, borderWidth: 2 },
+  kindText: { fontFamily: fonts.bodyMedium, fontSize: 15, color: colors.textMuted },
+  kindTextSelected: { fontFamily: fonts.bodySemi, color: colors.text },
 
   row: { flexDirection: 'row', gap: 12 },
   rowItem: { flex: 1 },
 
-  partsHeader: {
+  subsection: {
+    marginTop: 8,
+    marginBottom: 24,
+    paddingTop: 20,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+  },
+  subsectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: 4,
+    alignItems: 'baseline',
+    marginBottom: 12,
   },
-  addPart: { color: colors.accent, fontSize: 13, fontWeight: '600', marginBottom: 8 },
-  noParts: { color: colors.textFaint, fontSize: 14, marginBottom: 8 },
+  subsectionTitle: { ...type.heading, color: colors.text },
+  none: { ...type.small, color: colors.textFaint },
 
-  photoStrip: { marginBottom: 12 },
-  photoRow: { flexDirection: 'row', gap: 10 },
-  thumbWrap: { width: 96, height: 96 },
-  thumb: {
-    width: 96,
-    height: 96,
-    borderRadius: 6,
-    backgroundColor: colors.surface,
-  },
+  photoRow: { flexDirection: 'row', gap: 12, paddingTop: 8, paddingRight: 8 },
+  thumbWrap: { width: 104, height: 104 },
+  thumb: { width: 104, height: 104, borderRadius: radius.photo, backgroundColor: colors.surface },
   thumbRemove: {
     position: 'absolute',
-    top: -6,
-    right: -6,
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: colors.accent,
+    top: -8,
+    right: -8,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: colors.paper,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  thumbRemoveText: {
-    color: colors.background,
-    fontSize: 17,
-    fontWeight: '700',
-    lineHeight: 20,
-  },
+  thumbRemoveText: { color: colors.ink, fontSize: 18, lineHeight: 20, fontFamily: fonts.bodySemi },
   thumbBadge: {
     position: 'absolute',
     bottom: 6,
@@ -446,51 +418,22 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
     paddingHorizontal: 6,
     paddingVertical: 2,
-    borderRadius: 3,
+    borderRadius: 4,
   },
-  thumbBadgeText: {
-    color: colors.accent,
-    fontSize: 9,
-    fontWeight: '700',
-    letterSpacing: 1,
-  },
+  thumbBadgeText: { ...type.caption, fontSize: 11, color: colors.accent },
 
-  partBlock: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 6,
+  part: {
+    backgroundColor: colors.surface,
+    borderRadius: radius.control,
     padding: 14,
+    paddingBottom: 0,
     marginBottom: 12,
   },
-  partBlockHeader: {
+  partHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'baseline',
     marginBottom: 12,
   },
-  partIndex: {
-    color: colors.textFaint,
-    fontSize: 10,
-    letterSpacing: 1.4,
-    textTransform: 'uppercase',
-  },
-  removePart: { color: colors.accent, fontSize: 12, fontWeight: '600' },
-
-  error: { color: colors.accent, fontSize: 14, marginBottom: 16, lineHeight: 20 },
-
-  save: {
-    backgroundColor: colors.accent,
-    borderRadius: 4,
-    paddingVertical: 15,
-    alignItems: 'center',
-    marginTop: 8,
-  },
-  savePressed: { opacity: 0.8 },
-  saveDisabled: { backgroundColor: colors.disabled },
-  saveText: {
-    color: colors.background,
-    fontSize: 15,
-    fontWeight: '700',
-    letterSpacing: 1,
-  },
+  partIndex: { ...type.label, color: colors.textMuted },
 });

@@ -1,17 +1,20 @@
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { Stack, useLocalSearchParams } from 'expo-router';
+import { Link, Stack, useLocalSearchParams } from 'expo-router';
 import { loadPassport, type Passport } from '../../lib/passport';
 import { regionLabel } from '../../lib/regions';
-import { SpecList } from '../../components/SpecList';
-import { EntryCard } from '../../components/EntryCard';
-import { colors, column } from '../../lib/theme';
+import { formatCents } from '../../lib/log';
+import { DataPage } from '../../components/DataPage';
+import { Timeline } from '../../components/Timeline';
+import { colors, column, fonts, type } from '../../lib/theme';
 
 /**
  * A published passport. Route: /p/:vin
  *
  * The only screen in the app a signed-out visitor can reach — the auth guard
- * in the root layout lets the "p" segment through.
+ * in the root layout lets the "p" segment through. Most people arrive here
+ * from a link someone sent them, knowing nothing about Sonder, so the page
+ * has to explain itself as well as the car.
  */
 export default function PublicPassportScreen() {
   const { vin } = useLocalSearchParams<{ vin: string }>();
@@ -28,7 +31,7 @@ export default function PublicPassportScreen() {
   if (loading) {
     return (
       <View style={[styles.screen, styles.centered]}>
-        <Stack.Screen options={{ title: 'Passport' }} />
+        <Stack.Screen options={{ headerShown: false, title: 'Passport' }} />
         <ActivityIndicator color={colors.accent} />
       </View>
     );
@@ -37,118 +40,102 @@ export default function PublicPassportScreen() {
   if (!passport) {
     return (
       <View style={[styles.screen, styles.centered]}>
-        <Stack.Screen options={{ title: 'Not found' }} />
-        <Text style={styles.missingTitle}>No public passport here</Text>
+        <Stack.Screen options={{ headerShown: false, title: 'Not found' }} />
+        <Text style={styles.missingTitle}>No public passport at this link</Text>
         <Text style={styles.missingBody}>
-          This car either isn&apos;t on Sonder, or its owner hasn&apos;t published it.
+          The car isn&apos;t on Sonder, or its owner has made its log private. Check the link
+          with whoever sent it.
         </Text>
       </View>
     );
   }
 
   const { vehicle, entries, owner } = passport;
-  const ownerName = owner.displayName ?? (owner.handle ? `@${owner.handle}` : 'A Sonder owner');
+  const ownerName = owner.displayName ?? (owner.handle ? `@${owner.handle}` : 'Its owner');
   const region = regionLabel(owner.region);
+  const spent = entries.reduce((total, e) => total + (e.costCents ?? 0), 0);
+  const photo = entries.find((e) => e.photos.length > 0)?.photos[0]?.url;
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
-      <Stack.Screen options={{ title: `${vehicle.year} ${vehicle.make}` }} />
+      <Stack.Screen
+        options={{ headerShown: false, title: `${vehicle.year} ${vehicle.make} ${vehicle.model}` }}
+      />
 
-      <Text style={styles.wordmark}>SONDER</Text>
-
-      <Text style={styles.title}>
-        {vehicle.year} {vehicle.make} {vehicle.model}
-      </Text>
-      {vehicle.trim ? <Text style={styles.trim}>{vehicle.trim}</Text> : null}
-
-      <Text style={styles.owner}>
-        Kept by {ownerName}
-        {region ? ` · ${region}` : ''}
-      </Text>
-
-      <View style={styles.plate}>
-        <SpecList vehicle={vehicle} />
+      <View style={styles.topBar}>
+        <Text style={styles.wordmark}>Sonder</Text>
+        <Text style={styles.docType}>Vehicle passport</Text>
       </View>
 
-      <View style={styles.logHeader}>
-        <Text style={styles.logTitle}>Build log</Text>
-        <Text style={styles.logCount}>
-          {entries.length} {entries.length === 1 ? 'entry' : 'entries'}
+      <DataPage
+        vehicle={vehicle}
+        photoUrl={photo}
+        holder={`Kept by ${ownerName}${region ? ` in ${region}` : ''}`}
+      />
+
+      <View style={styles.section}>
+        <Timeline
+          chapters={[
+            {
+              key: 'current',
+              title: `${ownerName}'s time with it`,
+              subtitle:
+                entries.length === 0
+                  ? ''
+                  : `${entries.length} ${entries.length === 1 ? 'entry' : 'entries'}${
+                      spent > 0 ? `, ${formatCents(spent)} logged` : ''
+                    }.`,
+              entries,
+              empty: 'Nothing has been logged on this passport yet.',
+            },
+          ]}
+        />
+      </View>
+
+      <View style={styles.footer}>
+        <Text style={styles.footerLine}>Every car has a life of its own.</Text>
+        <Text style={styles.footerBody}>
+          Sonder keeps a car&apos;s history with the car: every mod, service and repair, passed to
+          the next owner when it sells.
         </Text>
+        <Link href="/sign-in" style={styles.footerLink}>
+          Start a passport for your car
+        </Link>
       </View>
-
-      {entries.length === 0 ? (
-        <View style={styles.empty}>
-          <Text style={styles.emptyText}>Nothing logged on this passport yet.</Text>
-        </View>
-      ) : (
-        <View style={styles.entries}>
-          {entries.map((entry) => (
-            <EntryCard key={entry.id} entry={entry} />
-          ))}
-        </View>
-      )}
-
-      <Text style={styles.footer}>Every car has a life of its own.</Text>
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
-  centered: { justifyContent: 'center', alignItems: 'center', padding: 32, gap: 8 },
-  content: { padding: 20, paddingBottom: 48, ...column },
+  centered: { justifyContent: 'center', alignItems: 'center', padding: 32, gap: 10 },
+  content: { padding: 16, paddingBottom: 56, ...column },
 
-  wordmark: {
-    color: colors.textFaint,
-    fontSize: 12,
-    letterSpacing: 4,
-    fontWeight: '700',
-    marginBottom: 24,
-  },
-
-  title: { color: colors.text, fontSize: 26, fontWeight: '700' },
-  trim: { color: colors.textMuted, fontSize: 16, marginTop: 2 },
-  owner: { color: colors.textFaint, fontSize: 14, marginTop: 10 },
-
-  plate: {
-    marginTop: 24,
-    backgroundColor: colors.surface,
-    borderRadius: 6,
-    borderLeftWidth: 3,
-    borderLeftColor: colors.accent,
-    padding: 20,
-  },
-
-  logHeader: {
+  topBar: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'baseline',
-    marginTop: 32,
-    marginBottom: 12,
+    paddingHorizontal: 4,
+    paddingTop: 12,
+    paddingBottom: 18,
   },
-  logTitle: { color: colors.text, fontSize: 18, fontWeight: '700' },
-  logCount: { color: colors.textFaint, fontSize: 13 },
+  wordmark: { fontFamily: fonts.displayBold, fontSize: 26, color: colors.accent },
+  docType: { fontFamily: fonts.display, fontSize: 16, color: colors.textMuted },
 
-  empty: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderStyle: 'dashed',
-    borderRadius: 6,
-    padding: 20,
-  },
-  emptyText: { color: colors.textFaint, fontSize: 14 },
-
-  entries: { gap: 10 },
+  section: { marginTop: 36 },
 
   footer: {
-    color: colors.textFaint,
-    fontSize: 13,
-    fontStyle: 'italic',
-    textAlign: 'center',
-    marginTop: 36,
+    marginTop: 48,
+    paddingTop: 28,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+    alignItems: 'center',
+    gap: 10,
   },
+  footerLine: { ...type.heading, color: colors.text, textAlign: 'center' },
+  footerBody: { ...type.small, color: colors.textMuted, textAlign: 'center', maxWidth: 380 },
+  footerLink: { fontFamily: fonts.bodySemi, fontSize: 15, color: colors.accent, marginTop: 6 },
 
-  missingTitle: { color: colors.text, fontSize: 18, fontWeight: '700' },
-  missingBody: { color: colors.textMuted, fontSize: 14, textAlign: 'center', lineHeight: 20 },
+  missingTitle: { ...type.title, color: colors.text, textAlign: 'center' },
+  missingBody: { ...type.body, color: colors.textMuted, textAlign: 'center', maxWidth: 400 },
 });

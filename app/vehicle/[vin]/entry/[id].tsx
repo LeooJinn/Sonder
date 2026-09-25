@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { findEntry, removeEntry, updateEntry, type LogEntry } from '../../../../lib/log';
 import { addPhoto, removePhoto } from '../../../../lib/photos';
 import { EntryForm, type EntryFormValues } from '../../../../components/EntryForm';
 import { ConfirmDialog } from '../../../../components/ConfirmDialog';
-import { colors } from '../../../../lib/theme';
+import { Button } from '../../../../components/ui';
+import { colors, column, type } from '../../../../lib/theme';
 
 /** Edit or delete an existing log entry. Route: /vehicle/:vin/entry/:id */
 export default function EditEntryScreen() {
@@ -86,12 +87,9 @@ export default function EditEntryScreen() {
         onSubmit={handleSubmit}
       />
 
-      <Pressable
-        style={({ pressed }) => [styles.delete, pressed && styles.deletePressed]}
-        onPress={() => setAskingDelete(true)}
-      >
-        <Text style={styles.deleteText}>Delete entry</Text>
-      </Pressable>
+      <View style={styles.deleteBar}>
+        <Button label="Delete entry" variant="danger" onPress={() => setAskingDelete(true)} />
+      </View>
 
       <ConfirmDialog
         visible={askingDelete}
@@ -112,8 +110,12 @@ export default function EditEntryScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
-  delete: { paddingVertical: 16, alignItems: 'center' },
-  deletePressed: { opacity: 0.6 },
-  deleteText: { color: colors.accent, fontSize: 14, fontWeight: '600' },
-  missing: { color: colors.textMuted, fontSize: 15, padding: 20 },
+  deleteBar: {
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+    ...column,
+  },
+  missing: { ...type.body, color: colors.textMuted, padding: 20 },
 });

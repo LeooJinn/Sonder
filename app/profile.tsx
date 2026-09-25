@@ -3,11 +3,9 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
-  Pressable,
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
@@ -17,7 +15,9 @@ import { supabase } from '../lib/supabase';
 import { RegionPicker } from '../components/RegionPicker';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { deleteAccount } from '../lib/account';
-import { colors, column, mono } from '../lib/theme';
+import { regionLabel } from '../lib/regions';
+import { Button, Field, Notice } from '../components/ui';
+import { colors, column, fonts, radius, type } from '../lib/theme';
 
 export default function ProfileScreen() {
   const [handle, setHandle] = useState('');
@@ -67,6 +67,9 @@ export default function ProfileScreen() {
     );
   }
 
+  const shownAs = displayName.trim() || (handle ? `@${handle}` : 'A Sonder owner');
+  const regionName = regionLabel(region);
+
   return (
     <KeyboardAvoidingView
       style={styles.screen}
@@ -75,75 +78,59 @@ export default function ProfileScreen() {
       <Stack.Screen options={{ title: 'Profile' }} />
 
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        <Text style={styles.label}>Signed in as</Text>
-        <Text style={styles.email}>{email}</Text>
-
-        <View style={styles.field}>
-          <Text style={styles.label}>Handle</Text>
-          <TextInput
-            style={[styles.input, styles.inputMono]}
-            value={handle}
-            onChangeText={(text) => setHandle(text.toLowerCase().replace(/[^a-z0-9_]/g, ''))}
-            placeholder="leo"
-            placeholderTextColor={colors.disabled}
-            autoCapitalize="none"
-            autoCorrect={false}
-            maxLength={20}
-          />
-          <Text style={styles.hint}>
-            Lowercase letters, numbers and underscores. This appears in the link when you
-            share a build.
+        {/* What strangers see on a shared passport, updated as you type. */}
+        <View style={styles.preview}>
+          <Text style={styles.previewLabel}>On your passports</Text>
+          <Text style={styles.previewLine}>
+            Kept by {shownAs}
+            {regionName ? ` in ${regionName}` : ''}
           </Text>
         </View>
 
-        <View style={styles.field}>
-          <Text style={styles.label}>Display name</Text>
-          <TextInput
-            style={styles.input}
-            value={displayName}
-            onChangeText={setDisplayName}
-            placeholder="Leo"
-            placeholderTextColor={colors.disabled}
-          />
-          <Text style={styles.hint}>Shown against the work you log.</Text>
-        </View>
+        <Field
+          label="Display name"
+          value={displayName}
+          onChangeText={setDisplayName}
+          placeholder="Leo"
+          hint="Shown against the work you log."
+          autoComplete="name"
+        />
+
+        <Field
+          label="Handle"
+          value={handle}
+          onChangeText={(text) => setHandle(text.toLowerCase().replace(/[^a-z0-9_]/g, ''))}
+          placeholder="leo"
+          autoCapitalize="none"
+          autoCorrect={false}
+          maxLength={20}
+          isMono
+          hint="Lowercase letters, numbers and underscores. Used when you have no display name."
+        />
 
         <View style={styles.field}>
           <Text style={styles.label}>Region</Text>
           <RegionPicker value={region} onChange={setRegion} />
-          <Text style={styles.hint}>
-            Region only — never a precise address. Cars get stolen.
-          </Text>
+          <Text style={styles.hint}>Region only, never an address. Cars get stolen.</Text>
         </View>
 
-        {error && <Text style={styles.error}>{error}</Text>}
-        {saved && <Text style={styles.saved}>Profile saved.</Text>}
+        {error && <Notice tone="error">{error}</Notice>}
+        {saved && <Notice tone="success">Profile saved.</Notice>}
 
-        <Pressable
-          style={({ pressed }) => [
-            styles.save,
-            pressed && styles.savePressed,
-            saving && styles.saveDisabled,
-          ]}
-          onPress={handleSave}
-          disabled={saving}
-        >
-          {saving ? (
-            <ActivityIndicator color={colors.background} />
-          ) : (
-            <Text style={styles.saveText}>Save profile</Text>
-          )}
-        </Pressable>
+        <Button label="Save profile" onPress={handleSave} busy={saving} />
 
-        <Pressable
-          style={({ pressed }) => [styles.signOut, pressed && styles.savePressed]}
-          onPress={async () => {
-            await signOut();
-            router.replace('/sign-in');
-          }}
-        >
-          <Text style={styles.signOutText}>Sign out</Text>
-        </Pressable>
+        <View style={styles.account}>
+          <Text style={styles.accountLabel}>Signed in as</Text>
+          <Text style={styles.email}>{email}</Text>
+          <Button
+            label="Sign out"
+            variant="secondary"
+            onPress={async () => {
+              await signOut();
+              router.replace('/sign-in');
+            }}
+          />
+        </View>
 
         <View style={styles.danger}>
           <Text style={styles.dangerTitle}>Delete account</Text>
@@ -151,12 +138,7 @@ export default function ProfileScreen() {
             Your account, profile and any cars still in your garage are deleted permanently.
             Cars you sold keep their history for their current owner, with your name removed.
           </Text>
-          <Pressable
-            style={({ pressed }) => [styles.dangerButton, pressed && styles.savePressed]}
-            onPress={() => setAskingDelete(true)}
-          >
-            <Text style={styles.dangerButtonText}>Delete my account</Text>
-          </Pressable>
+          <Button label="Delete my account" variant="danger" onPress={() => setAskingDelete(true)} />
         </View>
       </ScrollView>
 
@@ -184,46 +166,29 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
   centered: { justifyContent: 'center' },
-  content: { padding: 20, paddingBottom: 48, ...column },
+  content: { padding: 20, paddingBottom: 56, ...column },
 
-  label: {
-    color: colors.textMuted,
-    fontSize: 11,
-    letterSpacing: 1.5,
-    textTransform: 'uppercase',
-    marginBottom: 8,
+  preview: {
+    backgroundColor: colors.paper,
+    borderRadius: radius.page,
+    padding: 18,
+    marginBottom: 28,
   },
-  email: { color: colors.text, fontSize: 15, marginBottom: 28 },
+  previewLabel: { ...type.caption, color: colors.inkMuted },
+  previewLine: { fontFamily: fonts.bodyMedium, fontSize: 17, lineHeight: 24, color: colors.ink, marginTop: 4 },
 
-  field: { marginBottom: 22 },
-  input: {
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 4,
-    color: colors.text,
-    fontSize: 16,
-    padding: 13,
+  field: { marginBottom: 24 },
+  label: { ...type.label, color: colors.textMuted, marginBottom: 8 },
+  hint: { ...type.caption, color: colors.textFaint, marginTop: 8 },
+
+  account: {
+    marginTop: 40,
+    paddingTop: 24,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
   },
-  inputMono: { fontFamily: mono, letterSpacing: 1 },
-  hint: { color: colors.textFaint, fontSize: 12, marginTop: 7, lineHeight: 17 },
-
-  error: { color: colors.accent, fontSize: 14, marginBottom: 12, lineHeight: 20 },
-  saved: { color: '#8FBF7F', fontSize: 14, marginBottom: 12 },
-
-  save: {
-    backgroundColor: colors.accent,
-    borderRadius: 4,
-    paddingVertical: 15,
-    alignItems: 'center',
-    marginTop: 4,
-  },
-  savePressed: { opacity: 0.8 },
-  saveDisabled: { backgroundColor: colors.disabled },
-  saveText: { color: colors.background, fontSize: 15, fontWeight: '700', letterSpacing: 1 },
-
-  signOut: { marginTop: 28, paddingVertical: 12, alignItems: 'center' },
-  signOutText: { color: colors.accent, fontSize: 14, fontWeight: '600' },
+  accountLabel: { ...type.caption, color: colors.textFaint },
+  email: { ...type.body, color: colors.text, marginTop: 2, marginBottom: 16 },
 
   danger: {
     marginTop: 40,
@@ -232,15 +197,6 @@ const styles = StyleSheet.create({
     borderTopColor: colors.border,
     gap: 8,
   },
-  dangerTitle: { color: colors.text, fontSize: 15, fontWeight: '600' },
-  dangerBody: { color: colors.textFaint, fontSize: 13, lineHeight: 18 },
-  dangerButton: {
-    marginTop: 6,
-    paddingVertical: 13,
-    alignItems: 'center',
-    borderRadius: 4,
-    borderWidth: 1,
-    borderColor: colors.accent,
-  },
-  dangerButtonText: { color: colors.accent, fontSize: 14, fontWeight: '700' },
+  dangerTitle: { ...type.heading, color: colors.text },
+  dangerBody: { ...type.small, color: colors.textMuted, marginBottom: 8 },
 });

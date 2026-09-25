@@ -1,13 +1,18 @@
 import { useCallback, useState } from 'react';
 import { FlatList, Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Stack, useFocusEffect, useRouter } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { loadGarage, type SavedVehicle } from '../lib/garage';
-import { colors, column, mono } from '../lib/theme';
+import { formatMonthYear } from '../lib/dates';
+import { groupVin } from '../components/DataPage';
+import { Button, focusRing, type PressState } from '../components/ui';
+import { colors, column, fonts, radius, type } from '../lib/theme';
 
 export default function GarageScreen() {
   const [garage, setGarage] = useState<SavedVehicle[]>([]);
   const [loaded, setLoaded] = useState(false);
   const router = useRouter();
+  const insets = useSafeAreaInsets();
 
   /**
    * useFocusEffect runs every time this screen comes into view — including
@@ -25,114 +30,163 @@ export default function GarageScreen() {
     }, [])
   );
 
+  const isEmpty = loaded && garage.length === 0;
+
   return (
-    <View style={styles.screen}>
-      <Stack.Screen
-        options={{
-          title: 'Garage',
-          headerRight: () => (
-            <Pressable onPress={() => router.push('/profile')} hitSlop={8}>
-              <Text style={styles.signOut}>Profile</Text>
-            </Pressable>
-          ),
-        }}
-      />
+    <View style={[styles.screen, { paddingTop: insets.top }]}>
+      <Stack.Screen options={{ headerShown: false, title: 'Garage' }} />
 
       <FlatList
         data={garage}
         keyExtractor={(vehicle) => vehicle.vin}
         contentContainerStyle={styles.list}
-        renderItem={({ item }) => (
-          <Pressable
-            style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
-            onPress={() => router.push(`/vehicle/${item.vin}`)}
-          >
-            {item.cover ? (
-              <Image
-                source={{ uri: item.cover.url }}
-                style={[styles.cover, { aspectRatio: item.cover.aspectRatio }]}
-                resizeMode="cover"
-              />
-            ) : null}
-            <View style={styles.cardBody}>
-              <Text style={styles.cardTitle}>
-                {item.year} {item.make} {item.model}
-              </Text>
-              {item.trim ? <Text style={styles.cardTrim}>{item.trim}</Text> : null}
-              <Text style={styles.cardVin}>{item.vin}</Text>
+        ListHeaderComponent={
+          <View style={styles.header}>
+            <View style={styles.topBar}>
+              <Text style={styles.wordmark}>Sonder</Text>
+              <Button label="Profile" variant="quiet" onPress={() => router.push('/profile')} />
             </View>
-          </Pressable>
+            {loaded && !isEmpty ? (
+              <View style={styles.titleRow}>
+                <Text style={styles.title} accessibilityRole="header">
+                  Garage
+                </Text>
+                <Text style={styles.count}>
+                  {garage.length} {garage.length === 1 ? 'car' : 'cars'}
+                </Text>
+              </View>
+            ) : null}
+          </View>
+        }
+        renderItem={({ item }) => (
+          <GarageCard vehicle={item} onPress={() => router.push(`/vehicle/${item.vin}`)} />
         )}
-        // Only show the empty state once we've actually checked storage,
-        // otherwise it flashes for a moment on every launch.
+        // Only show the empty state once we've actually checked, otherwise it
+        // flashes for a moment on every launch.
         ListEmptyComponent={
-          loaded ? (
+          isEmpty ? (
             <View style={styles.empty}>
-              <Text style={styles.emptyTitle}>No vehicles yet</Text>
+              <Text style={styles.emptyTitle} accessibilityRole="header">
+                Your garage is empty
+              </Text>
               <Text style={styles.emptyBody}>
-                Add a car by its VIN and it stays in your garage.
+                Add a car by its VIN. Sonder looks up the year, make, model and factory specs,
+                and the car is ready for its first log entry.
+              </Text>
+              <Text style={styles.emptyHint}>
+                The VIN is on the driver&apos;s side of the dashboard, readable through the
+                windshield, and on the sticker inside the driver&apos;s door.
               </Text>
             </View>
           ) : null
         }
       />
 
-      <Pressable
-        style={({ pressed }) => [styles.addButton, pressed && styles.addButtonPressed]}
-        onPress={() => router.push('/add')}
-      >
-        <Text style={styles.addButtonText}>Add a vehicle</Text>
-      </Pressable>
+      <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 16) }]}>
+        <Button label="Add a car" onPress={() => router.push('/add')} style={styles.footerButton} />
+      </View>
     </View>
+  );
+}
+
+/**
+ * A car in the garage. The photo carries it; the strip underneath is set in
+ * the same type as its data page, so the two read as one object.
+ */
+function GarageCard({ vehicle, onPress }: { vehicle: SavedVehicle; onPress: () => void }) {
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={`${vehicle.year} ${vehicle.make} ${vehicle.model}`}
+      style={(state) => {
+        const { pressed, focused } = state as PressState;
+        return [styles.card, pressed && styles.cardPressed, focused && focusRing];
+      }}
+    >
+      {vehicle.cover ? (
+        <Image source={{ uri: vehicle.cover.url }} style={styles.cover} resizeMode="cover" />
+      ) : null}
+      <View style={styles.cardBody}>
+        <View style={styles.cardTop}>
+          <Text style={styles.cardMake}>
+            {vehicle.year} {vehicle.make}
+          </Text>
+          <Text style={styles.cardSince}>Since {formatMonthYear(vehicle.addedAt)}</Text>
+        </View>
+        <Text style={styles.cardModel}>{vehicle.model}</Text>
+        {vehicle.trim ? <Text style={styles.cardTrim}>{vehicle.trim}</Text> : null}
+        <Text style={styles.cardVin}>{groupVin(vehicle.vin)}</Text>
+      </View>
+    </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
-  list: { padding: 20, gap: 12, flexGrow: 1, ...column },
+  list: { paddingHorizontal: 20, paddingBottom: 24, gap: 20, flexGrow: 1, ...column },
 
-  signOut: { color: colors.accent, fontSize: 14, fontWeight: '600' },
+  header: { paddingTop: 8 },
+  topBar: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    minHeight: 44,
+  },
+  wordmark: {
+    fontFamily: fonts.displayBold,
+    fontSize: 26,
+    color: colors.accent,
+    letterSpacing: 0.5,
+  },
+  titleRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'baseline',
+    marginTop: 16,
+  },
+  title: { ...type.hero, color: colors.text },
+  count: { ...type.label, color: colors.textMuted },
 
   card: {
-    backgroundColor: colors.surface,
-    borderRadius: 6,
-    borderLeftWidth: 3,
-    borderLeftColor: colors.accent,
+    backgroundColor: colors.paper,
+    borderRadius: radius.page,
     overflow: 'hidden',
   },
-  cardPressed: { opacity: 0.7 },
-  // aspectRatio comes from the photo itself; maxHeight stops a tall portrait
-  // shot from pushing the rest of the garage off screen. Within that box the
-  // image crops rather than distorts.
-  cover: { width: '100%', maxHeight: 260, backgroundColor: colors.background },
-  cardBody: { padding: 16 },
-  cardTitle: { color: colors.text, fontSize: 18, fontWeight: '700' },
-  cardTrim: { color: colors.textMuted, fontSize: 14, marginTop: 1 },
+  cardPressed: { opacity: 0.85 },
+  cover: { width: '100%', aspectRatio: 16 / 10, backgroundColor: colors.paperShade },
+  cardBody: { paddingHorizontal: 18, paddingTop: 14, paddingBottom: 16 },
+  cardTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' },
+  cardMake: { fontFamily: fonts.bodySemi, fontSize: 15, color: colors.inkMuted },
+  cardSince: { ...type.caption, color: colors.inkMuted },
+  cardModel: { ...type.display, fontSize: 32, lineHeight: 34, color: colors.ink, marginTop: 2 },
+  cardTrim: { ...type.small, color: colors.inkMuted },
   cardVin: {
+    fontFamily: fonts.mono,
+    fontSize: 13,
+    color: colors.inkMuted,
+    letterSpacing: 0.5,
+    marginTop: 12,
+  },
+
+  empty: { paddingTop: 40, maxWidth: 460 },
+  emptyTitle: { ...type.hero, fontSize: 44, lineHeight: 44, color: colors.text },
+  emptyBody: { ...type.lead, color: colors.textMuted, marginTop: 16 },
+  emptyHint: {
+    ...type.small,
     color: colors.textFaint,
-    fontSize: 12,
-    fontFamily: mono,
-    letterSpacing: 1,
-    marginTop: 8,
+    marginTop: 24,
+    paddingLeft: 14,
+    borderLeftWidth: 2,
+    borderLeftColor: colors.accent,
   },
 
-  empty: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 32, gap: 6 },
-  emptyTitle: { color: colors.textMuted, fontSize: 17, fontWeight: '600' },
-  emptyBody: { color: colors.textFaint, fontSize: 14, textAlign: 'center' },
-
-  addButton: {
-    backgroundColor: colors.accent,
-    borderRadius: 4,
-    paddingVertical: 15,
-    alignItems: 'center',
-    margin: 20,
-    marginTop: 0,
+  footer: {
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+    backgroundColor: colors.background,
   },
-  addButtonPressed: { opacity: 0.8 },
-  addButtonText: {
-    color: colors.background,
-    fontSize: 15,
-    fontWeight: '700',
-    letterSpacing: 1,
-  },
+  footerButton: { width: '100%', maxWidth: 600, alignSelf: 'center' },
 });
