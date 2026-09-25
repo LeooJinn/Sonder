@@ -18,12 +18,27 @@ export function engineLine(v: DecodedVehicle): string {
  * vPIC answers in its own vocabulary: "FWD/Front-Wheel Drive",
  * "Hatchback/Liftback/Notchback", "Manual/Standard". People say "front-wheel
  * drive", "hatchback" and "manual", so keep the plainest part.
+ *
+ * Where vPIC gives an abbreviation people actually use — "Sport Utility
+ * Vehicle (SUV)" — that is the plainest part, so it wins. Otherwise words
+ * are lowercased into a sentence, except ones already in capitals.
  */
 function plain(value: string, part: 'first' | 'last'): string {
   if (!value) return '';
   const pieces = value.split('/');
-  const picked = part === 'first' ? pieces[0] : pieces[pieces.length - 1];
-  return picked.charAt(0) + picked.slice(1).toLowerCase();
+  const picked = (part === 'first' ? pieces[0] : pieces[pieces.length - 1]).trim();
+
+  const abbreviation = picked.match(/\(([A-Z0-9]{2,})\)/);
+  if (abbreviation) return abbreviation[1];
+
+  return picked
+    .split(' ')
+    .map((word, i) => {
+      if (/^[A-Z0-9-]{2,}$/.test(word)) return word;
+      const lower = word.toLowerCase();
+      return i === 0 ? lower.charAt(0).toUpperCase() + lower.slice(1) : lower;
+    })
+    .join(' ');
 }
 
 /** "SHH FK8G72 KU201847": maker, description, serial — the VIN's own sections. */
