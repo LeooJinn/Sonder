@@ -123,6 +123,7 @@ function MeetRow({ meet, showRegion, onPress }: { meet: Meet; showRegion: boolea
           {meet.isMine ? 'Your meet' : `Hosted by ${ownerName(meet.host, 'a member')}`}.{' '}
           {meet.goingCount} going.
         </Text>
+        {meet.hiddenAt ? <Text style={styles.rowHidden}>Hidden after reports. Only you can see it.</Text> : null}
       </View>
     </Pressable>
   );
@@ -164,6 +165,7 @@ const styles = StyleSheet.create({
   rowTitle: { fontFamily: fonts.bodySemi, fontSize: 18, lineHeight: 24, color: colors.text },
   rowWhere: { ...type.small, color: colors.textMuted, marginTop: 2 },
   rowWho: { ...type.small, color: colors.textFaint, marginTop: 2 },
+  rowHidden: { ...type.small, color: colors.danger, marginTop: 2 },
 
   empty: { paddingTop: 24, maxWidth: 460 },
   emptyTitle: { ...type.title, color: colors.text },

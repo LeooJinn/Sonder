@@ -15,6 +15,8 @@ import { supabase } from '../lib/supabase';
 import { RegionPicker } from '../components/RegionPicker';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { deleteAccount } from '../lib/account';
+import { loadBlocked, unblockMember, type BlockedMember } from '../lib/moderation';
+import { ownerName } from '../components/Timeline';
 import { regionLabel } from '../lib/regions';
 import { Button, Field, Notice } from '../components/ui';
 import { colors, column, fonts, radius, type } from '../lib/theme';
@@ -29,7 +31,12 @@ export default function ProfileScreen() {
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
   const [askingDelete, setAskingDelete] = useState(false);
+  const [blocked, setBlocked] = useState<BlockedMember[]>([]);
   const router = useRouter();
+
+  useEffect(() => {
+    loadBlocked().then(setBlocked).catch(() => {});
+  }, []);
 
   useEffect(() => {
     Promise.all([loadMyProfile(), supabase.auth.getUser()])
@@ -132,6 +139,28 @@ export default function ProfileScreen() {
           />
         </View>
 
+        {blocked.length > 0 && (
+          <View style={styles.blocked}>
+            <Text style={styles.dangerTitle}>Blocked members</Text>
+            <Text style={styles.dangerBody}>
+              You don&apos;t see their meets or the cars they sell. They haven&apos;t been told.
+            </Text>
+            {blocked.map((member) => (
+              <View key={member.id} style={styles.blockedRow}>
+                <Text style={styles.blockedName}>{ownerName(member, 'A member')}</Text>
+                <Button
+                  label="Unblock"
+                  variant="quiet"
+                  onPress={async () => {
+                    await unblockMember(member.id);
+                    setBlocked((current) => current.filter((m) => m.id !== member.id));
+                  }}
+                />
+              </View>
+            ))}
+          </View>
+        )}
+
         <View style={styles.danger}>
           <Text style={styles.dangerTitle}>Delete account</Text>
           <Text style={styles.dangerBody}>
@@ -189,6 +218,21 @@ const styles = StyleSheet.create({
   },
   accountLabel: { ...type.caption, color: colors.textFaint },
   email: { ...type.body, color: colors.text, marginTop: 2, marginBottom: 16 },
+
+  blocked: {
+    marginTop: 40,
+    paddingTop: 24,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+    gap: 8,
+  },
+  blockedRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 10,
+  },
+  blockedName: { ...type.bodyStrong, color: colors.text },
 
   danger: {
     marginTop: 40,

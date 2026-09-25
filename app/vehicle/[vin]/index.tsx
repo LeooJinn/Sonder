@@ -27,6 +27,8 @@ import { isPassportPublic, setPassportPublic } from '../../../lib/passport';
 import { loadMyListing, saveMyListing, type MyListing } from '../../../lib/market';
 import { formatCents, parseCents } from '../../../lib/log';
 import { describeError } from '../../../lib/errors';
+import { knownMileage, loadReminders, type Reminder } from '../../../lib/reminders';
+import { RemindersSummary } from '../../../components/Reminders';
 import { formatMonthYear } from '../../../lib/dates';
 import { DataPage } from '../../../components/DataPage';
 import { Timeline, ownerName, period, summarize, type Chapter } from '../../../components/Timeline';
@@ -69,6 +71,7 @@ export default function VehicleScreen() {
   const [gallery, setGallery] = useState<Photo[]>([]);
   const [uploading, setUploading] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [reminders, setReminders] = useState<Reminder[]>([]);
   const router = useRouter();
 
   const photoCount =
@@ -179,9 +182,11 @@ export default function VehicleScreen() {
       loadPriorHistory(vin),
       findOwnershipId(vin),
       loadMyListing(vin),
+      loadReminders(vin),
     ])
-      .then(async ([found, log, published, history, ownership, myListing]) => {
+      .then(async ([found, log, published, history, ownership, myListing, mine]) => {
         showListing(myListing);
+        setReminders(mine);
         setVehicle(found);
         setEntries(log);
         setIsPublic(published);
@@ -263,6 +268,14 @@ export default function VehicleScreen() {
         onPress={() => router.push(`/vehicle/${vin}/add`)}
         style={styles.addButton}
       />
+
+      <View style={styles.section}>
+        <RemindersSummary
+          reminders={reminders}
+          mileage={knownMileage(entries, reminders)}
+          onManage={() => router.push(`/vehicle/${vin}/reminders`)}
+        />
+      </View>
 
       <View style={styles.section}>
         <Timeline chapters={chapters} />

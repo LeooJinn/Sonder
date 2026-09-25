@@ -8,6 +8,8 @@ import { regionLabel } from '../../lib/regions';
 import { describeError } from '../../lib/errors';
 import { ownerName } from '../../components/Timeline';
 import { ConfirmDialog } from '../../components/ConfirmDialog';
+import { ReportSheet } from '../../components/ReportSheet';
+import { blockMember, reportMeet } from '../../lib/moderation';
 import { Button, ErrorState, Notice, SectionHeader, focusRing, type PressState } from '../../components/ui';
 import { colors, column, fonts, radius, type } from '../../lib/theme';
 
@@ -24,6 +26,8 @@ export default function MeetScreen() {
   const [actionError, setActionError] = useState<string | null>(null);
   const [working, setWorking] = useState(false);
   const [askingCancel, setAskingCancel] = useState(false);
+  const [reporting, setReporting] = useState(false);
+  const [askingBlock, setAskingBlock] = useState(false);
 
   const load = useCallback(() => {
     setError(null);
@@ -117,6 +121,15 @@ export default function MeetScreen() {
 
       {meet.details ? <Text style={styles.details}>{meet.details}</Text> : null}
 
+      {meet.isMine && meet.hiddenAt ? (
+        <View style={styles.hiddenNotice}>
+          <Notice tone="error">
+            Members reported this meet, so it&apos;s hidden from everyone but you until it&apos;s
+            been reviewed.
+          </Notice>
+        </View>
+      ) : null}
+
       <View style={styles.section}>
         <SectionHeader title={going ? "You're going" : 'Going?'} />
 
@@ -208,11 +221,39 @@ export default function MeetScreen() {
         ))}
       </View>
 
-      {meet.isMine && (
+      {meet.isMine ? (
         <View style={styles.section}>
           <Button label="Cancel this meet" variant="danger" onPress={() => setAskingCancel(true)} />
         </View>
+      ) : (
+        <View style={styles.moderation}>
+          <Button label="Report this meet" variant="quiet" onPress={() => setReporting(true)} />
+          <Button
+            label={`Block ${ownerName(meet.host, 'the host')}`}
+            variant="quiet"
+            onPress={() => setAskingBlock(true)}
+          />
+        </View>
       )}
+
+      <ReportSheet
+        visible={reporting}
+        what="meet"
+        onSubmit={(reason, note) => reportMeet(meet.id, reason, note)}
+        onClose={() => setReporting(false)}
+      />
+
+      <ConfirmDialog
+        visible={askingBlock}
+        title={`Block ${ownerName(meet.host, 'this member')}?`}
+        body="You won't see their meets or the cars they sell. They aren't told. You can unblock them from your profile."
+        confirmLabel="Block"
+        onConfirm={async () => {
+          await blockMember(meet.host.id);
+          router.replace('/meets');
+        }}
+        onCancel={() => setAskingBlock(false)}
+      />
 
       <ConfirmDialog
         visible={askingCancel}
@@ -310,6 +351,17 @@ const styles = StyleSheet.create({
   attendeeName: { ...type.bodyStrong, color: colors.text, flexShrink: 1 },
   hostTag: { fontFamily: fonts.bodyMedium, fontSize: 13, color: colors.accent },
   attendeeCar: { ...type.small, color: colors.textMuted, textAlign: 'right', flexShrink: 1 },
+
+  hiddenNotice: { marginTop: 20 },
+  moderation: {
+    marginTop: 40,
+    paddingTop: 20,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 24,
+  },
 
   missing: { padding: 24, justifyContent: 'center', gap: 12 },
   missingTitle: { ...type.title, color: colors.text },

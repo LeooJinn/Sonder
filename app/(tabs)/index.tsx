@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { loadGarage, type SavedVehicle } from '../../lib/garage';
 import { useAuth } from '../../lib/auth';
 import { describeError } from '../../lib/errors';
+import { loadGarageReminders, type ReminderStatus } from '../../lib/reminders';
 import { formatMonthYear } from '../../lib/dates';
 import { groupVin } from '../../components/DataPage';
 import { Button, ErrorState, focusRing, type PressState } from '../../components/ui';
@@ -14,6 +15,7 @@ export default function GarageScreen() {
   const [garage, setGarage] = useState<SavedVehicle[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [due, setDue] = useState<Map<string, { title: string; status: ReminderStatus }>>(new Map());
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { session } = useAuth();
@@ -38,6 +40,8 @@ export default function GarageScreen() {
         setLoaded(true);
       })
       .catch((e) => setError(describeError(e)));
+    // Reminders are extra: the garage shows without them if they fail.
+    loadGarageReminders().then(setDue).catch(() => {});
   }, [session]);
 
   useFocusEffect(load);
@@ -78,7 +82,11 @@ export default function GarageScreen() {
           </View>
         }
         renderItem={({ item }) => (
-          <GarageCard vehicle={item} onPress={() => router.push(`/vehicle/${item.vin}`)} />
+          <GarageCard
+            vehicle={item}
+            due={due.get(item.vin)}
+            onPress={() => router.push(`/vehicle/${item.vin}`)}
+          />
         )}
         // Only show the empty state once we've actually checked, otherwise it
         // flashes for a moment on every launch.
@@ -109,7 +117,16 @@ export default function GarageScreen() {
  * A car in the garage. The photo carries it; the strip underneath is set in
  * the same type as its data page, so the two read as one object.
  */
-function GarageCard({ vehicle, onPress }: { vehicle: SavedVehicle; onPress: () => void }) {
+function GarageCard({
+  vehicle,
+  due,
+  onPress,
+}: {
+  vehicle: SavedVehicle;
+  /** The most pressing reminder, when one is overdue or coming up. */
+  due?: { title: string; status: ReminderStatus };
+  onPress: () => void;
+}) {
   return (
     <Pressable
       onPress={onPress}
@@ -134,6 +151,13 @@ function GarageCard({ vehicle, onPress }: { vehicle: SavedVehicle; onPress: () =
         {vehicle.trim ? <Text style={styles.cardTrim}>{vehicle.trim}</Text> : null}
         <Text style={styles.cardVin}>{groupVin(vehicle.vin)}</Text>
       </View>
+      {due ? (
+        <View style={[styles.due, due.status.state === 'overdue' && styles.dueOverdue]}>
+          <Text style={[styles.dueText, due.status.state === 'overdue' && styles.dueTextOverdue]}>
+            {due.title}: {due.status.text.charAt(0).toLowerCase() + due.status.text.slice(1)}
+          </Text>
+        </View>
+      ) : null}
     </Pressable>
   );
 }
@@ -183,6 +207,12 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
     marginTop: 12,
   },
+
+  // A tag along the card's foot, like a service sticker on a windshield.
+  due: { backgroundColor: colors.paperShade, paddingHorizontal: 18, paddingVertical: 10 },
+  dueOverdue: { backgroundColor: '#F4D9D5' },
+  dueText: { fontFamily: fonts.bodySemi, fontSize: 14, color: colors.ink },
+  dueTextOverdue: { color: '#8E2A24' },
 
   empty: { paddingTop: 40, maxWidth: 460 },
   emptyTitle: { ...type.hero, fontSize: 44, lineHeight: 44, color: colors.text },

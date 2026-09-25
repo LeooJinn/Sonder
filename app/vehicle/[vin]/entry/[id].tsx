@@ -3,6 +3,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { findEntry, removeEntry, updateEntry, type LogEntry } from '../../../../lib/log';
 import { addPhoto, removePhoto } from '../../../../lib/photos';
+import { loadReminders, markDone, type Reminder } from '../../../../lib/reminders';
 import { EntryForm, type EntryFormValues } from '../../../../components/EntryForm';
 import { ConfirmDialog } from '../../../../components/ConfirmDialog';
 import { Button } from '../../../../components/ui';
@@ -10,11 +11,16 @@ import { colors, column, type } from '../../../../lib/theme';
 
 /** Edit or delete an existing log entry. Route: /vehicle/:vin/entry/:id */
 export default function EditEntryScreen() {
-  const { id } = useLocalSearchParams<{ vin: string; id: string }>();
+  const { id, vin } = useLocalSearchParams<{ vin: string; id: string }>();
+  const [reminders, setReminders] = useState<Reminder[]>([]);
   const [entry, setEntry] = useState<LogEntry | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [askingDelete, setAskingDelete] = useState(false);
   const router = useRouter();
+
+  useEffect(() => {
+    loadReminders(vin).then(setReminders).catch(() => {});
+  }, [vin]);
 
   useEffect(() => {
     findEntry(id).then((found) => {
@@ -24,7 +30,7 @@ export default function EditEntryScreen() {
   }, [id]);
 
   async function handleSubmit(values: EntryFormValues) {
-    const { newPhotoUris, removedPhotoIds, ...patch } = values;
+    const { newPhotoUris, removedPhotoIds, completes, ...patch } = values;
 
     await updateEntry(id, patch);
 
@@ -39,6 +45,8 @@ export default function EditEntryScreen() {
     for (const [index, uri] of newPhotoUris.entries()) {
       await addPhoto(id, uri, startPosition + index);
     }
+
+    await markDone(completes, patch.occurredOn, patch.odometer);
 
     router.back();
   }
@@ -80,10 +88,12 @@ export default function EditEntryScreen() {
           costCents: entry.costCents,
           parts: entry.parts,
           newPhotoUris: [],
+          completes: [],
           removedPhotoIds: [],
         }}
         initialPhotos={entry.photos}
         submitLabel="Save changes"
+        reminders={reminders}
         onSubmit={handleSubmit}
       />
 

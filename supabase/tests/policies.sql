@@ -121,3 +121,99 @@ reset role;
 select pg_temp.check((select count(*) from meets) = 0, 'deleting the host removes their meets');
 select pg_temp.check((select count(*) from ownerships where id = '20000000-0000-0000-0000-00000000000a') = 1, 'the previous owner''s period survives the buyer deleting their account');
 
+
+-- ---------------- 0010: reminders ----------------
+-- Sam still owns the private Civic (ownership ...0c). The stranger owns nothing.
+set role authenticated;
+set request.jwt.claim.sub = '00000000-0000-0000-0000-00000000000a';
+insert into reminders (id, ownership_id, title, every_miles, every_months, last_done_on, last_done_odometer)
+  values ('60000000-0000-0000-0000-000000000001', '20000000-0000-0000-0000-00000000000c', 'Oil change', 5000, 6, '2026-03-01', 50000);
+select pg_temp.check(true, 'owner adds a reminder to their car');
+do $$ begin
+  insert into reminders (ownership_id, title) values ('20000000-0000-0000-0000-00000000000c', 'Never due');
+  raise exception 'FAIL: reminder without an interval';
+exception when check_violation then raise notice 'ok: a reminder needs an interval';
+end $$;
+
+set request.jwt.claim.sub = '00000000-0000-0000-0000-00000000000c';
+select pg_temp.check((select count(*) from reminders) = 0, 'nobody else reads your reminders');
+do $$ begin
+  insert into reminders (ownership_id, title, every_months) values ('20000000-0000-0000-0000-00000000000c', 'Sneaky', 1);
+  raise exception 'FAIL: added a reminder to someone else''s car';
+exception when insufficient_privilege then raise notice 'ok: cannot add reminders to someone else''s car';
+end $$;
+reset role;
+
+-- ---------------- 0011: reports and blocks ----------------
+insert into auth.users (id, email) values
+  ('00000000-0000-0000-0000-00000000000d', 'd@x'),
+  ('00000000-0000-0000-0000-00000000000e', 'e@x'),
+  ('00000000-0000-0000-0000-00000000000f', 'f@x');
+
+set role authenticated;
+set request.jwt.claim.sub = '00000000-0000-0000-0000-00000000000c';
+insert into meets (id, host_id, title, region, place, starts_at) values
+  ('50000000-0000-0000-0000-000000000002', '00000000-0000-0000-0000-00000000000c', 'Free crypto giveaway', 'us-ca-los-angeles', 'DM me', now() + interval '1 day');
+
+set request.jwt.claim.sub = '00000000-0000-0000-0000-00000000000d';
+insert into reports (reporter_id, target_kind, target_id, reason) values ('00000000-0000-0000-0000-00000000000d', 'meet', '50000000-0000-0000-0000-000000000002', 'spam');
+select pg_temp.check((select count(*) from reports) = 0, 'reporters cannot read reports, even their own');
+do $$ begin
+  insert into reports (reporter_id, target_kind, target_id, reason) values ('00000000-0000-0000-0000-00000000000d', 'meet', '50000000-0000-0000-0000-000000000002', 'spam');
+  raise exception 'FAIL: reported the same meet twice';
+exception when unique_violation then raise notice 'ok: one report per member per meet';
+end $$;
+do $$ begin
+  insert into reports (reporter_id, target_kind, target_id, reason) values ('00000000-0000-0000-0000-00000000000e', 'meet', '50000000-0000-0000-0000-000000000002', 'spam');
+  raise exception 'FAIL: reported as someone else';
+exception when insufficient_privilege then raise notice 'ok: cannot report as someone else';
+end $$;
+select pg_temp.check((select count(*) from meets where id = '50000000-0000-0000-0000-000000000002') = 1, 'one report does not hide a meet');
+
+set request.jwt.claim.sub = '00000000-0000-0000-0000-00000000000e';
+insert into reports (reporter_id, target_kind, target_id, reason) values ('00000000-0000-0000-0000-00000000000e', 'meet', '50000000-0000-0000-0000-000000000002', 'scam');
+set request.jwt.claim.sub = '00000000-0000-0000-0000-00000000000f';
+insert into reports (reporter_id, target_kind, target_id, reason) values ('00000000-0000-0000-0000-00000000000f', 'meet', '50000000-0000-0000-0000-000000000002', 'spam');
+select pg_temp.check((select count(*) from meets where id = '50000000-0000-0000-0000-000000000002') = 0, 'three reports hide the meet from members');
+set request.jwt.claim.sub = '00000000-0000-0000-0000-00000000000c';
+select pg_temp.check((select hidden_at is not null from meets where id = '50000000-0000-0000-0000-000000000002'), 'the host still sees their hidden meet, marked hidden');
+reset role;
+
+-- Sam publishes and lists the Civic; three members report the listing.
+update ownerships set is_public = true, for_sale = true, asking_price_cents = 100 where id = '20000000-0000-0000-0000-00000000000c';
+set role authenticated;
+set request.jwt.claim.sub = '00000000-0000-0000-0000-00000000000d';
+insert into reports (reporter_id, target_kind, target_id, reason) values ('00000000-0000-0000-0000-00000000000d', 'listing', '20000000-0000-0000-0000-00000000000c', 'scam');
+set request.jwt.claim.sub = '00000000-0000-0000-0000-00000000000e';
+insert into reports (reporter_id, target_kind, target_id, reason) values ('00000000-0000-0000-0000-00000000000e', 'listing', '20000000-0000-0000-0000-00000000000c', 'scam');
+set request.jwt.claim.sub = '00000000-0000-0000-0000-00000000000f';
+insert into reports (reporter_id, target_kind, target_id, reason) values ('00000000-0000-0000-0000-00000000000f', 'listing', '20000000-0000-0000-0000-00000000000c', 'scam');
+reset role;
+select pg_temp.check((select not for_sale from ownerships where id = '20000000-0000-0000-0000-00000000000c'), 'three reports take a listing off the market');
+set role authenticated;
+set request.jwt.claim.sub = '00000000-0000-0000-0000-00000000000a';
+update ownerships set for_sale = true where id = '20000000-0000-0000-0000-00000000000c';
+select pg_temp.check((select not for_sale from ownerships where id = '20000000-0000-0000-0000-00000000000c'), 'a reported listing cannot simply be relisted');
+update ownerships set is_public = true where id = '20000000-0000-0000-0000-00000000000c';
+select pg_temp.check((select is_public from ownerships where id = '20000000-0000-0000-0000-00000000000c'), 'the owner can still use their car normally');
+
+-- Blocks are private to the blocker.
+set request.jwt.claim.sub = '00000000-0000-0000-0000-00000000000d';
+insert into blocks (blocker_id, blocked_id) values ('00000000-0000-0000-0000-00000000000d', '00000000-0000-0000-0000-00000000000c');
+select pg_temp.check((select count(*) from blocks) = 1, 'a member sees who they blocked');
+do $$ begin
+  insert into blocks (blocker_id, blocked_id) values ('00000000-0000-0000-0000-00000000000d', '00000000-0000-0000-0000-00000000000d');
+  raise exception 'FAIL: blocked themselves';
+exception when check_violation then raise notice 'ok: cannot block yourself';
+end $$;
+set request.jwt.claim.sub = '00000000-0000-0000-0000-00000000000e';
+select pg_temp.check((select count(*) from blocks) = 0, 'nobody else sees a member''s blocks');
+reset role;
+
+set role anon;
+do $$ begin
+  insert into reports (reporter_id, target_kind, target_id, reason) values ('00000000-0000-0000-0000-00000000000d', 'meet', '50000000-0000-0000-0000-000000000002', 'spam');
+  raise exception 'FAIL: anonymous report';
+exception when insufficient_privilege then raise notice 'ok: visitors cannot file reports';
+end $$;
+reset role;

@@ -8,6 +8,7 @@
 
 import { supabase } from './supabase';
 import { requireUserId } from './garage';
+import { loadBlockedIds } from './moderation';
 
 export type MeetPerson = { id: string; handle?: string; displayName?: string };
 
@@ -25,6 +26,8 @@ export type Meet = {
   host: MeetPerson;
   isMine: boolean;
   goingCount: number;
+  /** Set when reports took the meet down. Only its host still sees it. */
+  hiddenAt?: string;
 };
 
 export type MeetDetail = Meet & {
@@ -50,6 +53,7 @@ type MeetRow = {
   region: string;
   place: string;
   starts_at: string;
+  hidden_at: string | null;
   host_id: string;
   profiles: ProfileRow;
   meet_rsvps: { count: number }[];
@@ -76,11 +80,12 @@ function toMeet(row: MeetRow, userId: string): Meet {
     host: toPerson(row.host_id, row.profiles),
     isMine: row.host_id === userId,
     goingCount: row.meet_rsvps?.[0]?.count ?? 0,
+    hiddenAt: row.hidden_at ?? undefined,
   };
 }
 
 const MEET_COLUMNS =
-  'id, title, details, region, place, starts_at, host_id, profiles!meets_host_id_fkey (id, handle, display_name), meet_rsvps (count)';
+  'id, title, details, region, place, starts_at, hidden_at, host_id, profiles!meets_host_id_fkey (id, handle, display_name), meet_rsvps (count)';
 
 /**
  * Meets that haven't finished, soonest first. "Finished" is generous: a meet
@@ -100,9 +105,11 @@ export async function loadMeets(region?: string): Promise<Meet[]> {
 
   if (region) query = query.eq('region', region);
 
-  const { data, error } = await query;
+  const [{ data, error }, blocked] = await Promise.all([query, loadBlockedIds()]);
   if (error) throw new Error(error.message);
-  return (data as unknown as MeetRow[]).map((row) => toMeet(row, userId));
+  return (data as unknown as MeetRow[])
+    .filter((row) => !blocked.has(row.host_id))
+    .map((row) => toMeet(row, userId));
 }
 
 export async function loadMeet(id: string): Promise<MeetDetail | null> {

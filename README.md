@@ -52,14 +52,22 @@ one working slice at a time.
   passport — a buyer reads the history before they get in touch
 - **Meets**: post one to a region, say you're going, and pick which car you're
   bringing. Members only, and never on a public page
+- **Reminders** for oil changes, brake fluid, registration and the rest, by
+  miles, months or both. Due dates come from the log's own mileage and dates,
+  and ticking a reminder off in a log entry resets it
+- **Reporting and blocking** for meets and listings. Three reports from
+  different members take a meet or listing down automatically; reports are
+  read in the Supabase dashboard
+- Shared passport links **preview** with the car's photo, name and history in
+  iMessage, Instagram, Discord and anywhere else that unfurls links
 - Everything stored in Postgres, so a garage follows the account to any
   device and survives reinstalling the app
 
 **What's next**
 
 - Following a car or a member, so a meet or a listing nearby finds you
-- Service reminders from the log: when the next oil change is due, by miles
-  or months
+- Reminders that reach you outside the app: a push notification or an email
+  when something comes due
 
 ---
 
@@ -134,8 +142,9 @@ app/                          screens — a file's path is its route
     meets.tsx    /meets       upcoming meets
   add.tsx        /add         VIN entry
   profile.tsx    /profile     handle, display name, region
-  vehicle/[vin]/              one car: passport, log, gallery, listing, sale
+  vehicle/[vin]/              one car: passport, log, reminders, gallery, listing, sale
   meet/          /meet/new    post a meet; /meet/:id to see one and say you're going
+api/passport-page.ts          /p/:vin's HTML, with the car in it for link previews
   p/[vin].tsx    /p/:vin      a published passport — the only public screen
 components/                   shared UI
 lib/
@@ -147,6 +156,8 @@ lib/
   history.ts                  inherited history from previous owners
   market.ts                   listing a car, and browsing listings
   meets.ts                    meets and who's going
+  reminders.ts                what's due next, worked out from the log
+  moderation.ts               reports and blocks
   profile.ts / account.ts     identity, and deleting it
   auth.tsx                    session state
   supabase.ts                 database client

@@ -10,6 +10,7 @@
 import { supabase } from './supabase';
 import { findOwnershipId } from './garage';
 import { loadGalleries } from './photos';
+import { loadBlockedIds } from './moderation';
 import { toDecodedVehicle, VEHICLE_COLUMNS } from './passport';
 import type { DecodedVehicle } from './vin';
 
@@ -20,6 +21,9 @@ export type MyListing = {
 };
 
 export type MarketListing = {
+  /** The listed ownership: what a report points at. */
+  ownershipId: string;
+  sellerId?: string;
   vehicle: DecodedVehicle;
   askingPriceCents?: number;
   region?: string;
@@ -75,6 +79,7 @@ export async function saveMyListing(vin: string, listing: MyListing): Promise<vo
 
 type MarketRow = {
   id: string;
+  owner_id: string | null;
   asking_price_cents: number | null;
   listed_at: string;
   vehicles: Parameters<typeof toDecodedVehicle>[0];
@@ -86,7 +91,7 @@ export async function loadMarket(region?: string): Promise<MarketListing[]> {
   let query = supabase
     .from('ownerships')
     .select(
-      `id, asking_price_cents, listed_at,
+      `id, owner_id, asking_price_cents, listed_at,
        vehicles!inner (${VEHICLE_COLUMNS}),
        profiles${region ? '!inner' : ''} (handle, display_name, region)`
     )
@@ -99,10 +104,14 @@ export async function loadMarket(region?: string): Promise<MarketListing[]> {
   const { data, error } = await query;
   if (error) throw new Error(error.message);
 
-  const rows = data as unknown as MarketRow[];
+  // A member who blocked the seller doesn't see their cars.
+  const blocked = await loadBlockedIds();
+  const rows = (data as unknown as MarketRow[]).filter((row) => !row.owner_id || !blocked.has(row.owner_id));
   const galleries = await loadGalleries(rows.map((row) => row.id));
 
   return rows.map((row) => ({
+    ownershipId: row.id,
+    sellerId: row.owner_id ?? undefined,
     vehicle: toDecodedVehicle(row.vehicles),
     askingPriceCents: row.asking_price_cents ?? undefined,
     region: row.profiles?.region ?? undefined,

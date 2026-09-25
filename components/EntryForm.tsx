@@ -12,6 +12,7 @@ import {
 import { ENTRY_KINDS, KIND_LABELS, parseCents, type EntryKind, type Part } from '../lib/log';
 import { today } from '../lib/dates';
 import { pickImages, type Photo } from '../lib/photos';
+import type { Reminder } from '../lib/reminders';
 import { Button, Field, Notice, focusRing, type PressState } from './ui';
 import { colors, column, fonts, KIND_COLORS, radius, type } from '../lib/theme';
 
@@ -36,6 +37,8 @@ export type EntryFormValues = {
   newPhotoUris: string[];
   /** Ids of already-uploaded photos the user removed. Deleted on save. */
   removedPhotoIds: string[];
+  /** Reminders this work took care of. Their clocks reset to this entry. */
+  completes: string[];
 };
 
 const emptyPart = (): Part => ({ brand: '', name: '' });
@@ -50,6 +53,7 @@ export function EntryForm({
   initialPhotos,
   submitLabel,
   onSubmit,
+  reminders = [],
 }: {
   /** Pre-filled values when editing. Omitted when creating. */
   initial?: EntryFormValues;
@@ -57,6 +61,8 @@ export function EntryForm({
   initialPhotos?: Photo[];
   submitLabel: string;
   onSubmit: (values: EntryFormValues) => Promise<void>;
+  /** The car's reminders, offered as things this entry took care of. */
+  reminders?: Reminder[];
 }) {
   const [kind, setKind] = useState<EntryKind>(initial?.kind ?? 'mod');
   const [title, setTitle] = useState(initial?.title ?? '');
@@ -70,6 +76,7 @@ export function EntryForm({
   const [existingPhotos, setExistingPhotos] = useState<Photo[]>(initialPhotos ?? []);
   const [removedPhotoIds, setRemovedPhotoIds] = useState<string[]>([]);
   const [newPhotoUris, setNewPhotoUris] = useState<string[]>([]);
+  const [completes, setCompletes] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -130,6 +137,7 @@ export function EntryForm({
           })),
         newPhotoUris,
         removedPhotoIds,
+        completes,
       });
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Could not save that entry.');
@@ -194,6 +202,39 @@ export function EntryForm({
             />
           </View>
         </View>
+
+        {reminders.length > 0 && (
+          <View style={styles.completes}>
+            <Text style={styles.label}>This took care of</Text>
+            <View style={styles.kinds}>
+              {reminders.map((reminder) => {
+                const selected = completes.includes(reminder.id);
+                return (
+                  <Pressable
+                    key={reminder.id}
+                    onPress={() =>
+                      setCompletes((current) =>
+                        selected ? current.filter((id) => id !== reminder.id) : [...current, reminder.id]
+                      )
+                    }
+                    accessibilityRole="checkbox"
+                    accessibilityState={{ checked: selected }}
+                    style={(state) => [
+                      styles.done,
+                      selected && styles.doneSelected,
+                      (state as PressState).focused && focusRing,
+                    ]}
+                  >
+                    <Text style={[styles.kindText, selected && styles.kindTextSelected]}>
+                      {selected ? '✓ ' : ''}
+                      {reminder.title}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          </View>
+        )}
 
         <Field
           label="Notes"
@@ -376,6 +417,17 @@ const styles = StyleSheet.create({
   kindDot: { width: 12, height: 12, borderRadius: 6, borderWidth: 2 },
   kindText: { fontFamily: fonts.bodyMedium, fontSize: 15, color: colors.textMuted },
   kindTextSelected: { fontFamily: fonts.bodySemi, color: colors.text },
+
+  completes: { marginTop: -4 },
+  done: {
+    minHeight: 40,
+    paddingHorizontal: 14,
+    justifyContent: 'center',
+    borderRadius: radius.control,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  doneSelected: { borderColor: colors.accent, backgroundColor: colors.surface },
 
   row: { flexDirection: 'row', gap: 12 },
   rowItem: { flex: 1 },

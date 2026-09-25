@@ -13,6 +13,7 @@ import type { DecodedVehicle } from './vin';
 import { ENTRY_COLUMNS, toLogEntry, type EntryRow, type LogEntry } from './log';
 
 export type PassportOwner = {
+  id?: string;
   handle?: string;
   displayName?: string;
   region?: string;
@@ -83,11 +84,17 @@ export function toDecodedVehicle(row: VehicleColumns): DecodedVehicle {
   };
 }
 
-type ProfileColumns = { handle: string | null; display_name: string | null; region: string | null };
+type ProfileColumns = {
+  id: string;
+  handle: string | null;
+  display_name: string | null;
+  region: string | null;
+};
 
 function toOwner(row: ProfileColumns | null): PassportOwner | undefined {
   if (!row) return undefined;
   return {
+    id: row.id,
     handle: row.handle ?? undefined,
     displayName: row.display_name ?? undefined,
     region: row.region ?? undefined,
@@ -140,7 +147,7 @@ export async function loadPassport(vin: string): Promise<Passport | null> {
 
   const { data: periodData, error: periodError } = await supabase
     .from('ownerships')
-    .select('id, started_on, ended_on, is_public, profiles (handle, display_name, region)')
+    .select('id, started_on, ended_on, is_public, profiles (id, handle, display_name, region)')
     .eq('vehicle_id', row.vehicles.id)
     .order('started_on', { ascending: false });
 

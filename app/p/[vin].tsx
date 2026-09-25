@@ -10,6 +10,9 @@ import { DataPage } from '../../components/DataPage';
 import { Gallery } from '../../components/Gallery';
 import { Timeline, ownerName, period, summarize } from '../../components/Timeline';
 import { Button, ErrorState } from '../../components/ui';
+import { ReportSheet } from '../../components/ReportSheet';
+import { reportListing } from '../../lib/moderation';
+import { useAuth } from '../../lib/auth';
 import { colors, column, fonts, radius, type } from '../../lib/theme';
 
 /**
@@ -26,6 +29,8 @@ export default function PublicPassportScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
+  const { session } = useAuth();
+  const [reporting, setReporting] = useState(false);
 
   const load = useCallback(() => {
     setLoading(true);
@@ -127,8 +132,22 @@ export default function PublicPassportScreen() {
               </Text>
             </View>
           ) : null}
+          {/* Members can report a listing; visitors would need an account
+              first, and the seller doesn't report their own car. */}
+          {session && current.owner?.id !== session.user.id ? (
+            <View style={styles.reportRow}>
+              <Button label="Report this listing" variant="quiet" onPress={() => setReporting(true)} />
+            </View>
+          ) : null}
         </View>
       )}
+
+      <ReportSheet
+        visible={reporting}
+        what="listing"
+        onSubmit={(reason, note) => reportListing(current.ownershipId, reason, note)}
+        onClose={() => setReporting(false)}
+      />
 
       <View style={styles.section}>
         <Timeline
@@ -204,6 +223,7 @@ const styles = StyleSheet.create({
   },
   contactLabel: { ...type.caption, color: colors.textFaint },
   contactValue: { ...type.bodyStrong, color: colors.text, marginTop: 2 },
+  reportRow: { marginTop: 16 },
 
   section: { marginTop: 36 },
 
