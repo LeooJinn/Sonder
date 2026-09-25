@@ -20,7 +20,7 @@ export function engineLine(v: DecodedVehicle): string {
  * drive", "hatchback" and "manual", so keep the plainest part.
  *
  * Where vPIC gives an abbreviation people actually use — "Sport Utility
- * Vehicle (SUV)" — that is the plainest part, so it wins. Otherwise words
+ * Vehicle [SUV]" — that is the plainest part, so it wins. Otherwise words
  * are lowercased into a sentence, except ones already in capitals.
  */
 function plain(value: string, part: 'first' | 'last'): string {
@@ -28,7 +28,8 @@ function plain(value: string, part: 'first' | 'last'): string {
   const pieces = value.split('/');
   const picked = (part === 'first' ? pieces[0] : pieces[pieces.length - 1]).trim();
 
-  const abbreviation = picked.match(/\(([A-Z0-9]{2,})\)/);
+  // vPIC has written these both as "(SUV)" and as "[SUV]".
+  const abbreviation = picked.match(/[([]([A-Z0-9]{2,})[)\]]/);
   if (abbreviation) return abbreviation[1];
 
   return picked
