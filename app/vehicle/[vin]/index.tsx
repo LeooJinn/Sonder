@@ -481,7 +481,7 @@ const styles = StyleSheet.create({
     borderTopColor: colors.border,
     gap: 12,
   },
-  link: { fontFamily: fonts.mono, fontSize: 13, color: colors.text },
+  link: { fontFamily: fonts.mono, fontSize: 14, color: colors.text },
   linkActions: { flexDirection: 'row', alignItems: 'center', gap: 20 },
   linkButton: { minHeight: 44, paddingHorizontal: 16 },
   error: { ...type.small, color: colors.danger, marginTop: 12 },

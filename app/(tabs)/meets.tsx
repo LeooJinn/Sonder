@@ -162,7 +162,7 @@ const styles = StyleSheet.create({
   sheetDay: { fontFamily: fonts.displayBold, fontSize: 30, lineHeight: 32, color: colors.ink },
   sheetMonth: { fontFamily: fonts.bodySemi, fontSize: 12, lineHeight: 16, color: colors.inkMuted },
   rowBody: { flex: 1, paddingTop: 2 },
-  rowTitle: { fontFamily: fonts.bodySemi, fontSize: 18, lineHeight: 24, color: colors.text },
+  rowTitle: { fontFamily: fonts.bodySemi, fontSize: type.item.fontSize, lineHeight: 24, color: colors.text },
   rowWhere: { ...type.small, color: colors.textMuted, marginTop: 2 },
   rowWho: { ...type.small, color: colors.textFaint, marginTop: 2 },
   rowHidden: { ...type.small, color: colors.danger, marginTop: 2 },

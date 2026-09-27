@@ -1,7 +1,7 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { colors, column, fonts } from '../lib/theme';
+import { colors, column, fonts, radius, type } from '../lib/theme';
 import { focusRing, type PressState } from './ui';
 
 /**
@@ -66,7 +66,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    borderRadius: 22,
+    borderRadius: radius.pill,
   },
   pressed: { backgroundColor: colors.surface },
   chevron: {
@@ -78,6 +78,6 @@ const styles = StyleSheet.create({
     transform: [{ rotate: '45deg' }],
     marginLeft: 4,
   },
-  backLabel: { fontFamily: fonts.bodySemi, fontSize: 15, color: colors.text },
+  backLabel: { fontFamily: fonts.bodySemi, fontSize: type.compact.fontSize, color: colors.text },
   title: { fontFamily: fonts.display, fontSize: 22, lineHeight: 28, color: colors.text, flexShrink: 1 },
 });

@@ -30,6 +30,12 @@ colors:
   kind-repair: "#EF7F7A"
   kind-milestone: "#BCA9F4"
 typography:
+  poster:
+    fontFamily: "Barlow Condensed, sans-serif"
+    fontSize: "84px"
+    fontWeight: 700
+    lineHeight: "80px"
+    letterSpacing: "-1.2px"
   hero:
     fontFamily: "Barlow Condensed, sans-serif"
     fontSize: "56px"
@@ -52,6 +58,11 @@ typography:
     fontSize: "22px"
     fontWeight: 600
     lineHeight: "26px"
+  item:
+    fontFamily: "Barlow, sans-serif"
+    fontSize: "18px"
+    fontWeight: 600
+    lineHeight: "24px"
   lead:
     fontFamily: "Barlow, sans-serif"
     fontSize: "17px"
@@ -66,6 +77,11 @@ typography:
     fontFamily: "Barlow, sans-serif"
     fontSize: "16px"
     fontWeight: 600
+    lineHeight: "22px"
+  compact:
+    fontFamily: "Barlow, sans-serif"
+    fontSize: "15px"
+    fontWeight: 400
     lineHeight: "22px"
   small:
     fontFamily: "Barlow, sans-serif"
@@ -92,6 +108,8 @@ rounded:
   control: "10px"
   input: "8px"
   photo: "6px"
+  tag: "4px"
+  pill: "999px"
 components:
   button-primary:
     backgroundColor: "{colors.accent}"
@@ -114,6 +132,10 @@ components:
     padding: "0 20px"
   button-quiet:
     textColor: "{colors.accent}"
+    height: "44px"
+    padding: "0 8px"
+  button-subtle:
+    textColor: "{colors.text-muted}"
     height: "44px"
     padding: "0 8px"
   button-danger:
@@ -148,12 +170,12 @@ components:
     backgroundColor: "{colors.ink}"
     textColor: "{colors.paper}"
     typography: "{typography.mono}"
-    rounded: "4px"
+    rounded: "{rounded.tag}"
   odometer-drum-last:
     backgroundColor: "{colors.accent}"
     textColor: "{colors.ink}"
     typography: "{typography.mono}"
-    rounded: "4px"
+    rounded: "{rounded.tag}"
   tab:
     backgroundColor: "{colors.background}"
     textColor: "{colors.text-faint}"
@@ -236,11 +258,14 @@ A tinted green cover, a pale green-grey paper, one gold foil, and a set of stamp
 ### Hierarchy
 - **Hero** (700, 56/54, -0.5 tracking): tab-screen titles (Garage, For sale, Meets) and the asking price on a listing.
 - **Display** (700, 38/38, -0.3 tracking): a car's model name on its data page and cards (cards tighten it to 30–32); a meet's title.
+- **Poster** (Condensed 700, 84/80, -1.2 tracking): the front page's headline at wide widths only.
 - **Title** (600, 28/30): section headers, chapter titles in the timeline, dialog titles, error-state titles.
 - **Heading** (600, 22/26): subsection titles in forms, the stacked-screen header title, passport footer line.
+- **Item** (SemiBold 600, 18/24): list-item and log-entry titles; the tab bar sets it in Condensed.
 - **Lead** (400, 17/26): the opening paragraph under a headline, empty-state bodies. Capped at 520–560px.
 - **Body** (400, 16/24): reading text and input text.
 - **Body Strong** (600, 16/22): button labels and emphasised values.
+- **Compact** (400, 15/22): button labels, quiet and subtle links, notes on dense screens.
 - **Small** (400, 14/20): secondary lines, notes, the holder line, disclosures.
 - **Label** (500, 14/18): field labels above inputs.
 - **Caption** (400, 12/16): hints, dates, spec labels on the data page.
@@ -257,7 +282,7 @@ The ramp is a modular scale of about 1.25. Display type is always sentence case;
 
 Sonder is a phone app first. App screens lay out in a single reading column (640px max, centred, full width below that) with a 20px side gutter; the cover still paints edge to edge and only the content is constrained. The stacked-screen header and the bottom tab bar share the same column, so titles and tabs line up with content on a desktop browser. Narrow forms and dialogs (sign-in, confirm, report sheet, error state) use a 440px column.
 
-The signed-out front page is the one exception: it lays out in a wider 1040px column and switches to a two-column hero at 860px and up, where the odometer sits on its own paper panel beside the headline. Below 860px the odometer band sticks to the top of the scroll; above it, the band floats in and docks once the hero's own instrument has scrolled away.
+The signed-out front page is the one exception: it lays out in a wider 1040px column (the `wideColumn` token) and switches to a two-column hero at 860px and up, where the odometer sits on its own paper panel beside the headline. Below 860px the odometer band sticks to the top of the scroll; above it, the band floats in and docks once the hero's own instrument has scrolled away.
 
 Rhythm is set per screen rather than from a spacing scale: 8, 12, 14, 16, 20, 24 inside components; 36–56 between major sections, separated on the cover by a 1px border rule. Touch targets are at least 44px; buttons are 52px tall; tabs are 48px.
 
@@ -270,7 +295,7 @@ The system is flat. There are no shadows anywhere in the code. Depth is conveyed
 
 ## Shapes
 
-Radii follow hierarchy rather than one value everywhere: documents are the roundest (page, 14px: data pages, cards, dialogs, the listing panel, the hero instrument), controls less so (control, 10px: buttons, kind pickers, segmented tabs, the front page's VIN lookup), inputs less again (input, 8px: text fields, notices), and photos least (photo, 6px: thumbnails, VIN cells). Small printed parts are near-square (4px: odometer drum windows, photo badges). Status dots and radio marks are full circles; a change of owner is marked by a 45-degree diamond. The Sold stamp is the one rotated shape: a 2px lilac outline tilted -4 degrees.
+Radii follow hierarchy rather than one value everywhere: documents are the roundest (page, 14px: data pages, cards, dialogs, the listing panel, the hero instrument), controls less so (control, 10px: buttons, kind pickers, segmented tabs), inputs less again (input, 8px: text fields, the front page's VIN lookup, notices), and photos least (photo, 6px: thumbnails, VIN cells). Small printed parts are near-square (tag, 4px: odometer drum windows, photo badges). Pressed states on round controls use the pill radius. Status dots and radio marks are full circles; a change of owner is marked by a 45-degree diamond. The Sold stamp is the one rotated shape: a 2px lilac outline tilted -4 degrees.
 
 Close and tick marks are drawn from strokes (two crossed bars; a turned L) so their weight and baseline match the type, rather than typed as "×" or "✓".
 
@@ -279,9 +304,10 @@ Close and tick marks are drawn from strokes (two crossed bars; a turned L) so th
 ### Buttons
 The app's one button, in four variants. Tactile, plain, and never more than one foil button in view.
 - **Shape:** gently rounded (control, 10px), 52px tall, 20px side padding (28px on the front page's hero and closing actions).
-- **Primary:** foil fill, cover-green Barlow SemiBold 16 label. At most one per screen. Disabled: spent-foil fill with faint text.
+- **Primary:** foil fill, cover-green Barlow SemiBold 16 label. At most one in any viewport; a long page may repeat its one action at the close. Disabled: spent-foil fill with faint text.
 - **Secondary:** transparent with a 1px cover-rule outline and cover text; the other reasonable choice.
-- **Quiet:** inline foil text (15px), padded to a 44px hit area but laid out like plain text. Used for Sign in, Post a meet, Look up another car, and forward text links such as "Read its passport".
+- **Quiet:** inline foil text (Compact, 15px), padded to a 44px hit area but laid out like plain text. Only for links that take you forward: Sign in, Post a meet, Add photos, Manage, and text links such as "Read its passport".
+- **Subtle:** the same inline shape in muted text, for every inline action that is not a way on: Cancel, Remove, Back, Show/Hide, Unblock, Report, Block, I can't make it.
 - **Danger:** a thin danger-red outline and danger text. Never the most prominent thing on a screen.
 - **Pressed / Focus:** pressed drops opacity to 0.75. Keyboard focus draws a 2px solid foil outline offset 2px (web only). Busy shows a spinner in the label's colour.
 
@@ -305,7 +331,7 @@ The app's one button, in four variants. Tactile, plain, and never more than one 
 - **VIN entry:** seventeen 48px cells in three groups (maker, description, serial), each cell photo-radius on surface; the cursor cell's border is foil.
 
 ### Navigation
-- **Tab bar:** words, not icons: Garage, For sale, Meets in Barlow Condensed 18. Unselected labels are faint; the selected label is cover text with a short 28×2px foil rule above it, like the tab on a file divider. Cover ground with a 1px top rule, sharing the 640px column.
+- **Tab bar:** words, not icons: Garage, For sale, Meets in Barlow Condensed at the Item size (18). Unselected labels are faint; the selected label is cover text with a short 28×2px foil rule above it, like the tab on a file divider. Cover ground with a 1px top rule, sharing the 640px column.
 - **Stacked header:** 56px, in the column; a drawn chevron back button (44px, pill-pressed state on surface) and the screen title in Barlow Condensed 22. With no history it reads "Garage" and goes home.
 
 ### Data Page (signature)
@@ -315,7 +341,7 @@ A car's identity page, used for the add preview, the vehicle screen, the public 
 A row of mechanical drums in B612 Mono: ink windows with paper digits, 4px gap, 4px radius, the last (ones) drum in foil with ink digits. Drums roll like a real odometer: only the ones drum turns continuously, and each other drum turns only while the one to its right rolls 9 to 0. On the front page it sits on a paper instrument band captioned with the owner line ("miles, first owner") in Barlow SemiBold and the current life event in Barlow Condensed; scrolling drives the reading. Under reduced motion the reading steps between mileages instead of rolling.
 
 ### Timeline and stamps (signature)
-A 1px cover-rule rail with a ring for each entry, the ring stroked in the entry kind's ink over the cover. The kind label above an entry is SemiBold in its kind's ink; mileages sit in a column of Barlow tabular figures. A change of hands is marked on the rail by a diamond; on the front page it is also stamped: "Sold" in Barlow Condensed with the mileage beneath, in a 2px milestone-lilac outline turned -4 degrees.
+A 1px cover-rule rail with a ring for each entry, the ring stroked in the entry kind's ink over the cover. The kind label above an entry is SemiBold in its kind's ink; mileages sit in a column of Barlow tabular figures. A change of hands (the start of an owner's chapter) is marked on the rail by a 12px diamond in milestone lilac, in the app and on the front page alike; on the front page it is also stamped: "Sold" in Barlow Condensed with the mileage beneath, in a 2px milestone-lilac outline turned -4 degrees.
 
 ### Dialogs
 A paper page (page radius, 22px padding, 440px max) over the cover scrim. Title in ink, body in faded ink. Destructive consequences are listed against a 2px stamp-red rule; the confirm button is a stamp-red outline, the cancel button a solid ink fill with paper text.
@@ -324,11 +350,12 @@ A paper page (page radius, 22px padding, 440px max) over the cover scrim. Title 
 
 ### Do:
 - **Do** paint every screen on the cover green and put anything about a specific car on paper in ink.
-- **Do** keep foil for the wordmark, one primary button per screen, the focus ring, and the current selection.
+- **Do** keep foil for the wordmark, one primary button per viewport, the focus ring, the current selection, and quiet links that go forward. Statuses, stamps, markers, borders and non-forward inline actions never take foil.
 - **Do** draw keyboard focus as a 2px foil outline offset 2px on every pressable element on the web.
 - **Do** set VINs, drums, part numbers and the MRZ strip in B612 Mono, and prose mileages in Barlow tabular figures.
 - **Do** stamp each log entry in its kind's ink (mod amber, service sky, repair coral, milestone lilac).
-- **Do** follow the radius hierarchy: page 14, control 10, input 8, photo 6.
+- **Do** follow the radius hierarchy: page 14, control 10, input 8, photo 6, tag 4. Circles and pills are shapes, not steps.
+- **Do** set every size from the type ramp, including Compact (15) and Item (18); the front page's headline alone uses Poster (84).
 - **Do** use the red that fits the ground: danger on the cover, stamp on paper.
 - **Do** darken the cover for scrims; respect reduced motion by stepping instead of rolling.
 

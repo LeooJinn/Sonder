@@ -178,7 +178,7 @@ const styles = StyleSheet.create({
 
   makeRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' },
   make: { fontFamily: fonts.bodySemi, fontSize: 16, color: colors.inkMuted },
-  year: { fontFamily: fonts.mono, fontSize: 15, color: colors.inkMuted },
+  year: { fontFamily: fonts.mono, fontSize: type.compact.fontSize, color: colors.inkMuted },
   model: { ...type.display, color: colors.ink, marginTop: 2 },
   trim: { ...type.body, color: colors.inkMuted, marginTop: 2 },
 
@@ -195,7 +195,7 @@ const styles = StyleSheet.create({
   specWide: { width: '100%' },
   specLabel: { ...type.caption, color: colors.inkMuted, marginBottom: 2 },
   specValue: { fontFamily: fonts.bodyMedium, fontSize: 16, lineHeight: 22, color: colors.ink },
-  specMono: { fontFamily: fonts.mono, fontSize: 15, letterSpacing: 0.5 },
+  specMono: { fontFamily: fonts.mono, fontSize: type.compact.fontSize, letterSpacing: 0.5 },
 
   holder: { ...type.small, color: colors.inkMuted, marginTop: 18 },
 

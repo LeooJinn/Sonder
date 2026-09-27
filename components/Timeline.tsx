@@ -209,7 +209,7 @@ const styles = StyleSheet.create({
   // full cell wide and splits "58,210" into two numbers.
   odometer: {
     fontFamily: fonts.bodySemi,
-    fontSize: 15,
+    fontSize: type.compact.fontSize,
     lineHeight: 18,
     color: colors.text,
     fontVariant: ['tabular-nums'],
@@ -235,11 +235,13 @@ const styles = StyleSheet.create({
     borderWidth: 3,
     backgroundColor: colors.background,
   },
+  // A change of chapter is a milestone in the car's life: the same ink and
+  // size as the sale's marker on the front page, never foil.
   chapterMarker: {
-    marginTop: DOT_TOP - 5,
-    width: 10,
-    height: 10,
-    backgroundColor: colors.accent,
+    marginTop: DOT_TOP - 6,
+    width: 12,
+    height: 12,
+    backgroundColor: KIND_COLORS.milestone,
     transform: [{ rotate: '45deg' }],
   },
 
@@ -264,12 +266,12 @@ const styles = StyleSheet.create({
 
   title: {
     fontFamily: fonts.bodySemi,
-    fontSize: 18,
+    fontSize: type.item.fontSize,
     lineHeight: 24,
     color: colors.text,
     marginTop: 2,
   },
-  notes: { fontFamily: fonts.body, fontSize: 15, lineHeight: 22, color: colors.textMuted, marginTop: 4 },
+  notes: { fontFamily: fonts.body, fontSize: type.compact.fontSize, lineHeight: 22, color: colors.textMuted, marginTop: 4 },
 
   photos: { marginTop: 12 },
   photoRow: { flexDirection: 'row', gap: 8 },
@@ -285,5 +287,5 @@ const styles = StyleSheet.create({
   partBrand: { fontFamily: fonts.bodySemi, color: colors.text },
   partNumber: { fontFamily: fonts.mono, fontSize: 12, lineHeight: 16, color: colors.textFaint },
 
-  cost: { fontFamily: fonts.bodyMedium, fontSize: 15, color: colors.text, marginTop: 10 },
+  cost: { fontFamily: fonts.bodyMedium, fontSize: type.compact.fontSize, color: colors.text, marginTop: 10 },
 });

@@ -351,8 +351,8 @@ function ReminderForm({
       {error && <Notice tone="error">{error}</Notice>}
       <View style={styles.formActions}>
         <Button label={draft.id ? 'Save' : 'Add reminder'} variant="secondary" busy={saving} onPress={onSave} style={styles.formButton} />
-        {onCancel && <Button label="Cancel" variant="quiet" onPress={onCancel} />}
-        {onDelete && <Button label="Remove" variant="quiet" onPress={onDelete} />}
+        {onCancel && <Button label="Cancel" variant="subtle" onPress={onCancel} />}
+        {onDelete && <Button label="Remove" variant="subtle" onPress={onDelete} />}
       </View>
     </View>
   );
@@ -389,7 +389,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
   },
-  chipText: { fontFamily: fonts.bodyMedium, fontSize: 15, color: colors.text },
+  chipText: { fontFamily: fonts.bodyMedium, fontSize: type.compact.fontSize, color: colors.text },
   chipCustom: { borderStyle: 'dashed' },
   chipCustomText: { color: colors.textMuted },
   note: { ...type.caption, color: colors.textFaint, marginTop: 14 },

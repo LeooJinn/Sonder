@@ -205,13 +205,13 @@ const styles = StyleSheet.create({
   cover: { width: '100%', aspectRatio: 16 / 10, backgroundColor: colors.paperShade },
   cardBody: { paddingHorizontal: 18, paddingTop: 14, paddingBottom: 16 },
   cardTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' },
-  cardMake: { fontFamily: fonts.bodySemi, fontSize: 15, color: colors.inkMuted },
+  cardMake: { fontFamily: fonts.bodySemi, fontSize: type.compact.fontSize, color: colors.inkMuted },
   cardSince: { ...type.caption, color: colors.inkMuted },
   cardModel: { ...type.display, fontSize: 32, lineHeight: 34, color: colors.ink, marginTop: 2 },
   cardTrim: { ...type.small, color: colors.inkMuted },
   cardVin: {
     fontFamily: fonts.mono,
-    fontSize: 13,
+    fontSize: 14,
     color: colors.inkMuted,
     letterSpacing: 0.5,
     marginTop: 12,
@@ -227,14 +227,7 @@ const styles = StyleSheet.create({
   empty: { paddingTop: 40, maxWidth: 460 },
   emptyTitle: { ...type.hero, fontSize: 44, lineHeight: 44, color: colors.text },
   emptyBody: { ...type.lead, color: colors.textMuted, marginTop: 16 },
-  emptyHint: {
-    ...type.small,
-    color: colors.textFaint,
-    marginTop: 24,
-    paddingLeft: 14,
-    borderLeftWidth: 2,
-    borderLeftColor: colors.accent,
-  },
+  emptyHint: { ...type.small, color: colors.textFaint, marginTop: 20, maxWidth: 400 },
 
   emptyButton: { marginTop: 28, alignSelf: 'flex-start' },
 });

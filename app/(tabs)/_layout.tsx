@@ -3,7 +3,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Tabs } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { focusRing, type PressState } from '../../components/ui';
-import { colors, fonts } from '../../lib/theme';
+import { colors, fonts, type } from '../../lib/theme';
 
 type TabBarProps = Parameters<NonNullable<ComponentProps<typeof Tabs>['tabBar']>>[0];
 
@@ -77,6 +77,6 @@ const styles = StyleSheet.create({
   // A short foil rule along the top edge, like the tab on a file divider.
   marker: { width: 28, height: 2, marginBottom: 10, backgroundColor: 'transparent' },
   markerSelected: { backgroundColor: colors.accent },
-  label: { fontFamily: fonts.display, fontSize: 18, color: colors.textFaint },
+  label: { fontFamily: fonts.display, fontSize: type.item.fontSize, color: colors.textFaint },
   labelSelected: { color: colors.text },
 });

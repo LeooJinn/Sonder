@@ -40,7 +40,11 @@ export const colors = {
   stampInk: '#8E2A24',
 
   danger: '#F0706A',
+  dangerLine: '#F0706A66',
+  dangerWash: '#F0706A14',
   success: '#9CD3A4',
+  successLine: '#9CD3A455',
+  successWash: '#9CD3A412',
 
   // What sits behind a dialog or sheet: the cover, darkened, not black.
   scrim: '#0A1512D9',
@@ -79,13 +83,19 @@ export const mono = fonts.mono;
 
 /** A modular scale (about 1.25), so sizes relate to each other. */
 export const type = {
+  // The front page's headline at wide widths; nothing in the app goes this big.
+  poster: { fontFamily: fonts.displayBold, fontSize: 84, lineHeight: 80, letterSpacing: -1.2 },
   hero: { fontFamily: fonts.displayBold, fontSize: 56, lineHeight: 54, letterSpacing: -0.5 },
   display: { fontFamily: fonts.displayBold, fontSize: 38, lineHeight: 38, letterSpacing: -0.3 },
   title: { fontFamily: fonts.display, fontSize: 28, lineHeight: 30 },
   heading: { fontFamily: fonts.display, fontSize: 22, lineHeight: 26 },
+  // List-item titles and tab labels: a step between lead and heading.
+  item: { fontFamily: fonts.bodySemi, fontSize: 18, lineHeight: 24 },
   lead: { fontFamily: fonts.body, fontSize: 17, lineHeight: 26 },
   body: { fontFamily: fonts.body, fontSize: 16, lineHeight: 24 },
   bodyStrong: { fontFamily: fonts.bodySemi, fontSize: 16, lineHeight: 22 },
+  // Between small and body: button labels, secondary copy on dense screens.
+  compact: { fontFamily: fonts.body, fontSize: 15, lineHeight: 22 },
   small: { fontFamily: fonts.body, fontSize: 14, lineHeight: 20 },
   label: { fontFamily: fonts.bodyMedium, fontSize: 14, lineHeight: 18 },
   caption: { fontFamily: fonts.body, fontSize: 12, lineHeight: 16 },
@@ -95,7 +105,7 @@ export const type = {
  * Radii follow hierarchy rather than one value everywhere: documents are the
  * roundest, controls less so, photos least.
  */
-export const radius = { page: 14, control: 10, input: 8, photo: 6 } as const;
+export const radius = { page: 14, control: 10, input: 8, photo: 6, tag: 4, pill: 999 } as const;
 
 /**
  * The reading column.
@@ -109,4 +119,15 @@ export const column = {
   width: '100%',
   maxWidth: 640,
   alignSelf: 'center',
+} as const;
+
+/**
+ * The front page's wider column: persuasion wants two columns on a desktop,
+ * where the app itself stays a single reading column.
+ */
+export const wideColumn = {
+  width: '100%',
+  maxWidth: 1040,
+  alignSelf: 'center',
+  paddingHorizontal: 20,
 } as const;

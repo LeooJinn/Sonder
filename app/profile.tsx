@@ -150,7 +150,7 @@ export default function ProfileScreen() {
                 <Text style={styles.blockedName}>{ownerName(member, 'A member')}</Text>
                 <Button
                   label="Unblock"
-                  variant="quiet"
+                  variant="subtle"
                   onPress={async () => {
                     await unblockMember(member.id);
                     setBlocked((current) => current.filter((m) => m.id !== member.id));

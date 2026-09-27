@@ -191,7 +191,7 @@ export default function MeetScreen() {
             {!meet.isMine && (
               <Button
                 label="I can't make it"
-                variant="quiet"
+                variant="subtle"
                 onPress={() => act(() => cancelRsvp(meet.id))}
               />
             )}
@@ -227,10 +227,10 @@ export default function MeetScreen() {
         </View>
       ) : (
         <View style={styles.moderation}>
-          <Button label="Report this meet" variant="quiet" onPress={() => setReporting(true)} />
+          <Button label="Report this meet" variant="subtle" onPress={() => setReporting(true)} />
           <Button
             label={`Block ${ownerName(meet.host, 'the host')}`}
-            variant="quiet"
+            variant="subtle"
             onPress={() => setAskingBlock(true)}
           />
         </View>
@@ -297,7 +297,7 @@ const styles = StyleSheet.create({
   },
   sheetWeekday: { ...type.caption, color: colors.inkMuted },
   sheetDay: { fontFamily: fonts.displayBold, fontSize: 38, lineHeight: 40, color: colors.ink },
-  sheetMonth: { fontFamily: fonts.bodySemi, fontSize: 13, color: colors.inkMuted },
+  sheetMonth: { fontFamily: fonts.bodySemi, fontSize: type.caption.fontSize, color: colors.inkMuted },
   heroText: { flex: 1 },
   title: { ...type.display, color: colors.text },
   when: { ...type.body, color: colors.textMuted, marginTop: 6 },
@@ -332,7 +332,7 @@ const styles = StyleSheet.create({
   choiceSelected: { borderColor: colors.accent, backgroundColor: colors.surface },
   radio: { width: 16, height: 16, borderRadius: 8, borderWidth: 2, borderColor: colors.textFaint },
   radioSelected: { borderColor: colors.accent, backgroundColor: colors.accent },
-  choiceText: { fontFamily: fonts.bodyMedium, fontSize: 15, color: colors.textMuted },
+  choiceText: { fontFamily: fonts.bodyMedium, fontSize: type.compact.fontSize, color: colors.textMuted },
   choiceTextSelected: { color: colors.text },
 
   goingActions: { gap: 16 },
@@ -349,7 +349,7 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.border,
   },
   attendeeName: { ...type.bodyStrong, color: colors.text, flexShrink: 1 },
-  hostTag: { fontFamily: fonts.bodyMedium, fontSize: 13, color: colors.accent },
+  hostTag: { fontFamily: fonts.bodyMedium, fontSize: 14, color: colors.textMuted },
   attendeeCar: { ...type.small, color: colors.textMuted, textAlign: 'right', flexShrink: 1 },
 
   hiddenNotice: { marginTop: 20 },

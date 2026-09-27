@@ -23,7 +23,7 @@ import { Odometer } from '../components/Odometer';
 import { DataPage } from '../components/DataPage';
 import { ownerName } from '../components/Timeline';
 import { Button, focusRing, noOutline, type PressState } from '../components/ui';
-import { colors, fonts, KIND_COLORS, radius, type } from '../lib/theme';
+import { colors, fonts, KIND_COLORS, radius, type, wideColumn } from '../lib/theme';
 
 /** The owner's real, published car: the proof under the story. */
 const EXAMPLE_VIN = '1FMCU0G65LUA35573';
@@ -371,7 +371,7 @@ export default function WelcomeScreen() {
         {/* 4 — the close */}
         <View style={styles.close}>
           <View style={styles.column}>
-            <Text style={[styles.closeHeading, wide && styles.closeHeadingWide]} accessibilityRole="header">
+            <Text style={styles.closeHeading} accessibilityRole="header">
               Start your car&apos;s passport.
             </Text>
             <Text style={styles.closeBody}>
@@ -442,11 +442,9 @@ function VinLookup({
   );
 }
 
-const COLUMN = { width: '100%', maxWidth: 1040, alignSelf: 'center', paddingHorizontal: 20 } as const;
-
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
-  column: COLUMN,
+  column: wideColumn,
 
   hero: { paddingBottom: 36 },
   heroRow: { flexDirection: 'row', alignItems: 'center', gap: 48 },
@@ -458,7 +456,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.page,
     padding: 28,
   },
-  heroUnit: { fontFamily: fonts.bodySemi, fontSize: 15, color: colors.inkMuted, marginTop: 18 },
+  heroUnit: { fontFamily: fonts.bodySemi, fontSize: type.compact.fontSize, color: colors.inkMuted, marginTop: 18 },
   heroEvent: { fontFamily: fonts.display, fontSize: 28, lineHeight: 32, color: colors.ink, marginTop: 2 },
   topBar: {
     flexDirection: 'row',
@@ -468,15 +466,8 @@ const styles = StyleSheet.create({
     marginBottom: 40,
   },
   wordmark: { fontFamily: fonts.displayBold, fontSize: 26, color: colors.accent, letterSpacing: 0.5 },
-  headline: {
-    fontFamily: fonts.displayBold,
-    fontSize: 58,
-    lineHeight: 56,
-    letterSpacing: -0.8,
-    color: colors.text,
-    maxWidth: 820,
-  },
-  headlineWide: { fontSize: 84, lineHeight: 80, letterSpacing: -1.2 },
+  headline: { ...type.hero, color: colors.text, maxWidth: 820 },
+  headlineWide: type.poster,
   lead: { ...type.lead, color: colors.textMuted, marginTop: 20, maxWidth: 560 },
   leadWide: { fontSize: 20, lineHeight: 30 },
   actions: { marginTop: 28, gap: 12 },
@@ -487,7 +478,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     minHeight: 52,
-    borderRadius: radius.control,
+    borderRadius: radius.input,
     borderWidth: 1,
     borderColor: colors.border,
     backgroundColor: colors.surface,
@@ -500,7 +491,7 @@ const styles = StyleSheet.create({
   lookupInput: {
     flex: 1,
     fontFamily: fonts.mono,
-    fontSize: 15,
+    fontSize: type.compact.fontSize,
     letterSpacing: 0.5,
     color: colors.text,
     paddingVertical: 12,
@@ -531,7 +522,7 @@ const styles = StyleSheet.create({
   bandText: { flex: 1 },
   bandUnit: { fontFamily: fonts.bodySemi, fontSize: 14, color: colors.inkMuted },
   bandEvent: { fontFamily: fonts.display, fontSize: 20, lineHeight: 24, color: colors.ink },
-  bandEventNarrow: { fontSize: 18, lineHeight: 21 },
+  bandEventNarrow: { fontSize: type.item.fontSize, lineHeight: 21 },
 
   story: { paddingTop: 44 },
   storyNote: { ...type.small, color: colors.textFaint, maxWidth: 520, marginBottom: 28 },
@@ -541,10 +532,10 @@ const styles = StyleSheet.create({
   railLineFirst: { top: 14 },
   railLineLast: { bottom: undefined, height: 14 },
   dot: {
-    marginTop: 8,
-    width: 14,
-    height: 14,
-    borderRadius: 7,
+    marginTop: 9,
+    width: 12,
+    height: 12,
+    borderRadius: 6,
     borderWidth: 3,
     backgroundColor: colors.background,
   },
@@ -556,7 +547,7 @@ const styles = StyleSheet.create({
     transform: [{ rotate: '45deg' }],
   },
   eventBody: { flex: 1, paddingLeft: 14, paddingBottom: 72, maxWidth: 640 },
-  eventMeta: { fontFamily: fonts.body, fontSize: 15, lineHeight: 20, color: colors.textMuted, marginTop: 16 },
+  eventMeta: { fontFamily: fonts.body, fontSize: type.compact.fontSize, lineHeight: 20, color: colors.textMuted, marginTop: 16 },
   eventKind: { fontFamily: fonts.bodySemi },
   // Barlow's tabular figures: the mono's comma is a full cell wide.
   eventMiles: {
@@ -565,7 +556,7 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     fontVariant: ['tabular-nums'],
   },
-  eventHeading: { fontFamily: fonts.displayBold, fontSize: 38, lineHeight: 40, color: colors.text, marginTop: 2 },
+  eventHeading: { ...type.display, color: colors.text, marginTop: 2 },
   stamp: {
     alignSelf: 'flex-start',
     marginTop: 22,
@@ -575,7 +566,7 @@ const styles = StyleSheet.create({
     // Milestone ink, like the sale's marker on the rail. Foil is kept for
     // the way on; a stamp in foil would read as a second call to action.
     borderColor: KIND_COLORS.milestone,
-    borderRadius: 6,
+    borderRadius: radius.photo,
     transform: [{ rotate: '-4deg' }],
   },
   stampTitle: { fontFamily: fonts.displayBold, fontSize: 30, lineHeight: 32, color: KIND_COLORS.milestone },
@@ -585,14 +576,14 @@ const styles = StyleSheet.create({
     color: KIND_COLORS.milestone,
     fontVariant: ['tabular-nums'],
   },
-  eventHeadingWide: { fontSize: 56, lineHeight: 56 },
+  eventHeadingWide: { fontSize: type.hero.fontSize, lineHeight: type.hero.lineHeight },
   eventText: { ...type.lead, color: colors.textMuted, marginTop: 12, maxWidth: 560 },
 
   proof: { paddingVertical: 56, borderTopWidth: 1, borderTopColor: colors.border },
   proofWide: { flexDirection: 'row', gap: 56, alignItems: 'center' },
   proofText: { marginBottom: 24 },
   proofTextWide: { flex: 1, marginBottom: 0 },
-  proofHeading: { fontFamily: fonts.displayBold, fontSize: 44, lineHeight: 44, color: colors.text },
+  proofHeading: { ...type.display, color: colors.text },
   proofBody: { ...type.lead, color: colors.textMuted, marginTop: 12, maxWidth: 440 },
   proofLink: { alignSelf: 'flex-start', minHeight: 44, justifyContent: 'center', marginTop: 16 },
   proofLinkText: { fontFamily: fonts.bodySemi, fontSize: 16, color: colors.accent },
@@ -600,8 +591,7 @@ const styles = StyleSheet.create({
   proofPageWide: { flex: 1 },
 
   close: { paddingTop: 56, borderTopWidth: 1, borderTopColor: colors.border },
-  closeHeading: { fontFamily: fonts.displayBold, fontSize: 48, lineHeight: 48, color: colors.text },
-  closeHeadingWide: { fontSize: 72, lineHeight: 70 },
+  closeHeading: { ...type.hero, color: colors.text },
   closeBody: { ...type.lead, color: colors.textMuted, marginTop: 14, maxWidth: 520 },
   closeButton: { alignSelf: 'flex-start', marginTop: 24, paddingHorizontal: 28 },
   footer: { ...type.small, color: colors.textFaint, marginTop: 56 },

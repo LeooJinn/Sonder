@@ -108,7 +108,7 @@ export default function PublicPassportScreen() {
         {/* Visitors arrive from a link and have nowhere to go back to; members
             arrive from For sale or their own car and do. */}
         {router.canGoBack() ? (
-          <Button label="Back" variant="quiet" onPress={() => router.back()} />
+          <Button label="Back" variant="subtle" onPress={() => router.back()} />
         ) : (
           <Text style={styles.docType}>Vehicle passport</Text>
         )}
@@ -136,15 +136,16 @@ export default function PublicPassportScreen() {
               </Text>
             </View>
           ) : null}
-          {/* Members can report a listing; visitors would need an account
-              first, and the seller doesn't report their own car. */}
-          {session && current.owner?.id !== session.user.id ? (
-            <View style={styles.reportRow}>
-              <Button label="Report this listing" variant="quiet" onPress={() => setReporting(true)} />
-            </View>
-          ) : null}
         </View>
       )}
+
+      {/* Members can report a listing; visitors would need an account first,
+          and the seller doesn't report their own car. */}
+      {listing && session && current.owner?.id !== session.user.id ? (
+        <View style={styles.reportRow}>
+          <Button label="Report this listing" variant="subtle" onPress={() => setReporting(true)} />
+        </View>
+      ) : null}
 
       <ReportSheet
         visible={reporting}
@@ -209,25 +210,26 @@ const styles = StyleSheet.create({
   wordmark: { fontFamily: fonts.displayBold, fontSize: 26, color: colors.accent },
   docType: { fontFamily: fonts.display, fontSize: 16, color: colors.textMuted },
 
+  // The listing is printed on paper, like the data page above it: a bill of
+  // sale clipped to the passport, not a banner. Foil stays with the way on.
   listing: {
     marginTop: 16,
     padding: 20,
     borderRadius: radius.page,
-    borderWidth: 1,
-    borderColor: colors.accent,
+    backgroundColor: colors.paper,
   },
-  listingLabel: { fontFamily: fonts.bodySemi, fontSize: 15, color: colors.accent },
-  price: { ...type.hero, color: colors.text, marginTop: 4 },
-  listingMeta: { ...type.small, color: colors.textMuted, marginTop: 8 },
+  listingLabel: { fontFamily: fonts.bodySemi, fontSize: type.compact.fontSize, color: colors.inkMuted },
+  price: { ...type.hero, color: colors.ink, marginTop: 4 },
+  listingMeta: { ...type.small, color: colors.inkMuted, marginTop: 8 },
   contact: {
     marginTop: 16,
     paddingTop: 14,
     borderTopWidth: 1,
-    borderTopColor: colors.border,
+    borderTopColor: colors.paperLine,
   },
-  contactLabel: { ...type.caption, color: colors.textFaint },
-  contactValue: { ...type.bodyStrong, color: colors.text, marginTop: 2 },
-  reportRow: { marginTop: 16 },
+  contactLabel: { ...type.caption, color: colors.inkMuted },
+  contactValue: { ...type.bodyStrong, color: colors.ink, marginTop: 2 },
+  reportRow: { marginTop: 20, marginLeft: 4 },
 
   section: { marginTop: 36 },
 
@@ -241,7 +243,7 @@ const styles = StyleSheet.create({
   },
   footerLine: { ...type.heading, color: colors.text, textAlign: 'center' },
   footerBody: { ...type.small, color: colors.textMuted, textAlign: 'center', maxWidth: 380 },
-  footerLink: { fontFamily: fonts.bodySemi, fontSize: 15, color: colors.accent, marginTop: 6 },
+  footerLink: { fontFamily: fonts.bodySemi, fontSize: type.compact.fontSize, color: colors.accent, marginTop: 6 },
 
   missingTitle: { ...type.title, color: colors.text, textAlign: 'center' },
   missingBody: { ...type.body, color: colors.textMuted, textAlign: 'center', maxWidth: 400 },

@@ -209,7 +209,7 @@ export default function SignInScreen() {
           accessory={
             <Button
               label={showPassword ? 'Hide' : 'Show'}
-              variant="quiet"
+              variant="subtle"
               onPress={() => setShowPassword((v) => !v)}
             />
           }
@@ -266,7 +266,7 @@ const styles = StyleSheet.create({
   },
 
   cover: { alignItems: 'center', gap: 14, marginBottom: 40 },
-  coverRule: { width: 56, height: 1, backgroundColor: colors.accent, opacity: 0.6 },
+  coverRule: { width: 56, height: 1, backgroundColor: colors.border },
   wordmark: {
     fontFamily: fonts.displayBold,
     fontSize: 80,
@@ -274,7 +274,7 @@ const styles = StyleSheet.create({
     color: colors.accent,
     letterSpacing: 1,
   },
-  docType: { fontFamily: fonts.display, fontSize: 18, color: colors.accent, letterSpacing: 1 },
+  docType: { fontFamily: fonts.display, fontSize: type.item.fontSize, color: colors.accent, letterSpacing: 1 },
 
   lead: { ...type.lead, color: colors.textMuted, textAlign: 'center', marginBottom: 36 },
 
@@ -293,7 +293,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   tabSelected: { backgroundColor: colors.background },
-  tabText: { fontFamily: fonts.bodyMedium, fontSize: 15, color: colors.textMuted },
+  tabText: { fontFamily: fonts.bodyMedium, fontSize: type.compact.fontSize, color: colors.textMuted },
   tabTextSelected: { fontFamily: fonts.bodySemi, color: colors.text },
 
   resend: {
@@ -313,7 +313,7 @@ const styles = StyleSheet.create({
     marginTop: 28,
     paddingVertical: 12,
     fontFamily: fonts.bodySemi,
-    fontSize: 15,
+    fontSize: type.compact.fontSize,
     color: colors.textMuted,
   },
 });

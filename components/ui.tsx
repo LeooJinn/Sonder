@@ -32,15 +32,16 @@ export const focusRing = {
   outlineOffset: 2,
 } as unknown as ViewStyle;
 
-type Variant = 'primary' | 'secondary' | 'quiet' | 'danger';
+type Variant = 'primary' | 'secondary' | 'quiet' | 'subtle' | 'danger';
 
 /**
  * The app's one button.
  *
- * primary is foil and there should be at most one per screen. secondary is an
- * outline for the other reasonable choice. quiet is inline text. danger is for
- * actions that destroy something, and is never the most prominent thing on a
- * screen.
+ * primary is foil, and a viewport shows at most one. secondary is an outline
+ * for the other reasonable choice. quiet is inline text in foil, for links
+ * that take you forward. subtle is inline text without foil, for everything
+ * else inline: cancel, remove, report, show. danger is for actions that
+ * destroy something, and is never the most prominent thing on a screen.
  */
 export function Button({
   label,
@@ -215,6 +216,13 @@ const styles = StyleSheet.create({
   // Text-sized to the eye, 44pt to the finger. Negative margins cancel the
   // padding so it lays out like plain text; hitSlop alone would do this on
   // native, but React Native Web ignores it.
+  subtle: {
+    minHeight: 44,
+    paddingHorizontal: 8,
+    marginHorizontal: -8,
+    marginVertical: -12,
+    alignItems: 'flex-start',
+  },
   quiet: {
     minHeight: 44,
     paddingHorizontal: 8,
@@ -222,7 +230,7 @@ const styles = StyleSheet.create({
     marginVertical: -12,
     alignItems: 'flex-start',
   },
-  danger: { borderWidth: 1, borderColor: colors.danger + '66' },
+  danger: { borderWidth: 1, borderColor: colors.dangerLine },
   pressed: { opacity: 0.75 },
   text: { fontFamily: fonts.bodySemi, fontSize: 16 },
 
@@ -245,7 +253,7 @@ const styles = StyleSheet.create({
     paddingVertical: 13,
   },
   inputMultiline: { minHeight: 104, textAlignVertical: 'top' },
-  inputMono: { fontFamily: fonts.mono, fontSize: 15, letterSpacing: 0.5 },
+  inputMono: { fontFamily: fonts.mono, fontSize: type.compact.fontSize, letterSpacing: 0.5 },
   inputFocused: { borderColor: colors.accent },
   inputError: { borderColor: colors.danger },
   hint: { ...type.caption, color: colors.textFaint, marginTop: 8 },
@@ -260,8 +268,8 @@ const styles = StyleSheet.create({
   sectionTitle: { ...type.title, color: colors.text },
 
   notice: { borderRadius: radius.input, padding: 14, marginBottom: 16, borderWidth: 1 },
-  noticeError: { borderColor: colors.danger + '55', backgroundColor: colors.danger + '14' },
-  noticeSuccess: { borderColor: colors.success + '55', backgroundColor: colors.success + '12' },
+  noticeError: { borderColor: colors.dangerLine, backgroundColor: colors.dangerWash },
+  noticeSuccess: { borderColor: colors.successLine, backgroundColor: colors.successWash },
   noticeText: { ...type.small, color: colors.success },
   noticeTextError: { color: colors.danger },
 });
@@ -269,6 +277,7 @@ const styles = StyleSheet.create({
 const textStyles = StyleSheet.create({
   primary: { color: colors.onAccent },
   secondary: { color: colors.text },
-  quiet: { color: colors.accent, fontSize: 15 },
+  quiet: { color: colors.accent, fontSize: type.compact.fontSize },
+  subtle: { color: colors.textMuted, fontSize: type.compact.fontSize },
   danger: { color: colors.danger },
 });

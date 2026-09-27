@@ -171,7 +171,7 @@ const styles = StyleSheet.create({
   },
 
   title: { ...type.title, color: colors.ink },
-  body: { ...type.small, fontSize: 15, lineHeight: 22, color: colors.inkMuted, marginTop: 8 },
+  body: { ...type.small, fontSize: type.compact.fontSize, lineHeight: 22, color: colors.inkMuted, marginTop: 8 },
 
   consequences: {
     marginTop: 16,
@@ -191,7 +191,7 @@ const styles = StyleSheet.create({
     borderColor: colors.paperLine,
     borderRadius: radius.input,
     color: colors.ink,
-    fontSize: 15,
+    fontSize: type.compact.fontSize,
     fontFamily: fonts.mono,
     letterSpacing: 1,
     padding: 12,
@@ -211,7 +211,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.control,
     backgroundColor: colors.ink,
   },
-  cancelText: { fontFamily: fonts.bodySemi, fontSize: 15, color: colors.paper },
+  cancelText: { fontFamily: fonts.bodySemi, fontSize: type.compact.fontSize, color: colors.paper },
   confirm: {
     flex: 1,
     minHeight: 50,
@@ -222,6 +222,6 @@ const styles = StyleSheet.create({
     borderColor: STAMP_RED,
   },
   confirmDisabled: { borderColor: colors.paperLine },
-  confirmText: { fontFamily: fonts.bodySemi, fontSize: 15, color: STAMP_RED },
+  confirmText: { fontFamily: fonts.bodySemi, fontSize: type.compact.fontSize, color: STAMP_RED },
   confirmTextDisabled: { color: colors.inkMuted },
 });

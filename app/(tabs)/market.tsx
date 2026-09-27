@@ -155,7 +155,7 @@ const styles = StyleSheet.create({
     paddingTop: 14,
   },
   cardMain: { flex: 1 },
-  cardMake: { fontFamily: fonts.bodySemi, fontSize: 15, color: colors.inkMuted },
+  cardMake: { fontFamily: fonts.bodySemi, fontSize: type.compact.fontSize, color: colors.inkMuted },
   cardModel: { ...type.display, fontSize: 30, lineHeight: 32, color: colors.ink, marginTop: 2 },
   cardTrim: { ...type.small, color: colors.inkMuted },
   price: { fontFamily: fonts.displayBold, fontSize: 28, lineHeight: 32, color: colors.ink },

@@ -5,7 +5,8 @@ import { Button, SectionHeader, focusRing, type PressState } from './ui';
 
 export const STATE_COLORS: Record<ReminderState, string> = {
   overdue: colors.danger,
-  soon: colors.accent,
+  // Urgency reads as brightness: overdue in red, soon at full text, later muted.
+  soon: colors.text,
   ok: colors.textMuted,
   untracked: colors.textFaint,
 };

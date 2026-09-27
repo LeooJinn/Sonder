@@ -457,7 +457,10 @@
       "mono": {
         "displayName": "Mono",
         "purpose": "Machine data only: VINs, MRZ, odometer drums, part numbers."
-      }
+      },
+      "poster": "The front page headline at wide widths only (84/80).",
+      "item": "List-item and log-entry titles; Condensed in the tab bar (18/24).",
+      "compact": "Button labels, quiet and subtle links, notes on dense screens (15/22)."
     },
     "shadows": [],
     "shadowsNote": "The system is flat: no box-shadow or elevation exists in the code. Depth is cover against paper, surface steps, scrims, and the odometer window clip.",
@@ -498,7 +501,7 @@
       "name": "Primary Button",
       "kind": "button",
       "refersTo": "button-primary",
-      "description": "Foil fill; the one way on per screen.",
+      "description": "Foil fill; the one way on in any viewport.",
       "html": "<button class=\"ds-btn-primary\">Start a passport</button>",
       "css": ".ds-btn-primary { background: #D4B46E; color: #16302A; font-family: 'Barlow', sans-serif; font-weight: 600; font-size: 16px; min-height: 52px; padding: 0 20px; border: none; border-radius: 10px; cursor: pointer; } .ds-btn-primary:active { opacity: 0.75; } .ds-btn-primary:focus-visible { outline: 2px solid #D4B46E; outline-offset: 2px; } .ds-btn-primary:disabled { background: #3C5A53; color: #8DA69D; }"
     },
@@ -589,7 +592,7 @@
     "rules": [
       {
         "name": "The Foil Rule",
-        "body": "Foil means \"this is the way on\". It marks the wordmark, the one primary action on a screen, focus, and where you currently are. A stamp, a status or an ornament in foil reads as a second call to action; use a kind ink or a neutral instead.",
+        "body": "Foil means \"this is the way on\". It marks the wordmark, the one primary action in view, focus, and where you currently are. A stamp, a status or an ornament in foil reads as a second call to action; use a kind ink or a neutral instead.",
         "section": "colors"
       },
       {
@@ -620,11 +623,11 @@
     ],
     "dos": [
       "Do paint every screen on the cover green and put anything about a specific car on paper in ink.",
-      "Do keep foil for the wordmark, one primary button per screen, the focus ring, and the current selection.",
+      "Do keep foil for the wordmark, one primary button per viewport, the focus ring, the current selection, and quiet links that go forward. Statuses, stamps, markers, borders and non-forward inline actions never take foil.",
       "Do draw keyboard focus as a 2px foil outline offset 2px on every pressable element on the web.",
       "Do set VINs, drums, part numbers and the MRZ strip in B612 Mono, and prose mileages in Barlow tabular figures.",
       "Do stamp each log entry in its kind's ink (mod amber, service sky, repair coral, milestone lilac).",
-      "Do follow the radius hierarchy: page 14, control 10, input 8, photo 6.",
+      "Do follow the radius hierarchy: page 14, control 10, input 8, photo 6, tag 4. Circles and pills are shapes, not steps.",
       "Do use the red that fits the ground: danger on the cover, stamp on paper.",
       "Do darken the cover for scrims; respect reduced motion by stepping instead of rolling."
     ],
@@ -632,7 +635,7 @@
       "Don't put a stamp, status or ornament in foil; it reads as a second call to action.",
       "Don't add drop shadows; separate with paper, a hairline or a shade step.",
       "Don't introduce gray or black; every neutral is tinted from the cover green.",
-      "Don't use icons for navigation, or typed \"×\"/\"✓\" glyphs for marks; use words and the drawn marks.",
+      "Don't use icons for navigation, or typed \"\u00d7\"/\"\u2713\" glyphs for marks; use words and the drawn marks.",
       "Don't set paragraphs in Barlow Condensed, or prose numbers in the mono.",
       "Don't put cover text colours on paper or ink colours on the cover."
     ]

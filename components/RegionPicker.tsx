@@ -151,7 +151,7 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.border,
   },
   sheetTitle: { ...type.heading, color: colors.text },
-  close: { fontFamily: fonts.bodySemi, fontSize: 15, color: colors.accent },
+  close: { fontFamily: fonts.bodySemi, fontSize: type.compact.fontSize, color: colors.accent },
 
   groupLabel: {
     ...type.label,

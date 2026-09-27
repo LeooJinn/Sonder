@@ -170,7 +170,7 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
   },
   title: { ...type.title, color: colors.ink },
-  body: { ...type.small, fontSize: 15, lineHeight: 22, color: colors.inkMuted, marginTop: 8 },
+  body: { ...type.small, fontSize: type.compact.fontSize, lineHeight: 22, color: colors.inkMuted, marginTop: 8 },
 
   reasons: { gap: 8, marginTop: 18 },
   reason: {
@@ -193,7 +193,7 @@ const styles = StyleSheet.create({
   },
   radioSelected: { borderColor: colors.ink, backgroundColor: colors.ink },
   reasonText: { flex: 1 },
-  reasonLabel: { fontFamily: fonts.bodySemi, fontSize: 15, lineHeight: 20, color: colors.ink },
+  reasonLabel: { fontFamily: fonts.bodySemi, fontSize: type.compact.fontSize, lineHeight: 20, color: colors.ink },
   reasonHint: { ...type.caption, color: colors.inkMuted, marginTop: 1 },
 
   note: {
@@ -222,7 +222,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   primaryDisabled: { backgroundColor: colors.paperShade },
-  primaryText: { fontFamily: fonts.bodySemi, fontSize: 15, color: colors.paper },
+  primaryText: { fontFamily: fonts.bodySemi, fontSize: type.compact.fontSize, color: colors.paper },
   primaryTextDisabled: { color: colors.inkMuted },
   secondary: {
     minHeight: 50,
@@ -234,5 +234,5 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     marginTop: 4,
   },
-  secondaryText: { fontFamily: fonts.bodySemi, fontSize: 15, color: colors.ink },
+  secondaryText: { fontFamily: fonts.bodySemi, fontSize: type.compact.fontSize, color: colors.ink },
 });

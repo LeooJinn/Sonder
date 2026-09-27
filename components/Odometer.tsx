@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef } from 'react';
 import { Animated, StyleSheet, Text, View } from 'react-native';
-import { colors, fonts } from '../lib/theme';
+import { colors, fonts, radius } from '../lib/theme';
 
 const DIGITS = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '0'];
 
@@ -120,7 +120,7 @@ const styles = StyleSheet.create({
   window: {
     overflow: 'hidden',
     backgroundColor: colors.ink,
-    borderRadius: 4,
+    borderRadius: radius.tag,
     alignItems: 'center',
   },
   windowLast: { backgroundColor: colors.accent },

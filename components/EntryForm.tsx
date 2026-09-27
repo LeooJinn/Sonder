@@ -310,7 +310,7 @@ export function EntryForm({
                   <Text style={styles.partIndex}>Part {index + 1}</Text>
                   <Button
                     label="Remove"
-                    variant="quiet"
+                    variant="subtle"
                     onPress={() => setParts((current) => current.filter((_, i) => i !== index))}
                   />
                 </View>
@@ -428,7 +428,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.control,
   },
   kindDot: { width: 12, height: 12, borderRadius: 6, borderWidth: 2 },
-  kindText: { fontFamily: fonts.bodyMedium, fontSize: 15, color: colors.textMuted },
+  kindText: { fontFamily: fonts.bodyMedium, fontSize: type.compact.fontSize, color: colors.textMuted },
   kindTextSelected: { fontFamily: fonts.bodySemi, color: colors.text },
 
   completes: { marginTop: -4 },
@@ -484,9 +484,9 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
     paddingHorizontal: 6,
     paddingVertical: 2,
-    borderRadius: 4,
+    borderRadius: radius.tag,
   },
-  thumbBadgeText: { ...type.caption, fontSize: 11, color: colors.accent },
+  thumbBadgeText: { ...type.caption, color: colors.accent },
 
   part: {
     backgroundColor: colors.surface,
