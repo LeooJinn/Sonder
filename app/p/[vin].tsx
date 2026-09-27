@@ -65,11 +65,15 @@ export default function PublicPassportScreen() {
     return (
       <View style={[styles.screen, styles.centered]}>
         <Stack.Screen options={{ headerShown: false, title: 'Not found' }} />
-        <Text style={styles.missingTitle}>No public passport at this link</Text>
+        <Text style={styles.missingTitle}>No public passport for this car</Text>
         <Text style={styles.missingBody}>
-          The car isn&apos;t on Sonder, or its owner has made its log private. Check the link
-          with whoever sent it.
+          It isn&apos;t on Sonder yet, or its owner keeps its log private. If it&apos;s your car,
+          you can start its passport now.
         </Text>
+        <View style={styles.missingActions}>
+          <Button label="Start a passport" onPress={() => router.push('/sign-in?mode=signup')} />
+          <Button label="Look up another car" variant="quiet" onPress={() => router.push('/welcome')} />
+        </View>
       </View>
     );
   }
@@ -241,4 +245,5 @@ const styles = StyleSheet.create({
 
   missingTitle: { ...type.title, color: colors.text, textAlign: 'center' },
   missingBody: { ...type.body, color: colors.textMuted, textAlign: 'center', maxWidth: 400 },
+  missingActions: { marginTop: 16, alignItems: 'center', gap: 28 },
 });

@@ -8,7 +8,7 @@ import {
   Text,
   View,
 } from 'react-native';
-import { Stack } from 'expo-router';
+import { Link, Stack, useLocalSearchParams } from 'expo-router';
 import { supabase } from '../lib/supabase';
 import { describeError } from '../lib/errors';
 import { Button, Field, Notice, focusRing, type PressState } from '../components/ui';
@@ -29,7 +29,10 @@ function isUnconfirmedEmailError(error: { code?: string; message: string }): boo
 }
 
 export default function SignInScreen() {
-  const [mode, setMode] = useState<Mode>('signIn');
+  // /sign-in?mode=signup opens on Create account: the front page's
+  // "Start a passport" is for people who don't have one yet.
+  const params = useLocalSearchParams<{ mode?: string }>();
+  const [mode, setMode] = useState<Mode>(params.mode === 'signup' ? 'signUp' : 'signIn');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -242,6 +245,10 @@ export default function SignInScreen() {
           busy={busy}
           style={styles.submit}
         />
+
+        <Link href="/welcome" style={styles.about}>
+          What is Sonder?
+        </Link>
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -301,4 +308,12 @@ const styles = StyleSheet.create({
   resendBody: { ...type.small, color: colors.textMuted, marginBottom: 4 },
 
   submit: { marginTop: 8 },
+  about: {
+    alignSelf: 'center',
+    marginTop: 28,
+    paddingVertical: 12,
+    fontFamily: fonts.bodySemi,
+    fontSize: 15,
+    color: colors.textMuted,
+  },
 });

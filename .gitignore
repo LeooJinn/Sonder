@@ -40,3 +40,10 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+# Impeccable: review captures and decision-page state are per-session.
+# The product record (PRODUCT.md) and surface briefs are kept.
+.impeccable/review/
+.impeccable/questions/
+.impeccable/front-page-round.json
+.impeccable/welcome-brief.md

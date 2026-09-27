@@ -1,0 +1,640 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-09-27T20:39:02+00:00",
+  "title": "Design System: Sonder",
+  "extensions": {
+    "colorMeta": {
+      "background": {
+        "role": "neutral",
+        "displayName": "Passport Cover Green",
+        "canonical": "#16302A",
+        "tonalRamp": [
+          "#00100B",
+          "#102B25",
+          "#2E4842",
+          "#4D6861",
+          "#6D8982",
+          "#8FACA4",
+          "#B3D1C9",
+          "#D8F7EE"
+        ]
+      },
+      "surface": {
+        "role": "neutral",
+        "displayName": "Cover Surface",
+        "canonical": "#1E3B34",
+        "tonalRamp": [
+          "#00100B",
+          "#0E2B24",
+          "#2B4941",
+          "#4A6861",
+          "#6B8A82",
+          "#8DADA4",
+          "#B1D2C8",
+          "#D5F7EE"
+        ]
+      },
+      "border": {
+        "role": "neutral",
+        "displayName": "Cover Rule",
+        "canonical": "#31514A",
+        "tonalRamp": [
+          "#00100B",
+          "#0A2B25",
+          "#294942",
+          "#486961",
+          "#698B83",
+          "#8BAEA5",
+          "#AED2C9",
+          "#D3F8EF"
+        ]
+      },
+      "text": {
+        "role": "neutral",
+        "displayName": "Cover Text",
+        "canonical": "#E8EDE5",
+        "tonalRamp": [
+          "#090C07",
+          "#232621",
+          "#3F433D",
+          "#5F635C",
+          "#7F847D",
+          "#A2A79F",
+          "#C6CBC3",
+          "#EBF0E8"
+        ]
+      },
+      "text-muted": {
+        "role": "neutral",
+        "displayName": "Muted Cover Text",
+        "canonical": "#A7B9B1",
+        "tonalRamp": [
+          "#030E09",
+          "#1A2923",
+          "#37463F",
+          "#55665E",
+          "#76877F",
+          "#98AAA2",
+          "#BCCEC6",
+          "#E1F4EB"
+        ]
+      },
+      "text-faint": {
+        "role": "neutral",
+        "displayName": "Faint Cover Text",
+        "canonical": "#8DA69D",
+        "tonalRamp": [
+          "#000F0A",
+          "#142A23",
+          "#314740",
+          "#50675F",
+          "#708980",
+          "#93ACA3",
+          "#B6D0C7",
+          "#DBF6EC"
+        ]
+      },
+      "disabled": {
+        "role": "neutral",
+        "displayName": "Spent Foil",
+        "canonical": "#3C5A53",
+        "tonalRamp": [
+          "#00100B",
+          "#0D2B25",
+          "#2B4942",
+          "#4A6861",
+          "#6B8A82",
+          "#8DADA5",
+          "#B0D2C9",
+          "#D5F7EE"
+        ]
+      },
+      "accent": {
+        "role": "primary",
+        "displayName": "Passport Foil",
+        "canonical": "#D4B46E",
+        "tonalRamp": [
+          "#190500",
+          "#391E00",
+          "#593C00",
+          "#7A5C0D",
+          "#9C7E37",
+          "#C0A15B",
+          "#E2C688",
+          "#FBEDD1"
+        ]
+      },
+      "on-accent": {
+        "role": "primary",
+        "displayName": "Text on Foil",
+        "canonical": "#16302A",
+        "tonalRamp": [
+          "#00100B",
+          "#102B25",
+          "#2E4842",
+          "#4D6861",
+          "#6D8982",
+          "#8FACA4",
+          "#B3D1C9",
+          "#D8F7EE"
+        ]
+      },
+      "paper": {
+        "role": "neutral",
+        "displayName": "Security Paper",
+        "canonical": "#E3E9DF",
+        "tonalRamp": [
+          "#090D06",
+          "#22271F",
+          "#3F443C",
+          "#5E635B",
+          "#7F847B",
+          "#A1A79E",
+          "#C5CBC2",
+          "#EBF1E7"
+        ]
+      },
+      "paper-shade": {
+        "role": "neutral",
+        "displayName": "Paper Shade",
+        "canonical": "#D5DDD0",
+        "tonalRamp": [
+          "#080D05",
+          "#21271D",
+          "#3E443A",
+          "#5D6459",
+          "#7E8579",
+          "#A0A89C",
+          "#C4CCBF",
+          "#E9F2E4"
+        ]
+      },
+      "paper-line": {
+        "role": "neutral",
+        "displayName": "Paper Rule",
+        "canonical": "#BFCBBB",
+        "tonalRamp": [
+          "#060E04",
+          "#1F281C",
+          "#3B4538",
+          "#5A6557",
+          "#7B8677",
+          "#9EA99A",
+          "#C1CDBD",
+          "#E6F3E2"
+        ]
+      },
+      "paper-field": {
+        "role": "neutral",
+        "displayName": "Paper Field",
+        "canonical": "#F3F6F1",
+        "tonalRamp": [
+          "#0A0C09",
+          "#242622",
+          "#40433F",
+          "#60625E",
+          "#81837F",
+          "#A3A6A1",
+          "#C7CAC5",
+          "#EDF0EB"
+        ]
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "Ink",
+        "canonical": "#14201C",
+        "tonalRamp": [
+          "#040E0A",
+          "#1C2824",
+          "#384541",
+          "#576560",
+          "#788681",
+          "#9AA9A4",
+          "#BECDC8",
+          "#E3F3ED"
+        ]
+      },
+      "ink-muted": {
+        "role": "neutral",
+        "displayName": "Faded Ink",
+        "canonical": "#526159",
+        "tonalRamp": [
+          "#030E08",
+          "#1B2922",
+          "#38463E",
+          "#56655D",
+          "#77877E",
+          "#99AAA1",
+          "#BDCEC5",
+          "#E2F3EA"
+        ]
+      },
+      "stamp": {
+        "role": "tertiary",
+        "displayName": "Stamp Red",
+        "canonical": "#A8322C",
+        "tonalRamp": [
+          "#240000",
+          "#520000",
+          "#810007",
+          "#A7312C",
+          "#CF564C",
+          "#EC8377",
+          "#FCB4AB",
+          "#FFE5E0"
+        ]
+      },
+      "stamp-wash": {
+        "role": "tertiary",
+        "displayName": "Stamp Wash",
+        "canonical": "#F4D9D5",
+        "tonalRamp": [
+          "#160605",
+          "#331F1D",
+          "#513C39",
+          "#725B58",
+          "#947C78",
+          "#B89E9B",
+          "#DDC2BE",
+          "#FFE7E3"
+        ]
+      },
+      "stamp-ink": {
+        "role": "tertiary",
+        "displayName": "Stamp Ink",
+        "canonical": "#8E2A24",
+        "tonalRamp": [
+          "#240000",
+          "#520000",
+          "#7A1513",
+          "#A03B33",
+          "#C75E53",
+          "#EC8377",
+          "#FCB4AB",
+          "#FFE5E0"
+        ]
+      },
+      "danger": {
+        "role": "tertiary",
+        "displayName": "Cover Danger",
+        "canonical": "#F0706A",
+        "tonalRamp": [
+          "#240000",
+          "#520000",
+          "#82000E",
+          "#A92E2F",
+          "#D15450",
+          "#EC827B",
+          "#FCB4AD",
+          "#FFE5E1"
+        ]
+      },
+      "success": {
+        "role": "tertiary",
+        "displayName": "Cover Success",
+        "canonical": "#9CD3A4",
+        "tonalRamp": [
+          "#001300",
+          "#003009",
+          "#1A4E26",
+          "#3B6F45",
+          "#5C9165",
+          "#7FB487",
+          "#A3D9AB",
+          "#DDF6E0"
+        ]
+      },
+      "scrim": {
+        "role": "neutral",
+        "displayName": "Cover Scrim",
+        "canonical": "#0A1512D9",
+        "tonalRamp": [
+          "#040E0B",
+          "#1C2825",
+          "#394541",
+          "#586561",
+          "#788682",
+          "#9AA9A4",
+          "#BECDC8",
+          "#E3F2EE"
+        ],
+        "note": "Cover green (#0A1512) at alpha D9; ramp is of the opaque base."
+      },
+      "scrim-light": {
+        "role": "neutral",
+        "displayName": "Light Cover Scrim",
+        "canonical": "#0A1512B3",
+        "tonalRamp": [
+          "#040E0B",
+          "#1C2825",
+          "#394541",
+          "#586561",
+          "#788682",
+          "#9AA9A4",
+          "#BECDC8",
+          "#E3F2EE"
+        ],
+        "note": "Cover green (#0A1512) at alpha B3; ramp is of the opaque base."
+      },
+      "scrim-photo": {
+        "role": "neutral",
+        "displayName": "Photo Viewer Scrim",
+        "canonical": "#0A1512F2",
+        "tonalRamp": [
+          "#040E0B",
+          "#1C2825",
+          "#394541",
+          "#586561",
+          "#788682",
+          "#9AA9A4",
+          "#BECDC8",
+          "#E3F2EE"
+        ],
+        "note": "Cover green (#0A1512) at alpha F2; ramp is of the opaque base."
+      },
+      "kind-mod": {
+        "role": "tertiary",
+        "displayName": "Mod Amber",
+        "canonical": "#F2A65A",
+        "tonalRamp": [
+          "#200000",
+          "#4B0A00",
+          "#6E2C00",
+          "#924D00",
+          "#B76F19",
+          "#DD9245",
+          "#F1BE8E",
+          "#FFEAD3"
+        ]
+      },
+      "kind-service": {
+        "role": "tertiary",
+        "displayName": "Service Sky",
+        "canonical": "#8EC5EB",
+        "tonalRamp": [
+          "#000B28",
+          "#002847",
+          "#0C4767",
+          "#326789",
+          "#5489AD",
+          "#76ACD1",
+          "#9AD1F7",
+          "#D7F3FF"
+        ]
+      },
+      "kind-repair": {
+        "role": "tertiary",
+        "displayName": "Repair Coral",
+        "canonical": "#EF7F7A",
+        "tonalRamp": [
+          "#240000",
+          "#520002",
+          "#7B121A",
+          "#A13939",
+          "#C85C59",
+          "#EC827D",
+          "#FCB4AE",
+          "#FFE5E2"
+        ]
+      },
+      "kind-milestone": {
+        "role": "tertiary",
+        "displayName": "Milestone Lilac",
+        "canonical": "#BCA9F4",
+        "tonalRamp": [
+          "#100028",
+          "#2B1352",
+          "#483374",
+          "#675397",
+          "#8874BB",
+          "#AA97E1",
+          "#CDBEFC",
+          "#F0EAFF"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "hero": {
+        "displayName": "Hero",
+        "purpose": "Tab-screen titles and the asking price on a listing."
+      },
+      "display": {
+        "displayName": "Display",
+        "purpose": "A car model on its data page and cards; a meet title."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "Section headers, timeline chapter titles, dialog and error titles."
+      },
+      "heading": {
+        "displayName": "Heading",
+        "purpose": "Form subsections, stacked-header title, passport footer line."
+      },
+      "lead": {
+        "displayName": "Lead",
+        "purpose": "Opening paragraph under a headline; empty-state bodies."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Reading text and input text."
+      },
+      "body-strong": {
+        "displayName": "Body Strong",
+        "purpose": "Button labels and emphasised values."
+      },
+      "small": {
+        "displayName": "Small",
+        "purpose": "Secondary lines, notes, holder line, disclosures."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Field labels."
+      },
+      "caption": {
+        "displayName": "Caption",
+        "purpose": "Hints, dates, spec labels."
+      },
+      "mono": {
+        "displayName": "Mono",
+        "purpose": "Machine data only: VINs, MRZ, odometer drums, part numbers."
+      }
+    },
+    "shadows": [],
+    "shadowsNote": "The system is flat: no box-shadow or elevation exists in the code. Depth is cover against paper, surface steps, scrims, and the odometer window clip.",
+    "focus": {
+      "value": "outline: 2px solid #D4B46E; outline-offset: 2px",
+      "purpose": "Keyboard focus on every pressable element (web only); text inputs suppress it and turn their stroke foil instead."
+    },
+    "motion": [
+      {
+        "name": "press",
+        "value": "opacity 0.75 while pressed (0.8 in dialogs, 0.85 on cards)",
+        "purpose": "The only press feedback; no scale or colour transitions."
+      },
+      {
+        "name": "drum-roll",
+        "value": "scroll-linked, linear, no easing; mechanical carry (a drum turns only while the one to its right rolls 9 to 0)",
+        "purpose": "The odometer on the front page. Under reduced motion the reading steps between event mileages."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "wide",
+        "value": "860px",
+        "purpose": "Front page only: two-column hero and floating, docking instrument band."
+      }
+    ],
+    "layout": {
+      "column": "640px max, centred (lib/theme.ts column)",
+      "narrowColumn": "440px (sign-in, dialogs, error state)",
+      "frontPageColumn": "1040px with 20px gutter (app/welcome.tsx, local)",
+      "gutter": "20px",
+      "minTouchTarget": "44px",
+      "buttonHeight": "52px"
+    }
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Foil fill; the one way on per screen.",
+      "html": "<button class=\"ds-btn-primary\">Start a passport</button>",
+      "css": ".ds-btn-primary { background: #D4B46E; color: #16302A; font-family: 'Barlow', sans-serif; font-weight: 600; font-size: 16px; min-height: 52px; padding: 0 20px; border: none; border-radius: 10px; cursor: pointer; } .ds-btn-primary:active { opacity: 0.75; } .ds-btn-primary:focus-visible { outline: 2px solid #D4B46E; outline-offset: 2px; } .ds-btn-primary:disabled { background: #3C5A53; color: #8DA69D; }"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Outlined; the other reasonable choice.",
+      "html": "<button class=\"ds-btn-secondary\">Try again</button>",
+      "css": ".ds-btn-secondary { background: transparent; color: #E8EDE5; font-family: 'Barlow', sans-serif; font-weight: 600; font-size: 16px; min-height: 52px; padding: 0 20px; border: 1px solid #31514A; border-radius: 10px; cursor: pointer; } .ds-btn-secondary:active { opacity: 0.75; } .ds-btn-secondary:focus-visible { outline: 2px solid #D4B46E; outline-offset: 2px; }"
+    },
+    {
+      "name": "Quiet Button",
+      "kind": "button",
+      "refersTo": "button-quiet",
+      "description": "Inline foil text with a 44px hit area.",
+      "html": "<button class=\"ds-btn-quiet\">Sign in</button>",
+      "css": ".ds-btn-quiet { background: none; border: none; color: #D4B46E; font-family: 'Barlow', sans-serif; font-weight: 600; font-size: 15px; min-height: 44px; padding: 0 8px; cursor: pointer; } .ds-btn-quiet:active { opacity: 0.75; } .ds-btn-quiet:focus-visible { outline: 2px solid #D4B46E; outline-offset: 2px; }"
+    },
+    {
+      "name": "Danger Button",
+      "kind": "button",
+      "refersTo": "button-danger",
+      "description": "Destroys something; never the most prominent thing.",
+      "html": "<button class=\"ds-btn-danger\">Delete this car</button>",
+      "css": ".ds-btn-danger { background: transparent; color: #F0706A; font-family: 'Barlow', sans-serif; font-weight: 600; font-size: 16px; min-height: 52px; padding: 0 20px; border: 1px solid #F0706A66; border-radius: 10px; cursor: pointer; } .ds-btn-danger:active { opacity: 0.75; } .ds-btn-danger:focus-visible { outline: 2px solid #D4B46E; outline-offset: 2px; }"
+    },
+    {
+      "name": "Field",
+      "kind": "input",
+      "refersTo": "input-field",
+      "description": "Label, surface input, hint; stroke turns foil on focus.",
+      "html": "<label class=\"ds-field\"><span class=\"ds-field-label\">Odometer</span><input class=\"ds-field-input\" placeholder=\"58,210\"><span class=\"ds-field-hint\">Miles on the clock when the work was done.</span></label>",
+      "css": ".ds-field { display: flex; flex-direction: column; gap: 8px; background: #16302A; padding: 16px; } .ds-field-label { font-family: 'Barlow', sans-serif; font-weight: 500; font-size: 14px; line-height: 18px; color: #A7B9B1; } .ds-field-input { font-family: 'Barlow', sans-serif; font-size: 16px; line-height: 24px; background: #1E3B34; color: #E8EDE5; border: 1px solid #31514A; border-radius: 8px; padding: 13px 14px; outline: none; caret-color: #D4B46E; } .ds-field-input::placeholder { color: #8DA69D; } .ds-field-input:focus { border-color: #D4B46E; } .ds-field-hint { font-family: 'Barlow', sans-serif; font-size: 12px; line-height: 16px; color: #8DA69D; }"
+    },
+    {
+      "name": "Tab Bar",
+      "kind": "nav",
+      "refersTo": "tab",
+      "description": "Words, not icons; a short foil rule marks the current tab.",
+      "html": "<nav class=\"ds-tabs\"><a class=\"ds-tab ds-tab-on\" href=\"#\"><i></i>Garage</a><a class=\"ds-tab\" href=\"#\"><i></i>For sale</a><a class=\"ds-tab\" href=\"#\"><i></i>Meets</a></nav>",
+      "css": ".ds-tabs { display: flex; background: #16302A; border-top: 1px solid #31514A; padding-bottom: 10px; } .ds-tab { flex: 1; display: flex; flex-direction: column; align-items: center; min-height: 48px; font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 18px; color: #8DA69D; text-decoration: none; } .ds-tab i { width: 28px; height: 2px; margin-bottom: 10px; background: transparent; } .ds-tab-on { color: #E8EDE5; } .ds-tab-on i { background: #D4B46E; } .ds-tab:hover { color: #A7B9B1; } .ds-tab:focus-visible { outline: 2px solid #D4B46E; outline-offset: 2px; }"
+    },
+    {
+      "name": "Kind Chip",
+      "kind": "chip",
+      "refersTo": null,
+      "description": "Log-kind picker; ring in the kind ink, foil border when selected.",
+      "html": "<div class=\"ds-chips\"><button class=\"ds-chip ds-chip-on\"><i style=\"border-color:#F2A65A\"></i>Mod</button><button class=\"ds-chip\"><i style=\"border-color:#8EC5EB\"></i>Service</button></div>",
+      "css": ".ds-chips { display: flex; gap: 8px; background: #16302A; padding: 16px; } .ds-chip { display: flex; align-items: center; gap: 10px; min-height: 48px; padding: 0 14px; background: transparent; border: 1px solid #31514A; border-radius: 10px; font-family: 'Barlow', sans-serif; font-weight: 500; font-size: 15px; color: #A7B9B1; cursor: pointer; } .ds-chip i { width: 12px; height: 12px; border-radius: 6px; border: 2px solid; box-sizing: border-box; } .ds-chip-on { border-color: #D4B46E; background: #1E3B34; color: #E8EDE5; font-weight: 600; } .ds-chip:focus-visible { outline: 2px solid #D4B46E; outline-offset: 2px; }"
+    },
+    {
+      "name": "Data Page",
+      "kind": "card",
+      "refersTo": "data-page",
+      "description": "A car's identity page on security paper, with the MRZ strip at its foot.",
+      "html": "<article class=\"ds-page\"><div class=\"ds-page-body\"><div class=\"ds-page-row\"><span>Ford</span><span class=\"ds-mono\">2020</span></div><h3>Escape</h3><p class=\"ds-page-trim\">SE</p><dl><dt>VIN</dt><dd class=\"ds-mono\">1FM CU0G65 LUA35573</dd></dl></div><div class=\"ds-mrz\">V&lt;SDRFORD&lt;&lt;ESCAPE&lt;SE&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;<br>1FMCU0G65LUA35573&lt;2020&lt;LOUISVILLE&lt;&lt;&lt;</div></article>",
+      "css": ".ds-page { background: #E3E9DF; border-radius: 14px; overflow: hidden; max-width: 360px; font-family: 'Barlow', sans-serif; color: #14201C; } .ds-page-body { padding: 18px 20px 20px; } .ds-page-row { display: flex; justify-content: space-between; font-weight: 600; font-size: 16px; color: #526159; } .ds-page h3 { margin: 2px 0 0; font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 38px; line-height: 38px; letter-spacing: -0.3px; } .ds-page-trim { margin: 2px 0 0; color: #526159; } .ds-page dl { margin: 18px 0 0; padding-top: 16px; border-top: 1px solid #BFCBBB; } .ds-page dt { font-size: 12px; color: #526159; } .ds-page dd { margin: 2px 0 0; } .ds-mono { font-family: 'B612 Mono', monospace; font-size: 15px; letter-spacing: 0.5px; font-weight: 400; } .ds-mrz { background: #D5DDD0; padding: 14px 20px; font-family: 'B612 Mono', monospace; font-size: 11px; line-height: 1.5; color: #526159; white-space: nowrap; overflow: hidden; }"
+    },
+    {
+      "name": "Odometer Band",
+      "kind": "custom",
+      "refersTo": "odometer-drum",
+      "description": "Ink drums with paper digits, the last drum in foil, on a paper instrument band.",
+      "html": "<div class=\"ds-band\"><div class=\"ds-odo\"><span>0</span><span>5</span><span>8</span><span>2</span><span>1</span><span class=\"ds-odo-last\">0</span></div><div><div class=\"ds-band-unit\">miles, second owner</div><div class=\"ds-band-event\">Sold</div></div></div>",
+      "css": ".ds-band { display: flex; align-items: center; gap: 20px; background: #E3E9DF; padding: 14px 20px; border-bottom: 1px solid #BFCBBB; } .ds-odo { display: flex; gap: 4px; } .ds-odo span { width: 27px; height: 43px; line-height: 43px; text-align: center; background: #14201C; color: #E3E9DF; border-radius: 4px; font-family: 'B612 Mono', monospace; font-size: 34px; overflow: hidden; } .ds-odo .ds-odo-last { background: #D4B46E; color: #14201C; } .ds-band-unit { font-family: 'Barlow', sans-serif; font-weight: 600; font-size: 14px; color: #526159; } .ds-band-event { font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 20px; line-height: 24px; color: #14201C; }"
+    },
+    {
+      "name": "Sold Stamp",
+      "kind": "custom",
+      "refersTo": null,
+      "description": "A change of owner marked the way a passport marks a crossing: milestone ink, rotated.",
+      "html": "<div class=\"ds-stamp-wrap\"><div class=\"ds-stamp\"><div class=\"ds-stamp-title\">Sold</div><div class=\"ds-stamp-line\">58,210 mi, to its second owner</div></div></div>",
+      "css": ".ds-stamp-wrap { background: #16302A; padding: 24px; } .ds-stamp { display: inline-block; padding: 10px 16px; border: 2px solid #BCA9F4; border-radius: 6px; transform: rotate(-4deg); color: #BCA9F4; } .ds-stamp-title { font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 30px; line-height: 32px; } .ds-stamp-line { font-family: 'Barlow', sans-serif; font-weight: 600; font-size: 14px; font-variant-numeric: tabular-nums; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Car's Own Papers",
+    "overview": "Sonder looks like the documents a car accumulates over its life. Every screen is the passport cover: a deep, tinted green that paints edge to edge. Anything that is about one specific car is printed on a pale security-paper page in dark ink, so it reads as a document rather than a card. Gold foil is reserved for the wordmark and for the way on: the one primary action, keyboard focus, and the place you currently are. The odometer, the machine-readable strip and the rubber stamp are the world's own devices, borrowed from real passports and real instrument clusters rather than from a UI kit.\n\nThe system is flat and quiet. Depth comes from the contrast between cover and paper and from clipping (an odometer drum's digits disappear at the edge of its window), never from shadows. Type is drawn from California plates and highway signage: Barlow Condensed carries car names and headings the way a badge would, Barlow carries reading, and B612 Mono, made for cockpit displays, is kept strictly for machine data. Navigation is words, not icons, and the two marks the app needs (close, tick) are drawn as strokes rather than typed as glyphs.\n\nThe app is a phone app first. On a desktop browser the content sits in a centred reading column while the cover still fills the window.",
+    "keyCharacteristics": [
+      "Passport-cover green ground; paper data pages in ink for anything about a specific car.",
+      "Foil (gold) means the way on: wordmark, one primary action, focus, current selection.",
+      "Flat: no shadows anywhere; depth is cover against paper.",
+      "Barlow Condensed display, Barlow body, B612 Mono only for VINs, odometers, part numbers and the MRZ strip.",
+      "Each log-entry kind stamped in its own ink so a history can be scanned by colour.",
+      "Radii follow hierarchy: documents roundest, photos least."
+    ],
+    "rules": [
+      {
+        "name": "The Foil Rule",
+        "body": "Foil means \"this is the way on\". It marks the wordmark, the one primary action on a screen, focus, and where you currently are. A stamp, a status or an ornament in foil reads as a second call to action; use a kind ink or a neutral instead.",
+        "section": "colors"
+      },
+      {
+        "name": "The Cover and Page Rule",
+        "body": "The cover is the app; paper is a specific car's document. Cover colours (text, text-muted, danger) belong on the green; ink colours (ink, ink-muted, stamp) belong on paper. Never set cover text on paper or ink on the cover.",
+        "section": "colors"
+      },
+      {
+        "name": "The No-Gray Rule",
+        "body": "Every neutral is tinted from the cover's green hue, including scrims. There is no gray and no black in the palette.",
+        "section": "colors"
+      },
+      {
+        "name": "The Machine Data Rule",
+        "body": "B612 Mono is only for data a machine wrote: VINs, the MRZ strip, odometer drums, part numbers, typed confirm phrases. A mileage written in a sentence (\"logged at 31,400 mi\") is set in Barlow with tabular figures, because the mono's full-width comma splits \"58,210\" into two numbers. A placeholder is words, so it is set in Barlow even inside a mono field.",
+        "section": "typography"
+      },
+      {
+        "name": "The Badge Rule",
+        "body": "Barlow Condensed carries names and headings only (a car's model, screen titles, tab labels, the wordmark). Paragraphs are never condensed.",
+        "section": "typography"
+      },
+      {
+        "name": "The Flat Paper Rule",
+        "body": "Documents lie flat on the cover. Separation comes from paper against green, a hairline rule, or a shade step, never from a drop shadow.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do paint every screen on the cover green and put anything about a specific car on paper in ink.",
+      "Do keep foil for the wordmark, one primary button per screen, the focus ring, and the current selection.",
+      "Do draw keyboard focus as a 2px foil outline offset 2px on every pressable element on the web.",
+      "Do set VINs, drums, part numbers and the MRZ strip in B612 Mono, and prose mileages in Barlow tabular figures.",
+      "Do stamp each log entry in its kind's ink (mod amber, service sky, repair coral, milestone lilac).",
+      "Do follow the radius hierarchy: page 14, control 10, input 8, photo 6.",
+      "Do use the red that fits the ground: danger on the cover, stamp on paper.",
+      "Do darken the cover for scrims; respect reduced motion by stepping instead of rolling."
+    ],
+    "donts": [
+      "Don't put a stamp, status or ornament in foil; it reads as a second call to action.",
+      "Don't add drop shadows; separate with paper, a hairline or a shade step.",
+      "Don't introduce gray or black; every neutral is tinted from the cover green.",
+      "Don't use icons for navigation, or typed \"×\"/\"✓\" glyphs for marks; use words and the drawn marks.",
+      "Don't set paragraphs in Barlow Condensed, or prose numbers in the mono.",
+      "Don't put cover text colours on paper or ink colours on the cover."
+    ]
+  }
+}

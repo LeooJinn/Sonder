@@ -58,6 +58,8 @@ one working slice at a time.
 - **Reporting and blocking** for meets and listings. Three reports from
   different members take a meet or listing down automatically; reports are
   read in the Supabase dashboard
+- A **front page** for people who aren't members yet: a car's life told along
+  its odometer, a VIN lookup, and a real published passport as the example
 - Shared passport links **preview** with the car's photo, name and history in
   iMessage, Instagram, Discord and anywhere else that unfurls links
 - Everything stored in Postgres, so a garage follows the account to any
@@ -135,6 +137,7 @@ key being secret.
 ```
 app/                          screens — a file's path is its route
   _layout.tsx                 wraps every screen, guards the signed-out ones
+  welcome.tsx    /welcome     the front page for visitors: the odometer story and a VIN lookup
   sign-in.tsx    /sign-in     sign in or create an account
   (tabs)/                     the three tabs; the group adds nothing to URLs
     index.tsx    /            the garage

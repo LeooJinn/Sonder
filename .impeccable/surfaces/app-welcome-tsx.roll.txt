@@ -1,0 +1,121 @@
+SURFACE CONCEPT SEED (key: acd9c1f3; mode: persuade; source: api; approved pool: c3b204a1eed6; 306/564 human-approved; rerun with --scope surface --mode persuade --from acd9c1f3 --candidate-count 7 to reproduce this roll against this catalog revision)
+DEALT INDICES: 7, 5, 3 (index 7 leads)
+  After ordering the task's grounded structural candidates by resonance,
+  deal candidates 7, 5, 3 of your own grounded list to the
+  table; index 7 leads, and the deal never points at a challenger.
+  The deal is the roll, not a suggestion: the dice decide which structures
+  reach the user, so the ranking rut stays broken while the user still gets a
+  real choice, and the full ranked list stays yours. In an attended run,
+  present the three dealt structures as full cards of equal salience, the
+  lead carrying kicker THE ROLL, with steer and re-roll, and let the user
+  lock one in; the world is already settled, so this choice is composition.
+  Visualize every dealt card: with image generation available and a
+  comp-led default (.impeccable/config.json buildPath; the page toggle
+  handles the exception), declare a comp per card and generate after
+  serving, lead first; otherwise author each card's wireframe field (see
+  serve-question --schema) and the page draws the schematic. Carry the
+  recorded default in the payload as buildPath with toggle: true. Locking a card
+  approves its comp: a surface round that put three visualized structures on
+  the table replaces the three-option comp round in visualize.md. Re-roll
+  yourself only when every dealt structure fails audience identification or
+  product clarity on named factual grounds.
+  The assignment exists to refuse the model's ranking rut, never to outrank
+  the user or the brief. Never expose assignment metadata in user-facing labels.
+CHALLENGERS:
+  1. a brick build-instruction book, numbered exploded steps on sky-blue pages, 1:1 piece call-outs in a cornered box, a stud grid ruling every alignment, wordless arrows teaching assembly
+     SOURCE ID: games-toys-physics-play-brick-build-instructions
+     CREATIVE SPARK: You flatten the booklet on the carpet, tip the numbered bag out, and match a red brick to its 1:1 call-out against the page; the arrow shows the seat, the stud grid agrees, and the piece clicks down exactly where it must.
+     SYSTEM GRAMMAR:
+       - Palette/material: instruction-page sky blue as the ground, black keyline ink outlining every piece, brick red for the new part in each step, yellow held in the inventory
+       - Type/composition: oversized step numerals are almost the only text, wordless arrows do the teaching, and every element aligns to the stud grid module
+       - Topology/navigation: numbered spreads in strict sequence, a parts inventory up front, 1:1 call-out boxes zooming the pieces a step introduces
+       - Controls/state: prior assembly renders ghosted, the new pieces arrive bright with an arrow to their seat, done means clicked down flush on the studs
+       - Responsive/motion: spreads split into single step frames on small screens, call-outs pin to a corner; pieces animate down along their arrows
+     WEB LEVERAGE: svg exploded-step diagrams with dashed guide arrows, css grid locked to a stud-module unit, animation dropping new pieces along their arrows
+     QUALITY BAR: board https://impeccable.style/worlds/cards/games-toys-physics-play-brick-build-instructions.webp · hero https://impeccable.style/worlds/cards/games-toys-physics-play-brick-build-instructions-hero.webp
+  2. a sneaker archive wall, stacked cardboard boxes with silhouette line art printed on the ends, colorway names read as poetry beside monospaced size runs, tissue folded inside each lid
+     SOURCE ID: textiles-weave-drape-fashion-sneaker-box-stacks
+     CREATIVE SPARK: You slide a box from a stack taller than you; the end label lists the colorway name like a line of verse, the lid lifts with a cardboard sigh, and tissue paper folds back from the shape you already know by silhouette.
+     SYSTEM GRAMMAR:
+       - Palette/material: burnt orange box board as the ground, black one-line silhouette art for ink, tissue white interiors, the colorway chip strip carrying accent states
+       - Type/composition: condensed caps on the end label over monospaced size-run digits, the label grid of name, colorway, and size ruling every card
+       - Topology/navigation: a wall of stacked boxes indexed by their end labels; you browse the stack face, pull a box halfway, and open the lid to go deeper
+       - Controls/state: the selected box slides half out of the stack, opening hinges the lid and folds back tissue, the colorway chip marks which variant is live
+       - Responsive/motion: the wall re-shelves to a single column of end labels on narrow screens; motion is lid hinge and tissue lift
+     WEB LEVERAGE: css 3d transforms hinging box lids open on interaction, grid re-shelving the stack from wall to single column across breakpoints
+     QUALITY BAR: board https://impeccable.style/worlds/cards/textiles-weave-drape-fashion-sneaker-box-stacks.webp · hero https://impeccable.style/worlds/cards/textiles-weave-drape-fashion-sneaker-box-stacks-hero.webp
+  3. A saturated green field with a floating white capsule bar riding above it, an oversized grotesque headline set flush-left, and a flat vector cast spilling across the lower right. Below, a huge cream panel rises with a 48px top radius, carrying green circular icon wells.
+     SOURCE ID: sd-seedbed-lobes
+     CREATIVE SPARK: One colour owns the whole viewport, and the interface floats on top of it as detached white lozenges. Nothing is inset; everything is a pill or a rounded slab hovering over the green, so the page reads as objects on a lawn rather than boxes in a grid.
+     SYSTEM GRAMMAR:
+       - Palette/material: Ground #82CC5C; ink #2F3130 (never #000); white #FFFFFF capsules; cream panel #F2EFE3; accent tomato #F0574C, cobalt #1B8FF5, yellow #F5D42B.
+       - Type/composition: One grotesque (Poppins/Inter-like) at two weights: 500 nav, 600 display 88px/0.95 with tight -2% tracking; body 22px/1.45; flush-left, no centring.
+       - Topology/navigation: Floating capsule bar at 24px inset, 999px radius, split into a nav pill plus a detached CTA pill; content panels are full-bleed slabs with 48px top corners.
+       - Controls/state: Buttons are white pills with a 40px green disc holding a chevron; hamburger is a green circle; avatar a blue circle. Colour lives in the disc, never the label.
+       - Responsive/motion: Scroll swells a green lobe; chip crosses its capsule on hover; 0.4s overshoot.
+     WEB LEVERAGE: Pill navigation detaches from the page edge; scroll-linked blob scaling and hover chip travel inside a capsule are cheap in CSS and impossible in print.
+     QUALITY BAR: board https://impeccable.style/worlds/cards/sd-seedbed-lobes.webp · hero https://impeccable.style/worlds/cards/sd-seedbed-lobes-hero.webp
+  4. a collector album spread of numbered empty slots, each printed with a ghosted outline of the sticker that belongs there, filled positions sitting slightly proud of the page and gaps advertising exactly what is missing
+     SOURCE ID: pop-culture-shelf-sticker-album-spread
+     CREATIVE SPARK: Forty-two of the fifty slots are filled and glossy, and the eight that are not tell you exactly which ones you still need in pale gray outline.
+     SYSTEM GRAMMAR:
+       - Palette/material: matte album paper printed with pale ghosted outlines, against glossy stickers that sit visibly proud of the page surface
+       - Type/composition: numbered slots ranged on a fixed grid with team or section headers, and every empty slot printing what should fill it
+       - Topology/navigation: the album is a fixed set, so navigation moves between numbered positions and absence is as informative as presence
+       - Controls/state: controls are slots, a filled one gains gloss and a shadow, and an empty one keeps its ghost outline and number
+       - Responsive/motion: the slot grid reflows in whole positions, and motion is a sticker pressing down into its outline
+     WEB LEVERAGE: a whole-slot responsive grid, collection state persisted local, and a press-down animation seating each sticker
+     QUALITY BAR: board https://impeccable.style/worlds/cards/pop-culture-shelf-sticker-album-spread.webp · hero https://impeccable.style/worlds/cards/pop-culture-shelf-sticker-album-spread-hero.webp
+  5. an interactive type specimen, where dragging an axis slider morphs a whole grid of glyphs in real time
+     SOURCE ID: variable-font-specimen
+     CREATIVE SPARK: A single giant letter fills the screen. You drag the weight slider and it thickens from hairline to black under your finger, live. Below, a grid of every glyph breathes in step, and a monospace readout counts the axis values.
+     SYSTEM GRAMMAR:
+       - Palette/material: Near-white paper and ink black with one foundry accent; flat surfaces, generous negative space, no ornament so the letterforms carry everything.
+       - Type/composition: The specimen face at enormous display size against tiny monospace UI labels; a strict measure and baseline grid; hierarchy by scale contrast alone.
+       - Topology/navigation: Move by axis slider, by glyph cell, and by size and specimen view.
+       - Controls/state: Drag, type, and pin; moving an axis remaps every glyph on the page continuously and updates the live coordinate readout.
+       - Responsive/motion: reduced-motion snaps between named instances instead of animating the interpolation.
+     WEB LEVERAGE: Bind range inputs to CSS font-variation-settings through a custom property, so one slider drives font-variation across the entire glyph grid with no per-glyph JavaScript.
+     QUALITY BAR: board https://impeccable.style/worlds/cards/variable-font-specimen.webp · hero https://impeccable.style/worlds/cards/variable-font-specimen-hero.webp
+  6. a vu-meter bridge across a recording desk, a long row of ballistic needles behind glass that all lean into the red on the same downbeat
+     SOURCE ID: signals-instruments-vu-meter-bridge
+     CREATIVE SPARK: Twenty needles lie asleep against their left pins until the chorus hits, and then the whole bridge leans right together, trembling at the edge of the red like horses at a gate.
+     SYSTEM GRAMMAR:
+       - Palette/material: warm ivory meter faces behind glass, black scale arcs and needles as the working ink, walnut and steel desk frame; the arc past zero is the only red
+       - Type/composition: the VU scale's flared numerals and minus-to-plus arc on every face, channel numbers in strip labels below; identical meters repeat as the row's ruler
+       - Topology/navigation: identical channels stand shoulder to shoulder; you read the room by sweeping the whole row, never by opening one meter
+       - Controls/state: each needle integrates the last 300ms with weighted overshoot; the arc past zero is the only red the instrument allows
+       - Responsive/motion: narrow viewports stack the row into bar ballistics
+     WEB LEVERAGE: an AnalyserNode feeds real signal levels; canvas needles obey true VU ballistics with mass and damping, never instant values
+     QUALITY BAR: board https://impeccable.style/worlds/cards/signals-instruments-vu-meter-bridge.webp · hero https://impeccable.style/worlds/cards/signals-instruments-vu-meter-bridge-hero.webp
+A challenger wins only when its fused result beats the grounded list on
+  audience identification and product clarity. It may change task topology or
+  interaction, but never the committed visual identity.
+When you can view images, open the QUALITY BAR board and hero for any
+challenger you weigh seriously and for the world you build. They exist as a
+craft bar, the finish level and commitment the build is expected to reach,
+never as a mockup to copy; your surface serves this product, not that render.
+PRODUCT.md and DESIGN.md constrain every surface candidate's identity
+vocabulary; they do not cancel task-level composition. The seed never
+authorizes a new palette, type system, material world, or unfamiliar control
+behavior.
+The CREATIVE SPARK is a complete visual system, not a theme or decorative
+reference. Translate every supplied system rule into the product: palette and
+material, type and composition, topology, controls and states, and adaptation.
+Keep the source's visible character, scale, rhythm, and interaction instead of
+reducing vivid grammar to generic nouns. When the source is already a credible
+interface language, commit to it across navigation, content, controls, and
+states. Otherwise keep a literal carrier only when it becomes functional.
+Ambitious motion, spatial media, or interaction is welcome when it strengthens
+the product without weakening semantics, performance, or fallback behavior.
+TELEMETRY: after the user's choice resolves, rerun this script once with
+  --kind <assigned|pick|challenger|canon> --from acd9c1f3 --scope surface --mode persuade,
+  adding --chosen <challenger-id> when a dealt challenger won and keeping
+  --register <safer|bolder> when the resolved round came from a steered hand.
+  One ping per resolved attended round. The ping is anonymous, the card kind
+  plus the catalog id when one won; your grounded candidates' names never
+  leave the machine, and the ping is skipped automatically when DO_NOT_TRACK
+  or IMPECCABLE_NO_TELEMETRY is set.
+A user- or brief-pinned decision beats the roll, always.
+DEALT INDICES (restated for truncated readers): 7, 5, 3; index
+7 leads. Present all three dealt structures; seed key acd9c1f3.

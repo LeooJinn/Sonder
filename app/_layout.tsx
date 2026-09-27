@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { ActivityIndicator, View } from 'react-native';
+import { ActivityIndicator, Platform, View } from 'react-native';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useFonts } from 'expo-font';
@@ -13,7 +13,8 @@ import { BarlowCondensed_700Bold } from '@expo-google-fonts/barlow-condensed/700
 import { B612Mono_400Regular } from '@expo-google-fonts/b612-mono/400Regular';
 import { B612Mono_700Bold } from '@expo-google-fonts/b612-mono/700Bold';
 import { AuthProvider, useAuth } from '../lib/auth';
-import { colors, fonts } from '../lib/theme';
+import { AppHeader } from '../components/AppHeader';
+import { colors } from '../lib/theme';
 
 /**
  * The root layout wraps every screen in the app.
@@ -21,6 +22,29 @@ import { colors, fonts } from '../lib/theme';
  * AuthProvider has to sit outside the guard, because the guard reads the
  * session from it.
  */
+/**
+ * The browser draws some things itself — selected text, the caret, the
+ * scrollbars, the page behind an overscroll — and left alone they arrive in
+ * its default blue and white, belonging to no design at all. Web only;
+ * native draws these from the platform.
+ */
+const BROWSER_SURFACES = `
+  html, body { background: ${colors.background}; color-scheme: dark; }
+  ::selection { background: ${colors.accent}; color: ${colors.onAccent}; }
+  input, textarea { caret-color: ${colors.accent}; }
+  * { scrollbar-color: ${colors.border} transparent; scrollbar-width: thin; }
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-thumb { background: ${colors.border}; border-radius: 5px; border: 2px solid ${colors.background}; }
+  ::-webkit-scrollbar-track { background: transparent; }
+`;
+
+if (Platform.OS === 'web' && typeof document !== 'undefined' && !document.getElementById('sonder-surfaces')) {
+  const style = document.createElement('style');
+  style.id = 'sonder-surfaces';
+  style.textContent = BROWSER_SURFACES;
+  document.head.appendChild(style);
+}
+
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({
     Barlow_400Regular,
@@ -66,12 +90,14 @@ function RouteGuard() {
     if (loading) return;
 
     const onSignIn = segments[0] === 'sign-in';
+    // The front page is for people who aren't members yet.
+    const onWelcome = segments[0] === 'welcome';
     // Published passports are the one thing a stranger can open. Redirecting
     // them to sign-in would defeat the point of a shareable link.
     const onPublicRoute = segments[0] === 'p';
 
-    if (!session && !onSignIn && !onPublicRoute) {
-      router.replace('/sign-in');
+    if (!session && !onSignIn && !onPublicRoute && !onWelcome) {
+      router.replace('/welcome');
     } else if (session && onSignIn) {
       router.replace('/');
     }
@@ -88,11 +114,13 @@ function RouteGuard() {
   return (
     <Stack
       screenOptions={{
-        headerStyle: { backgroundColor: colors.background },
-        headerTintColor: colors.text,
-        headerTitleStyle: { fontFamily: fonts.display, fontSize: 22 },
-        headerBackTitleStyle: { fontFamily: fonts.body },
-        headerShadowVisible: false,
+        header: ({ options, back, navigation }) => (
+          <AppHeader
+            title={typeof options.title === 'string' ? options.title : undefined}
+            canGoBack={Boolean(back)}
+            onBack={navigation.goBack}
+          />
+        ),
         // Full width, so the app's own background paints edge to edge. The
         // reading column is capped inside each screen instead — constraining
         // it here would shrink the screen itself and expose the navigator's
