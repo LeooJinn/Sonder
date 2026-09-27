@@ -95,6 +95,13 @@ Apply the migrations in `supabase/migrations/` in filename order, via the SQL Ed
 They are meant to run once each, in sequence — re-running one fails on objects that
 already exist.
 
+The production project is connected to this repository through Supabase's GitHub
+integration: a new migration file pushed to `main` is applied to production
+automatically, and the "Supabase Preview" check on the commit reports how it went.
+Migrations 0001–0011 were applied by hand before the integration was connected and
+are recorded as applied in `supabase_migrations.schema_migrations`, so the
+integration skips them. Name new files with the next number, `0012_…sql` and on.
+
 The row-level security policies have tests. They apply every migration to a
 throwaway local Postgres and check, as an anonymous visitor and as signed-in
 members, what each can read and write:
