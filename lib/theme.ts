@@ -17,7 +17,9 @@ export const colors = {
   border: '#31514A',
   text: '#E8EDE5',
   textMuted: '#A7B9B1',
-  textFaint: '#7A928A',
+  // Tinted from the cover's hue, never gray. 5.4:1 on the cover and 4.7:1 on
+  // surfaces, so captions and placeholders pass AA wherever they sit.
+  textFaint: '#8DA69D',
   disabled: '#3C5A53',
 
   // Foil. Wordmark, primary buttons, focus.
@@ -29,10 +31,21 @@ export const colors = {
   paperShade: '#D5DDD0',
   paperLine: '#BFCBBB',
   ink: '#14201C',
-  inkMuted: '#56665F',
+  inkMuted: '#526159',
+  // Inputs printed on paper: a shade lighter than the page.
+  paperField: '#F3F6F1',
+  // Red that reads as red on paper; `danger` is tuned for the dark cover.
+  stamp: '#A8322C',
+  stampWash: '#F4D9D5',
+  stampInk: '#8E2A24',
 
   danger: '#F0706A',
   success: '#9CD3A4',
+
+  // What sits behind a dialog or sheet: the cover, darkened, not black.
+  scrim: '#0A1512D9',
+  scrimLight: '#0A1512B3',
+  scrimPhoto: '#0A1512F2',
 } as const;
 
 /**

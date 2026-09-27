@@ -13,6 +13,8 @@ import { ENTRY_KINDS, KIND_LABELS, parseCents, type EntryKind, type Part } from 
 import { today } from '../lib/dates';
 import { pickImages, type Photo } from '../lib/photos';
 import type { Reminder } from '../lib/reminders';
+import { PhotoImage } from './PhotoImage';
+import { CheckMark, CloseMark } from './Marks';
 import { Button, Field, Notice, focusRing, type PressState } from './ui';
 import { colors, column, fonts, KIND_COLORS, radius, type } from '../lib/theme';
 
@@ -225,8 +227,8 @@ export function EntryForm({
                       (state as PressState).focused && focusRing,
                     ]}
                   >
+                    {selected ? <CheckMark size={12} color={colors.accent} /> : null}
                     <Text style={[styles.kindText, selected && styles.kindTextSelected]}>
-                      {selected ? '✓ ' : ''}
                       {reminder.title}
                     </Text>
                   </Pressable>
@@ -267,7 +269,8 @@ export function EntryForm({
                 {existingPhotos.map((photo) => (
                   <Thumb
                     key={photo.id}
-                    uri={photo.url}
+                    uri={photo.thumbUrl}
+                    fallbackUri={photo.url}
                     onRemove={() => removeExistingPhoto(photo.id)}
                   />
                 ))}
@@ -361,10 +364,20 @@ export function EntryForm({
 }
 
 /** A photo on the entry, with a way to take it off again. */
-function Thumb({ uri, isNew, onRemove }: { uri: string; isNew?: boolean; onRemove: () => void }) {
+function Thumb({
+  uri,
+  fallbackUri,
+  isNew,
+  onRemove,
+}: {
+  uri: string;
+  fallbackUri?: string;
+  isNew?: boolean;
+  onRemove: () => void;
+}) {
   return (
     <View style={styles.thumbWrap}>
-      <Image source={{ uri }} style={styles.thumb} />
+      <PhotoImage thumbUrl={uri} url={fallbackUri ?? uri} style={styles.thumb} />
       {isNew ? (
         <View style={styles.thumbBadge}>
           <Text style={styles.thumbBadgeText}>Not saved yet</Text>
@@ -377,7 +390,7 @@ function Thumb({ uri, isNew, onRemove }: { uri: string; isNew?: boolean; onRemov
         accessibilityLabel="Remove photo"
         hitSlop={6}
       >
-        <Text style={styles.thumbRemoveText}>×</Text>
+        <CloseMark size={11} color={colors.ink} />
       </Pressable>
     </View>
   );
@@ -420,9 +433,11 @@ const styles = StyleSheet.create({
 
   completes: { marginTop: -4 },
   done: {
-    minHeight: 40,
+    minHeight: 44,
     paddingHorizontal: 14,
-    justifyContent: 'center',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
     borderRadius: radius.control,
     borderWidth: 1,
     borderColor: colors.border,
@@ -462,7 +477,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  thumbRemoveText: { color: colors.ink, fontSize: 18, lineHeight: 20, fontFamily: fonts.bodySemi },
   thumbBadge: {
     position: 'absolute',
     bottom: 6,

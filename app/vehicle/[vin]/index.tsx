@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Platform, ScrollView, Share, StyleSheet, Switch, Text, View } from 'react-native';
+import { ActivityIndicator, Platform, ScrollView, Share, StyleSheet, Switch, Text, View } from 'react-native';
 import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import {
   findOwnershipId,
@@ -217,7 +217,13 @@ export default function VehicleScreen() {
     );
   }
 
-  if (!loaded) return <View style={styles.screen} />;
+  if (!loaded) {
+    return (
+      <View style={[styles.screen, styles.loading]}>
+        <ActivityIndicator color={colors.accent} />
+      </View>
+    );
+  }
 
   if (!vehicle) {
     return (
@@ -485,6 +491,7 @@ const styles = StyleSheet.create({
   removeButton: { marginTop: 12 },
   removeHint: { ...type.caption, color: colors.textFaint, marginTop: 8 },
 
+  loading: { justifyContent: 'center', alignItems: 'center' },
   missing: { padding: 24, justifyContent: 'center', gap: 12 },
   missingTitle: { ...type.title, color: colors.text },
   missingBody: { ...type.body, color: colors.textMuted, marginBottom: 12 },

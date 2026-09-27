@@ -11,7 +11,7 @@
  */
 
 import { supabase } from './supabase';
-import { publicUrl } from './photos';
+import { publicUrl, thumbUrl } from './photos';
 import { today } from './dates';
 import type { DecodedVehicle } from './vin';
 
@@ -24,6 +24,8 @@ export type SavedVehicle = DecodedVehicle & {
 
 export type Cover = {
   url: string;
+  /** See Photo.thumbUrl. Cards show this; it falls back to url. */
+  thumbUrl: string;
   /**
    * Width over height. Carried so the card can size itself to the real photo
    * instead of forcing every image into one fixed box and distorting it.
@@ -111,6 +113,7 @@ function coverFrom(storagePath: string, width: number | null, height: number | n
   const natural = width && height ? width / height : 4 / 3;
   return {
     url: publicUrl(storagePath),
+    thumbUrl: thumbUrl(storagePath),
     aspectRatio: Math.min(Math.max(natural, 3 / 4), 16 / 9),
   };
 }

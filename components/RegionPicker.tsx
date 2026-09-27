@@ -3,6 +3,7 @@ import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-nati
 import { groupedRegions, regionLabel } from '../lib/regions';
 import { colors, fonts, radius, type } from '../lib/theme';
 import { focusRing, type PressState } from './ui';
+import { CheckMark } from './Marks';
 
 /**
  * A select, built from a Modal rather than a picker library.
@@ -81,7 +82,7 @@ export function RegionPicker({
                 <Text style={[styles.optionText, !value && styles.optionTextActive]}>
                   {emptyLabel}
                 </Text>
-                {!value && <Text style={styles.tick}>✓</Text>}
+                {!value && <CheckMark size={14} color={colors.accent} />}
               </Pressable>
 
               {groupedRegions().map(({ group, regions }) => (
@@ -98,7 +99,7 @@ export function RegionPicker({
                         <Text style={[styles.optionText, selected && styles.optionTextActive]}>
                           {region.label}
                         </Text>
-                        {selected && <Text style={styles.tick}>✓</Text>}
+                        {selected && <CheckMark size={14} color={colors.accent} />}
                       </Pressable>
                     );
                   })}
@@ -129,7 +130,7 @@ const styles = StyleSheet.create({
   triggerPlaceholder: { ...type.body, color: colors.textFaint },
   chevron: { fontFamily: fonts.bodyMedium, fontSize: 14, color: colors.accent },
 
-  backdrop: { flex: 1, backgroundColor: '#0A1512B3', justifyContent: 'flex-end' },
+  backdrop: { flex: 1, backgroundColor: colors.scrimLight, justifyContent: 'flex-end' },
   sheet: {
     backgroundColor: colors.background,
     borderTopLeftRadius: radius.page,
@@ -169,5 +170,4 @@ const styles = StyleSheet.create({
   optionPressed: { backgroundColor: colors.surface },
   optionText: { ...type.body, color: colors.textMuted },
   optionTextActive: { fontFamily: fonts.bodySemi, color: colors.text },
-  tick: { fontFamily: fonts.bodySemi, fontSize: 16, color: colors.accent },
 });

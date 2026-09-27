@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, FlatList, Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { PhotoImage } from '../../components/PhotoImage';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { loadMarket, type MarketListing } from '../../lib/market';
@@ -105,7 +106,13 @@ function ListingCard({ listing, onPress }: { listing: MarketListing; onPress: ()
       }}
     >
       {listing.photoUrl ? (
-        <Image source={{ uri: listing.photoUrl }} style={styles.photo} resizeMode="cover" />
+        <PhotoImage
+          thumbUrl={listing.photoThumbUrl}
+          url={listing.photoUrl}
+          style={styles.photo}
+          resizeMode="cover"
+          accessibilityLabel={`Photo of the ${vehicle.year} ${vehicle.make} ${vehicle.model}`}
+        />
       ) : null}
       <View style={styles.cardBody}>
         <View style={styles.cardMain}>

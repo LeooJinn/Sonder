@@ -1,4 +1,5 @@
-import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { PhotoImage } from './PhotoImage';
 import { formatCents, KIND_LABELS, type LogEntry } from '../lib/log';
 import { formatDay, formatMonthYear } from '../lib/dates';
 import { colors, fonts, KIND_COLORS, radius, type } from '../lib/theme';
@@ -162,9 +163,10 @@ function TimelineEntry({
           >
             <View style={styles.photoRow}>
               {entry.photos.map((photo) => (
-                <Image
+                <PhotoImage
                   key={photo.id}
-                  source={{ uri: photo.url }}
+                  thumbUrl={photo.thumbUrl}
+                  url={photo.url}
                   style={styles.photo}
                   accessibilityLabel={`Photo from ${entry.title}`}
                 />

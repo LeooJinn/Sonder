@@ -12,7 +12,7 @@
 
 import { supabase } from './supabase';
 import { findOwnershipId } from './garage';
-import { publicUrl, removePhotosForEntry, type Photo } from './photos';
+import { publicUrl, removePhotosForEntry, thumbUrl, type Photo } from './photos';
 
 export type EntryKind = 'mod' | 'service' | 'repair' | 'milestone';
 
@@ -113,6 +113,7 @@ export function toLogEntry(row: EntryRow, vin: string): LogEntry {
       .map((photo) => ({
         id: photo.id,
         url: publicUrl(photo.storage_path),
+        thumbUrl: thumbUrl(photo.storage_path),
         storagePath: photo.storage_path,
         width: photo.width ?? undefined,
         height: photo.height ?? undefined,

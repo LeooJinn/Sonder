@@ -7,7 +7,7 @@
  */
 
 import { supabase } from './supabase';
-import { publicUrl, type Photo } from './photos';
+import { publicUrl, thumbUrl, type Photo } from './photos';
 import type { EntryKind, LogEntry } from './log';
 
 export type PriorPeriod = {
@@ -130,6 +130,7 @@ export async function loadPriorHistory(vin: string): Promise<PriorPeriod[]> {
             (photo): Photo => ({
               id: photo.id,
               url: publicUrl(photo.storage_path),
+              thumbUrl: thumbUrl(photo.storage_path),
               storagePath: photo.storage_path,
               width: photo.width ?? undefined,
               height: photo.height ?? undefined,

@@ -31,6 +31,12 @@ export type Photo = {
   id: string;
   /** Public URL, ready to hand to an <Image>. */
   url: string;
+  /**
+   * A small copy for grids, strips and cards. Photos uploaded before
+   * thumbnails existed have none, so show it through PhotoImage, which falls
+   * back to `url` when it's missing.
+   */
+  thumbUrl: string;
   storagePath: string;
   width?: number;
   height?: number;
@@ -52,10 +58,28 @@ export function publicUrl(storagePath: string): string {
   return supabase.storage.from(BUCKET).getPublicUrl(storagePath).data.publicUrl;
 }
 
+/**
+ * Where a photo's thumbnail lives: next to the original, same name, marked.
+ * Derived rather than stored, so no column records whether one exists.
+ */
+export function thumbPath(storagePath: string): string {
+  return storagePath.replace(/\.jpg$/, '.thumb.jpg');
+}
+
+export function thumbUrl(storagePath: string): string {
+  return publicUrl(thumbPath(storagePath));
+}
+
+/** Every stored object a photo owns: the original and its thumbnail. */
+export function photoObjects(storagePath: string): string[] {
+  return [storagePath, thumbPath(storagePath)];
+}
+
 function toPhoto(row: PhotoRow): Photo {
   return {
     id: row.id,
     url: publicUrl(row.storage_path),
+    thumbUrl: thumbUrl(row.storage_path),
     storagePath: row.storage_path,
     width: row.width ?? undefined,
     height: row.height ?? undefined,
@@ -97,15 +121,48 @@ export async function pickImages(limit = 6): Promise<string[]> {
  * this brings it to a couple of hundred kilobytes with no visible loss, which
  * matters for storage cost and for anyone loading a build log on cellular.
  */
-async function compress(uri: string): Promise<{ uri: string; width: number; height: number }> {
+async function compress(
+  uri: string,
+  maxWidth = MAX_DIMENSION
+): Promise<{ uri: string; width: number; height: number }> {
   const context = ImageManipulator.manipulate(uri);
   // Width only, so the aspect ratio is preserved.
-  context.resize({ width: MAX_DIMENSION });
+  context.resize({ width: maxWidth });
 
   const rendered = await context.renderAsync();
   const saved = await rendered.saveAsync({ format: SaveFormat.JPEG, compress: QUALITY });
 
   return { uri: saved.uri, width: rendered.width, height: rendered.height };
+}
+
+/**
+ * Width of the thumbnail. A timeline strip or gallery tile never shows a
+ * photo wider than a few hundred points, even on a 3x screen, and the
+ * original is 1600: a thumbnail is roughly a sixth of the bytes.
+ */
+const THUMB_WIDTH = 640;
+
+/**
+ * Compress and upload a photo and its thumbnail. The thumbnail is a nicety:
+ * if it fails, the photo still saves and displays from the original.
+ */
+async function uploadImage(storagePath: string, localUri: string): Promise<{ width: number; height: number }> {
+  const { uri, width, height } = await compress(localUri);
+  const { error } = await supabase.storage
+    .from(BUCKET)
+    .upload(storagePath, await readBytes(uri), { contentType: 'image/jpeg' });
+  if (error) throw new Error(error.message);
+
+  try {
+    const thumb = await compress(localUri, THUMB_WIDTH);
+    await supabase.storage
+      .from(BUCKET)
+      .upload(thumbPath(storagePath), await readBytes(thumb.uri), { contentType: 'image/jpeg' });
+  } catch {
+    // Displays fall back to the original.
+  }
+
+  return { width, height };
 }
 
 /**
@@ -126,16 +183,8 @@ async function readBytes(uri: string): Promise<ArrayBuffer> {
 /** Upload one local image and attach it to an entry. */
 export async function addPhoto(entryId: string, localUri: string, position = 0): Promise<Photo> {
   const userId = await requireUserId();
-  const { uri, width, height } = await compress(localUri);
-
   const storagePath = `${userId}/${entryId}/${Crypto.randomUUID()}.jpg`;
-  const bytes = await readBytes(uri);
-
-  const { error: uploadError } = await supabase.storage
-    .from(BUCKET)
-    .upload(storagePath, bytes, { contentType: 'image/jpeg' });
-
-  if (uploadError) throw new Error(uploadError.message);
+  const { width, height } = await uploadImage(storagePath, localUri);
 
   const { data, error } = await supabase
     .from('photos')
@@ -144,9 +193,9 @@ export async function addPhoto(entryId: string, localUri: string, position = 0):
     .single();
 
   if (error) {
-    // The row failed but the file uploaded. Remove it rather than leaving an
-    // object nothing references.
-    await supabase.storage.from(BUCKET).remove([storagePath]);
+    // The row failed but the files uploaded. Remove them rather than leaving
+    // objects nothing references.
+    await supabase.storage.from(BUCKET).remove(photoObjects(storagePath));
     throw new Error(error.message);
   }
 
@@ -166,16 +215,8 @@ export async function addGalleryPhoto(
   position = 0
 ): Promise<Photo> {
   const userId = await requireUserId();
-  const { uri, width, height } = await compress(localUri);
-
   const storagePath = `${userId}/gallery/${Crypto.randomUUID()}.jpg`;
-  const bytes = await readBytes(uri);
-
-  const { error: uploadError } = await supabase.storage
-    .from(BUCKET)
-    .upload(storagePath, bytes, { contentType: 'image/jpeg' });
-
-  if (uploadError) throw new Error(uploadError.message);
+  const { width, height } = await uploadImage(storagePath, localUri);
 
   const { data, error } = await supabase
     .from('photos')
@@ -191,7 +232,7 @@ export async function addGalleryPhoto(
     .single();
 
   if (error) {
-    await supabase.storage.from(BUCKET).remove([storagePath]);
+    await supabase.storage.from(BUCKET).remove(photoObjects(storagePath));
     throw new Error(error.message);
   }
 
@@ -256,7 +297,9 @@ export async function setPhotoCaption(photoId: string, caption: string): Promise
 
 /** Remove one photo: the file first, then the row. */
 export async function removePhoto(photo: Photo): Promise<void> {
-  const { error: storageError } = await supabase.storage.from(BUCKET).remove([photo.storagePath]);
+  const { error: storageError } = await supabase.storage
+    .from(BUCKET)
+    .remove(photoObjects(photo.storagePath));
   if (storageError) throw new Error(storageError.message);
 
   const { error } = await supabase.from('photos').delete().eq('id', photo.id);
@@ -276,7 +319,7 @@ export async function removePhotosForEntry(entryId: string): Promise<void> {
 
   const { error: storageError } = await supabase.storage
     .from(BUCKET)
-    .remove(photos.map((photo) => photo.storagePath));
+    .remove(photos.flatMap((photo) => photoObjects(photo.storagePath)));
   if (storageError) throw new Error(storageError.message);
 
   const { error } = await supabase.from('photos').delete().eq('entry_id', entryId);

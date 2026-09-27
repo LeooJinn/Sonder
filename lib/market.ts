@@ -30,6 +30,7 @@ export type MarketListing = {
   seller: { handle?: string; displayName?: string };
   listedAt: string;
   photoUrl?: string;
+  photoThumbUrl?: string;
 };
 
 /** The signed-in owner's listing for one of their cars. */
@@ -121,5 +122,6 @@ export async function loadMarket(region?: string): Promise<MarketListing[]> {
     },
     listedAt: row.listed_at,
     photoUrl: galleries.get(row.id)?.[0]?.url,
+    photoThumbUrl: galleries.get(row.id)?.[0]?.thumbUrl,
   }));
 }

@@ -1,5 +1,6 @@
 import { useCallback, useState } from 'react';
-import { FlatList, Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { PhotoImage } from '../../components/PhotoImage';
 import { Stack, useFocusEffect, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { loadGarage, type SavedVehicle } from '../../lib/garage';
@@ -91,7 +92,9 @@ export default function GarageScreen() {
         // Only show the empty state once we've actually checked, otherwise it
         // flashes for a moment on every launch.
         ListEmptyComponent={
-          isEmpty ? (
+          !loaded ? (
+            <ActivityIndicator color={colors.accent} style={styles.loading} />
+          ) : isEmpty ? (
             <View style={styles.empty}>
               <Text style={styles.emptyTitle} accessibilityRole="header">
                 Your garage is empty
@@ -138,7 +141,13 @@ function GarageCard({
       }}
     >
       {vehicle.cover ? (
-        <Image source={{ uri: vehicle.cover.url }} style={styles.cover} resizeMode="cover" />
+        <PhotoImage
+          thumbUrl={vehicle.cover.thumbUrl}
+          url={vehicle.cover.url}
+          style={styles.cover}
+          resizeMode="cover"
+          accessibilityLabel={`Photo of the ${vehicle.year} ${vehicle.make} ${vehicle.model}`}
+        />
       ) : null}
       <View style={styles.cardBody}>
         <View style={styles.cardTop}>
@@ -210,10 +219,11 @@ const styles = StyleSheet.create({
 
   // A tag along the card's foot, like a service sticker on a windshield.
   due: { backgroundColor: colors.paperShade, paddingHorizontal: 18, paddingVertical: 10 },
-  dueOverdue: { backgroundColor: '#F4D9D5' },
+  dueOverdue: { backgroundColor: colors.stampWash },
   dueText: { fontFamily: fonts.bodySemi, fontSize: 14, color: colors.ink },
-  dueTextOverdue: { color: '#8E2A24' },
+  dueTextOverdue: { color: colors.stampInk },
 
+  loading: { marginTop: 64 },
   empty: { paddingTop: 40, maxWidth: 460 },
   emptyTitle: { ...type.hero, fontSize: 44, lineHeight: 44, color: colors.text },
   emptyBody: { ...type.lead, color: colors.textMuted, marginTop: 16 },

@@ -8,6 +8,7 @@
  */
 
 import { supabase } from './supabase';
+import { photoObjects } from './photos';
 
 const BUCKET = 'photos';
 
@@ -17,14 +18,26 @@ const BUCKET = 'photos';
  * that is being kept.
  */
 async function currentPhotoPaths(userId: string): Promise<string[]> {
-  const { data, error } = await supabase
-    .from('photos')
-    .select('storage_path, entries!inner(ownerships!inner(owner_id, ended_on))')
-    .eq('entries.ownerships.owner_id', userId)
-    .is('entries.ownerships.ended_on', null);
+  // Entry photos and gallery photos hang off different columns (0006), so
+  // they're found separately. Both must go, with their thumbnails.
+  const [entryPhotos, galleryPhotos] = await Promise.all([
+    supabase
+      .from('photos')
+      .select('storage_path, entries!inner(ownerships!inner(owner_id, ended_on))')
+      .eq('entries.ownerships.owner_id', userId)
+      .is('entries.ownerships.ended_on', null),
+    supabase
+      .from('photos')
+      .select('storage_path, ownerships!inner(owner_id, ended_on)')
+      .eq('ownerships.owner_id', userId)
+      .is('ownerships.ended_on', null),
+  ]);
 
-  if (error) throw new Error(error.message);
-  return ((data ?? []) as unknown as { storage_path: string }[]).map((row) => row.storage_path);
+  if (entryPhotos.error) throw new Error(entryPhotos.error.message);
+  if (galleryPhotos.error) throw new Error(galleryPhotos.error.message);
+  return [...(entryPhotos.data ?? []), ...(galleryPhotos.data ?? [])].flatMap((row) =>
+    photoObjects((row as unknown as { storage_path: string }).storage_path)
+  );
 }
 
 /**

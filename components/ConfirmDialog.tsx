@@ -11,8 +11,7 @@ import {
 import { colors, fonts, radius, type } from '../lib/theme';
 import { focusRing, noOutline, type PressState } from './ui';
 
-/** Red that reads as red on paper; the cover's red is tuned for dark ground. */
-const STAMP_RED = '#A8322C';
+const STAMP_RED = colors.stamp;
 
 /**
  * A confirmation someone has to mean.
@@ -158,7 +157,7 @@ export function ConfirmDialog({
 const styles = StyleSheet.create({
   backdrop: {
     flex: 1,
-    backgroundColor: '#0A1512D9',
+    backgroundColor: colors.scrim,
     justifyContent: 'center',
     padding: 20,
   },
@@ -187,7 +186,7 @@ const styles = StyleSheet.create({
   phraseLabel: { ...type.small, color: colors.inkMuted, marginBottom: 8 },
   phrase: { fontFamily: fonts.monoBold, color: colors.ink },
   phraseInput: {
-    backgroundColor: '#F3F6F1',
+    backgroundColor: colors.paperField,
     borderWidth: 1,
     borderColor: colors.paperLine,
     borderRadius: radius.input,

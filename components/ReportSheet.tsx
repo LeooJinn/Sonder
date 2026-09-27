@@ -159,7 +159,7 @@ export function ReportSheet({
 }
 
 const styles = StyleSheet.create({
-  backdrop: { flex: 1, backgroundColor: '#0A1512D9' },
+  backdrop: { flex: 1, backgroundColor: colors.scrim },
   scroll: { flexGrow: 1, justifyContent: 'center', padding: 20 },
   sheet: {
     backgroundColor: colors.paper,
@@ -182,7 +182,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.paperLine,
   },
-  reasonSelected: { borderColor: colors.ink, backgroundColor: '#F3F6F1' },
+  reasonSelected: { borderColor: colors.ink, backgroundColor: colors.paperField },
   radio: {
     width: 16,
     height: 16,
@@ -204,11 +204,11 @@ const styles = StyleSheet.create({
     borderRadius: radius.input,
     borderWidth: 1,
     borderColor: colors.paperLine,
-    backgroundColor: '#F3F6F1',
+    backgroundColor: colors.paperField,
     color: colors.ink,
     textAlignVertical: 'top',
   },
-  error: { ...type.small, color: '#A8322C', marginTop: 12 },
+  error: { ...type.small, color: colors.stamp, marginTop: 12 },
 
   actions: { flexDirection: 'row', gap: 10, marginTop: 20 },
   flex: { flex: 1 },

@@ -11,6 +11,7 @@ import {
   View,
 } from 'react-native';
 import type { Photo } from '../lib/photos';
+import { PhotoImage } from './PhotoImage';
 import { colors, radius, type } from '../lib/theme';
 import { Button, SectionHeader, focusRing, type PressState } from './ui';
 
@@ -70,7 +71,7 @@ export function Gallery({
               accessibilityRole="imagebutton"
               accessibilityLabel={photo.caption || 'Open photo'}
             >
-              <Image source={{ uri: photo.url }} style={styles.tileImage} />
+              <PhotoImage thumbUrl={photo.thumbUrl} url={photo.url} style={styles.tileImage} />
               {photo.caption ? <View style={styles.tileCaptionDot} /> : null}
             </Pressable>
           ))}
@@ -225,7 +226,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.paper,
   },
 
-  viewerBackdrop: { flex: 1, backgroundColor: '#0A1512F2' },
+  viewerBackdrop: { flex: 1, backgroundColor: colors.scrimPhoto },
   viewerScroll: { flexGrow: 1, justifyContent: 'center', padding: 16 },
   viewer: { width: '100%', maxWidth: 640, alignSelf: 'center', gap: 16 },
   viewerImage: { width: '100%', borderRadius: radius.photo, backgroundColor: colors.surface },

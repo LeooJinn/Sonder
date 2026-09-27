@@ -68,7 +68,6 @@ export function Button({
       accessibilityRole="button"
       accessibilityState={{ disabled: inactive, busy }}
       accessibilityHint={accessibilityHint}
-      hitSlop={variant === 'quiet' ? 8 : undefined}
       style={(state) => {
         const { pressed, focused } = state as PressState;
         return [
@@ -213,7 +212,16 @@ const styles = StyleSheet.create({
   primaryDisabled: { backgroundColor: colors.disabled },
   primaryDisabledText: { color: colors.textFaint },
   secondary: { borderWidth: 1, borderColor: colors.border },
-  quiet: { minHeight: 0, paddingHorizontal: 0, alignItems: 'flex-start' },
+  // Text-sized to the eye, 44pt to the finger. Negative margins cancel the
+  // padding so it lays out like plain text; hitSlop alone would do this on
+  // native, but React Native Web ignores it.
+  quiet: {
+    minHeight: 44,
+    paddingHorizontal: 8,
+    marginHorizontal: -8,
+    marginVertical: -12,
+    alignItems: 'flex-start',
+  },
   danger: { borderWidth: 1, borderColor: colors.danger + '66' },
   pressed: { opacity: 0.75 },
   text: { fontFamily: fonts.bodySemi, fontSize: 16 },
