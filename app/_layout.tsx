@@ -92,9 +92,10 @@ function RouteGuard() {
     const onSignIn = segments[0] === 'sign-in';
     // The front page is for people who aren't members yet.
     const onWelcome = segments[0] === 'welcome';
-    // Published passports are the one thing a stranger can open. Redirecting
-    // them to sign-in would defeat the point of a shareable link.
-    const onPublicRoute = segments[0] === 'p';
+    // Published passports, and the member pages that collect them, are what
+    // a stranger can open. Redirecting them to sign-in would defeat the point
+    // of a shareable link.
+    const onPublicRoute = segments[0] === 'p' || segments[0] === 'u';
 
     if (!session && !onSignIn && !onPublicRoute && !onWelcome) {
       router.replace('/welcome');

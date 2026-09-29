@@ -217,3 +217,101 @@ do $$ begin
 exception when insufficient_privilege then raise notice 'ok: visitors cannot file reports';
 end $$;
 reset role;
+
+-- ---------------- 0012: following ----------------
+-- Where things stand: Sam ('seller') owns the Civic, now published. The MX-5
+-- has no current owner since Bea deleted her account; Sam's old period of it
+-- is private. Dee buys the MX-5 and publishes it. Eve follows things.
+update profiles set handle = 'eve' where id = '00000000-0000-0000-0000-00000000000e';
+insert into ownerships (id, vehicle_id, owner_id, started_on, is_public) values
+  ('20000000-0000-0000-0000-00000000000d', '10000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-00000000000d', '2026-01-01', true);
+select pg_temp.check((select published_at is not null from ownerships where id = '20000000-0000-0000-0000-00000000000d'), 'publishing stamps published_at');
+update ownerships set is_public = false where id = '20000000-0000-0000-0000-00000000000d';
+select pg_temp.check((select published_at is not null from ownerships where id = '20000000-0000-0000-0000-00000000000d'), 'unpublishing keeps the old stamp');
+update ownerships set is_public = true where id = '20000000-0000-0000-0000-00000000000d';
+
+set role authenticated;
+set request.jwt.claim.sub = '00000000-0000-0000-0000-00000000000e';
+insert into car_follows (follower_id, vehicle_id) values ('00000000-0000-0000-0000-00000000000e', '10000000-0000-0000-0000-000000000002');
+select pg_temp.check(true, 'a member follows a published car');
+insert into member_follows (follower_id, followed_id) values ('00000000-0000-0000-0000-00000000000e', '00000000-0000-0000-0000-00000000000a');
+select pg_temp.check(true, 'a member follows a person with a handle');
+do $$ begin
+  insert into member_follows (follower_id, followed_id) values ('00000000-0000-0000-0000-00000000000e', '00000000-0000-0000-0000-00000000000f');
+  raise exception 'FAIL: followed someone with no handle';
+exception when insufficient_privilege then raise notice 'ok: cannot follow someone with no page';
+end $$;
+do $$ begin
+  insert into member_follows (follower_id, followed_id) values ('00000000-0000-0000-0000-00000000000e', '00000000-0000-0000-0000-00000000000e');
+  raise exception 'FAIL: followed themselves';
+exception when check_violation then raise notice 'ok: cannot follow yourself';
+end $$;
+do $$ begin
+  insert into car_follows (follower_id, vehicle_id) values ('00000000-0000-0000-0000-00000000000f', '10000000-0000-0000-0000-000000000002');
+  raise exception 'FAIL: followed as someone else';
+exception when insufficient_privilege then raise notice 'ok: cannot follow as someone else';
+end $$;
+
+-- Following Sam must not attribute his private MX-5 period to him, even
+-- though Dee's publishing makes that period readable, unnamed.
+select pg_temp.check((select count(*) from entries where id = '30000000-0000-0000-0000-00000000000a') = 1, 'Sam''s old MX-5 entry is readable through Dee''s passport');
+select pg_temp.check((select count(*) from public.my_feed() where entry_id = '30000000-0000-0000-0000-00000000000a') = 0, 'following a person skips periods they never published');
+select pg_temp.check((select count(*) from public.my_feed() where kind = 'entry' and entry_id = '30000000-0000-0000-0000-00000000000c' and actor_id = '00000000-0000-0000-0000-00000000000a') = 1, 'the feed shows the Civic''s entry, credited to Sam');
+select pg_temp.check((select count(*) from public.my_feed() where kind = 'published' and ownership_id = '20000000-0000-0000-0000-00000000000c') = 1, 'the feed shows the Civic being published, once despite two follows');
+
+insert into car_follows (follower_id, vehicle_id) values ('00000000-0000-0000-0000-00000000000e', '10000000-0000-0000-0000-000000000001');
+select pg_temp.check((select count(*) from public.my_feed() where entry_id = '30000000-0000-0000-0000-00000000000a' and actor_id is null) = 1, 'following the car shows its earlier history, unattributed');
+select pg_temp.check((select count(*) from public.my_feed() where kind = 'sold') = 0, 'a sale shows only if the seller published');
+select pg_temp.check((select count(*) from public.my_feed(max_items => 1)) = 1, 'the feed pages');
+
+set request.jwt.claim.sub = '00000000-0000-0000-0000-00000000000d';
+do $$ begin
+  insert into car_follows (follower_id, vehicle_id) values ('00000000-0000-0000-0000-00000000000d', '10000000-0000-0000-0000-000000000001');
+  raise exception 'FAIL: followed their own car';
+exception when insufficient_privilege then raise notice 'ok: cannot follow your own car';
+end $$;
+select pg_temp.check((select count(*) from car_follows) = 1, 'the owner sees who follows their car');
+select pg_temp.check((select count(*) from member_follows) = 0, 'nobody else sees who follows a person');
+reset role;
+
+set role anon;
+select pg_temp.check(public.car_follower_count('10000000-0000-0000-0000-000000000002') = 1, 'follower counts are public');
+select pg_temp.check(public.member_follower_count('00000000-0000-0000-0000-00000000000a') = 1, 'person follower counts are public');
+select pg_temp.check((select count(*) from car_follows) = 0, 'visitors cannot list followers');
+do $$ begin
+  perform public.my_feed();
+  raise exception 'FAIL: a visitor read a feed';
+exception when insufficient_privilege then raise notice 'ok: visitors have no feed';
+end $$;
+reset role;
+
+-- A meet hosted by someone followed arrives in the feed.
+set role authenticated;
+set request.jwt.claim.sub = '00000000-0000-0000-0000-00000000000a';
+insert into meets (id, host_id, title, region, place, starts_at) values
+  ('50000000-0000-0000-0000-000000000003', '00000000-0000-0000-0000-00000000000a', 'Civic night', 'us-ca-los-angeles', 'Lot', now() + interval '2 days');
+select pg_temp.check((select count(*) from member_follows) = 1, 'the followed person sees their follower');
+update profiles set feed_seen_at = now() where id = '00000000-0000-0000-0000-00000000000a';
+select pg_temp.check(true, 'a member marks their feed seen');
+set request.jwt.claim.sub = '00000000-0000-0000-0000-00000000000e';
+select pg_temp.check((select count(*) from public.my_feed() where kind = 'meet') = 1, 'a followed person''s meet reaches the feed');
+
+-- Sam blocks Eve: every follow between them goes, and can't come back.
+set request.jwt.claim.sub = '00000000-0000-0000-0000-00000000000a';
+insert into blocks (blocker_id, blocked_id) values ('00000000-0000-0000-0000-00000000000a', '00000000-0000-0000-0000-00000000000e');
+set request.jwt.claim.sub = '00000000-0000-0000-0000-00000000000e';
+select pg_temp.check((select count(*) from member_follows) = 0, 'blocking removes the person follow');
+select pg_temp.check((select count(*) from car_follows where vehicle_id = '10000000-0000-0000-0000-000000000002') = 0, 'blocking removes follows of the blocker''s cars');
+select pg_temp.check((select count(*) from car_follows where vehicle_id = '10000000-0000-0000-0000-000000000001') = 1, 'follows of other people''s cars survive a block');
+select pg_temp.check((select count(*) from public.my_feed() where actor_id = '00000000-0000-0000-0000-00000000000a') = 0, 'the blocker vanishes from the feed');
+do $$ begin
+  insert into car_follows (follower_id, vehicle_id) values ('00000000-0000-0000-0000-00000000000e', '10000000-0000-0000-0000-000000000002');
+  raise exception 'FAIL: followed a blocker''s car';
+exception when insufficient_privilege then raise notice 'ok: cannot follow the car of someone who blocked you';
+end $$;
+do $$ begin
+  insert into member_follows (follower_id, followed_id) values ('00000000-0000-0000-0000-00000000000e', '00000000-0000-0000-0000-00000000000a');
+  raise exception 'FAIL: followed a blocker';
+exception when insufficient_privilege then raise notice 'ok: cannot follow someone who blocked you';
+end $$;
+reset role;

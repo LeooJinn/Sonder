@@ -25,6 +25,7 @@ import {
 } from '../../../lib/log';
 import { isPassportPublic, setPassportPublic } from '../../../lib/passport';
 import { loadMyListing, saveMyListing, type MyListing } from '../../../lib/market';
+import { loadMyProfile } from '../../../lib/profile';
 import { formatCents, parseCents } from '../../../lib/log';
 import { describeError } from '../../../lib/errors';
 import { knownMileage, loadReminders, type Reminder } from '../../../lib/reminders';
@@ -56,6 +57,9 @@ export default function VehicleScreen() {
   const [loaded, setLoaded] = useState(false);
   const [isPublic, setIsPublic] = useState(false);
   const [publishError, setPublishError] = useState<string | null>(null);
+  // Null until known. A published car without a handle can be followed, but
+  // its owner can't: people follow a person through their page at /u/handle.
+  const [hasHandle, setHasHandle] = useState<boolean | null>(null);
   const [copied, setCopied] = useState(false);
   const [listing, setListing] = useState<MyListing>({ forSale: false });
   // The switch opens the form; nothing is listed until it's saved.
@@ -196,6 +200,9 @@ export default function VehicleScreen() {
         setLoaded(true);
       })
       .catch((e) => setLoadError(describeError(e)));
+    loadMyProfile()
+      .then((profile) => setHasHandle(!!profile.handle))
+      .catch(() => {});
   }, [vin]);
 
   useFocusEffect(load);
@@ -350,6 +357,19 @@ export default function VehicleScreen() {
 
           {publishError && <Text style={styles.error}>{publishError}</Text>}
 
+          {isPublic && hasHandle === false && (
+            <View style={styles.linkRow}>
+              <Text style={styles.panelTitle}>Pick a handle</Text>
+              <Text style={styles.panelBody}>
+                People can follow this car now. With a handle they can follow you too, and see all
+                your public cars on one page.
+              </Text>
+              <View style={styles.handleAction}>
+                <Button label="Choose a handle" variant="quiet" onPress={() => router.push('/profile')} />
+              </View>
+            </View>
+          )}
+
           {isPublic && (
             <View style={styles.linkRow}>
               <View style={styles.switchRow}>
@@ -485,6 +505,7 @@ const styles = StyleSheet.create({
   linkActions: { flexDirection: 'row', alignItems: 'center', gap: 20 },
   linkButton: { minHeight: 44, paddingHorizontal: 16 },
   error: { ...type.small, color: colors.danger, marginTop: 12 },
+  handleAction: { marginTop: 14 },
   listingForm: { marginTop: 4 },
 
   ownershipBody: { ...type.small, color: colors.textMuted, marginBottom: 14 },

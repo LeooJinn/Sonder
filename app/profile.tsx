@@ -16,6 +16,7 @@ import { RegionPicker } from '../components/RegionPicker';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { deleteAccount } from '../lib/account';
 import { loadBlocked, unblockMember, type BlockedMember } from '../lib/moderation';
+import { loadMyFollowers, type Follower } from '../lib/follows';
 import { ownerName } from '../components/Timeline';
 import { regionLabel } from '../lib/regions';
 import { Button, Field, Notice } from '../components/ui';
@@ -32,16 +33,21 @@ export default function ProfileScreen() {
   const [saved, setSaved] = useState(false);
   const [askingDelete, setAskingDelete] = useState(false);
   const [blocked, setBlocked] = useState<BlockedMember[]>([]);
+  const [followers, setFollowers] = useState<Follower[]>([]);
+  // The handle as stored, not as typed: the page link must point somewhere real.
+  const [savedHandle, setSavedHandle] = useState('');
   const router = useRouter();
 
   useEffect(() => {
     loadBlocked().then(setBlocked).catch(() => {});
+    loadMyFollowers().then(setFollowers).catch(() => {});
   }, []);
 
   useEffect(() => {
     Promise.all([loadMyProfile(), supabase.auth.getUser()])
       .then(([profile, auth]) => {
         setHandle(profile.handle ?? '');
+        setSavedHandle(profile.handle ?? '');
         setDisplayName(profile.displayName ?? '');
         setRegion(profile.region ?? '');
         setEmail(auth.data.user?.email ?? '');
@@ -57,6 +63,7 @@ export default function ProfileScreen() {
 
     try {
       await updateMyProfile({ handle, displayName, region });
+      setSavedHandle(handle.trim().toLowerCase());
       setSaved(true);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Could not save your profile.');
@@ -93,6 +100,11 @@ export default function ProfileScreen() {
             {regionName ? ` in ${regionName}` : ''}
           </Text>
         </View>
+        {savedHandle ? (
+          <View style={styles.previewAction}>
+            <Button label="See your page" variant="quiet" onPress={() => router.push(`/u/${savedHandle}`)} />
+          </View>
+        ) : null}
 
         <Field
           label="Display name"
@@ -112,7 +124,11 @@ export default function ProfileScreen() {
           autoCorrect={false}
           maxLength={20}
           isMono
-          hint="Lowercase letters, numbers and underscores. Used when you have no display name."
+          hint={
+            handle
+              ? `Your page is imsonder.com/u/${handle}. People follow you there.`
+              : 'Lowercase letters, numbers and underscores. Without one, people can follow your cars but not you.'
+          }
         />
 
         <View style={styles.field}>
@@ -138,6 +154,23 @@ export default function ProfileScreen() {
             }}
           />
         </View>
+
+        {followers.length > 0 && (
+          <View style={styles.blocked}>
+            <Text style={styles.dangerTitle}>
+              {followers.length} {followers.length === 1 ? 'person follows' : 'people follow'} you
+            </Text>
+            <Text style={styles.dangerBody}>Only you can see who they are.</Text>
+            {followers.map((person) => (
+              <View key={person.id} style={styles.blockedRow}>
+                <Text style={styles.blockedName}>{ownerName(person, 'A member')}</Text>
+                {person.handle ? (
+                  <Button label="Their page" variant="subtle" onPress={() => router.push(`/u/${person.handle}`)} />
+                ) : null}
+              </View>
+            ))}
+          </View>
+        )}
 
         {blocked.length > 0 && (
           <View style={styles.blocked}>
@@ -204,6 +237,7 @@ const styles = StyleSheet.create({
     marginBottom: 28,
   },
   previewLabel: { ...type.caption, color: colors.inkMuted },
+  previewAction: { marginTop: -12, marginBottom: 28, paddingHorizontal: 4 },
   previewLine: { fontFamily: fonts.bodyMedium, fontSize: 17, lineHeight: 24, color: colors.ink, marginTop: 4 },
 
   field: { marginBottom: 24 },

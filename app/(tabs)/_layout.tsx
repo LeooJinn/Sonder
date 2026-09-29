@@ -1,15 +1,17 @@
-import type { ComponentProps } from 'react';
+import { useEffect, useState, type ComponentProps } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Tabs } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { focusRing, type PressState } from '../../components/ui';
+import { hasNewInFeed } from '../../lib/feed';
+import { useAuth } from '../../lib/auth';
 import { colors, fonts, type } from '../../lib/theme';
 
 type TabBarProps = Parameters<NonNullable<ComponentProps<typeof Tabs>['tabBar']>>[0];
 
 /**
- * The three places a member spends time: their own cars, cars for sale, and
- * meets. Words rather than icons — "Meets" needs no decoding, and an icon set
+ * The places a member spends time: their own cars, the cars and people they
+ * follow, cars for sale, and meets. Words rather than icons — "Meets" needs no decoding, and an icon set
  * would be the one borrowed thing in an app that otherwise looks like itself.
  */
 export default function TabsLayout() {
@@ -19,6 +21,7 @@ export default function TabsLayout() {
       screenOptions={{ headerShown: false, sceneStyle: { backgroundColor: colors.background } }}
     >
       <Tabs.Screen name="index" options={{ title: 'Garage' }} />
+      <Tabs.Screen name="following" options={{ title: 'Following' }} />
       <Tabs.Screen name="market" options={{ title: 'For sale' }} />
       <Tabs.Screen name="meets" options={{ title: 'Meets' }} />
     </Tabs>
@@ -27,6 +30,23 @@ export default function TabsLayout() {
 
 function TabBar({ state, descriptors, navigation }: TabBarProps) {
   const insets = useSafeAreaInsets();
+  const { session } = useAuth();
+  const current = state.routes[state.index]?.name;
+  const [fresh, setFresh] = useState(false);
+
+  // Checked whenever the member changes tab, which is often enough for a
+  // feed of car work: nothing about it is urgent. The Following screen marks
+  // the feed seen when it opens, so the dot clears on the way out.
+  useEffect(() => {
+    if (!session || current === 'following') return;
+    let live = true;
+    hasNewInFeed()
+      .then((next) => live && setFresh(next))
+      .catch(() => {});
+    return () => {
+      live = false;
+    };
+  }, [session, current]);
 
   return (
     <View
@@ -37,12 +57,14 @@ function TabBar({ state, descriptors, navigation }: TabBarProps) {
         {state.routes.map((route, index) => {
           const selected = state.index === index;
           const label = descriptors[route.key].options.title ?? route.name;
+          const dot = route.name === 'following' && fresh && !selected;
 
           return (
             <Pressable
               key={route.key}
               accessibilityRole="tab"
               accessibilityState={{ selected }}
+              accessibilityLabel={dot ? `${label}, new` : label}
               onPress={() => {
                 const event = navigation.emit({
                   type: 'tabPress',
@@ -57,7 +79,10 @@ function TabBar({ state, descriptors, navigation }: TabBarProps) {
               ]}
             >
               <View style={[styles.marker, selected && styles.markerSelected]} />
-              <Text style={[styles.label, selected && styles.labelSelected]}>{label}</Text>
+              <View style={styles.labelRow}>
+                <Text style={[styles.label, selected && styles.labelSelected]}>{label}</Text>
+                {dot ? <View style={styles.dot} /> : null}
+              </View>
             </Pressable>
           );
         })}
@@ -77,6 +102,18 @@ const styles = StyleSheet.create({
   // A short foil rule along the top edge, like the tab on a file divider.
   marker: { width: 28, height: 2, marginBottom: 10, backgroundColor: 'transparent' },
   markerSelected: { backgroundColor: colors.accent },
+  labelRow: { flexDirection: 'row', alignItems: 'flex-start' },
+  // New since the last look: a small red mark, in the red tuned for the
+  // cover, set like a superscript so the word doesn't move when it clears.
+  dot: {
+    position: 'absolute',
+    right: -9,
+    top: 3,
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: colors.danger,
+  },
   label: { fontFamily: fonts.display, fontSize: type.item.fontSize, color: colors.textFaint },
   labelSelected: { color: colors.text },
 });

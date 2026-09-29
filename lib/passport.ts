@@ -41,6 +41,8 @@ export type Listing = {
 };
 
 export type Passport = {
+  /** The car's own id: what a follow points at. */
+  vehicleId: string;
   vehicle: DecodedVehicle;
   /** Newest first. The first chapter is always the current owner's. */
   chapters: PassportChapter[];
@@ -188,6 +190,7 @@ export async function loadPassport(vin: string): Promise<Passport | null> {
   }));
 
   return {
+    vehicleId: row.vehicles.id,
     vehicle,
     chapters,
     listing:

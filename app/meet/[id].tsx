@@ -9,6 +9,8 @@ import { describeError } from '../../lib/errors';
 import { ownerName } from '../../components/Timeline';
 import { ConfirmDialog } from '../../components/ConfirmDialog';
 import { ReportSheet } from '../../components/ReportSheet';
+import { FollowButton } from '../../components/FollowButton';
+import { useAuth } from '../../lib/auth';
 import { blockMember, reportMeet } from '../../lib/moderation';
 import { Button, ErrorState, Notice, SectionHeader, focusRing, type PressState } from '../../components/ui';
 import { colors, column, fonts, radius, type } from '../../lib/theme';
@@ -19,6 +21,7 @@ const NO_CAR = '';
 export default function MeetScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const userId = useAuth().session?.user.id;
   const [meet, setMeet] = useState<MeetDetail | null | undefined>(undefined);
   const [garage, setGarage] = useState<SavedVehicle[]>([]);
   const [choice, setChoice] = useState(NO_CAR);
@@ -208,15 +211,30 @@ export default function MeetScreen() {
         )}
         {meet.attendees.map((person) => (
           <View key={person.id} style={styles.attendee}>
-            <Text style={styles.attendeeName}>
-              {ownerName(person, 'A member')}
-              {person.id === meet.host.id ? <Text style={styles.hostTag}>  host</Text> : null}
-            </Text>
-            <Text style={styles.attendeeCar}>
-              {person.car
-                ? [person.car.year, person.car.make, person.car.model].filter(Boolean).join(' ')
-                : 'No car'}
-            </Text>
+            {/* The name opens their page when they have one; the car is what
+                most people scan this list for, so it sits right under it. */}
+            <Pressable
+              disabled={!person.handle}
+              onPress={() => router.push(`/u/${person.handle}`)}
+              accessibilityRole={person.handle ? 'link' : undefined}
+              style={(state) => {
+                const { pressed, focused } = state as PressState;
+                return [styles.attendeeWho, pressed && styles.attendeePressed, focused && focusRing];
+              }}
+            >
+              <Text style={styles.attendeeName}>
+                {ownerName(person, 'A member')}
+                {person.id === meet.host.id ? <Text style={styles.hostTag}>  host</Text> : null}
+              </Text>
+              <Text style={styles.attendeeCar}>
+                {person.car
+                  ? [person.car.year, person.car.make, person.car.model].filter(Boolean).join(' ')
+                  : 'No car'}
+              </Text>
+            </Pressable>
+            {person.handle && person.id !== userId ? (
+              <FollowButton kind="member" id={person.id} name={ownerName(person)} compact />
+            ) : null}
           </View>
         ))}
       </View>
@@ -342,15 +360,17 @@ const styles = StyleSheet.create({
   attendee: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'baseline',
+    alignItems: 'center',
     gap: 12,
-    paddingVertical: 12,
+    paddingVertical: 10,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
   },
-  attendeeName: { ...type.bodyStrong, color: colors.text, flexShrink: 1 },
+  attendeeWho: { flex: 1, borderRadius: radius.input },
+  attendeePressed: { opacity: 0.75 },
+  attendeeName: { ...type.bodyStrong, color: colors.text },
   hostTag: { fontFamily: fonts.bodyMedium, fontSize: 14, color: colors.textMuted },
-  attendeeCar: { ...type.small, color: colors.textMuted, textAlign: 'right', flexShrink: 1 },
+  attendeeCar: { ...type.small, color: colors.textMuted, marginTop: 2 },
 
   hiddenNotice: { marginTop: 20 },
   moderation: {

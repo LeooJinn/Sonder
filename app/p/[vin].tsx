@@ -11,6 +11,8 @@ import { Gallery } from '../../components/Gallery';
 import { Timeline, ownerName, period, summarize } from '../../components/Timeline';
 import { Button, ErrorState } from '../../components/ui';
 import { ReportSheet } from '../../components/ReportSheet';
+import { FollowButton, followerCount } from '../../components/FollowButton';
+import { loadCarFollow } from '../../lib/follows';
 import { reportListing } from '../../lib/moderation';
 import { useAuth } from '../../lib/auth';
 import { colors, column, fonts, radius, type } from '../../lib/theme';
@@ -31,6 +33,7 @@ export default function PublicPassportScreen() {
   const router = useRouter();
   const { session } = useAuth();
   const [reporting, setReporting] = useState(false);
+  const [ownFollowers, setOwnFollowers] = useState<number | null>(null);
 
   const load = useCallback(() => {
     setLoading(true);
@@ -42,6 +45,17 @@ export default function PublicPassportScreen() {
   }, [vin]);
 
   useEffect(load, [load]);
+
+  const vehicleId = passport?.vehicleId;
+  const isMine = !!session && passport?.chapters[0]?.owner?.id === session.user.id;
+
+  // An owner can't follow their own car, but they'd like to know who does.
+  useEffect(() => {
+    if (!isMine || !vehicleId) return;
+    loadCarFollow(vehicleId)
+      .then((state) => setOwnFollowers(state.count))
+      .catch(() => {});
+  }, [isMine, vehicleId]);
 
   if (loading) {
     return (
@@ -115,6 +129,27 @@ export default function PublicPassportScreen() {
       </View>
 
       <DataPage vehicle={vehicle} photoUrl={photo} holder={holder} />
+
+      <View style={styles.followRow}>
+        {isMine ? (
+          <Text style={styles.ownFollowers}>
+            {ownFollowers ? `${followerCount(ownFollowers)} on your car.` : 'Nobody follows your car yet.'}
+          </Text>
+        ) : (
+          <FollowButton
+            kind="car"
+            id={passport.vehicleId}
+            name={`the ${vehicle.year} ${vehicle.make} ${vehicle.model}`}
+          />
+        )}
+        {current.owner?.handle && !isMine ? (
+          <Button
+            label={`More from ${keeper}`}
+            variant="quiet"
+            onPress={() => router.push(`/u/${current.owner?.handle}`)}
+          />
+        ) : null}
+      </View>
 
       {listing && (
         <View style={styles.listing}>
@@ -230,6 +265,17 @@ const styles = StyleSheet.create({
   contactLabel: { ...type.caption, color: colors.inkMuted },
   contactValue: { ...type.bodyStrong, color: colors.ink, marginTop: 2 },
   reportRow: { marginTop: 20, marginLeft: 4 },
+
+  followRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 16,
+    marginTop: 16,
+    paddingHorizontal: 4,
+  },
+  ownFollowers: { ...type.small, color: colors.textMuted },
 
   section: { marginTop: 36 },
 

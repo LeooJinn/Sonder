@@ -58,6 +58,13 @@ one working slice at a time.
 - **Reporting and blocking** for meets and listings. Three reports from
   different members take a meet or listing down automatically; reports are
   read in the Supabase dashboard
+- **Following** cars and members. A Following tab shows new log entries, cars
+  going up for sale, newly published passports, sales and meets, newest first,
+  with a dot when something is new. Following grants no new access: the feed
+  only holds what was already public. Counts are public; who follows whom is
+  visible only to the person followed. Blocking removes follows both ways
+- **Member pages** at `imsonder.com/u/<handle>`: a member's name, region and
+  published cars, openable by anyone
 - A **front page** for people who aren't members yet: a car's life told along
   its odometer, a VIN lookup, and a real published passport as the example
 - Shared passport links **preview** with the car's photo, name and history in
@@ -67,7 +74,7 @@ one working slice at a time.
 
 **What's next**
 
-- Following a car or a member, so a meet or a listing nearby finds you
+- Messaging between members who follow each other
 - Reminders that reach you outside the app: a push notification or an email
   when something comes due
 
@@ -146,8 +153,9 @@ app/                          screens — a file's path is its route
   _layout.tsx                 wraps every screen, guards the signed-out ones
   welcome.tsx    /welcome     the front page for visitors: the odometer story and a VIN lookup
   sign-in.tsx    /sign-in     sign in or create an account
-  (tabs)/                     the three tabs; the group adds nothing to URLs
+  (tabs)/                     the four tabs; the group adds nothing to URLs
     index.tsx    /            the garage
+    following.tsx /following  what followed cars and people have been doing
     market.tsx   /market      cars for sale
     meets.tsx    /meets       upcoming meets
   add.tsx        /add         VIN entry
@@ -155,7 +163,8 @@ app/                          screens — a file's path is its route
   vehicle/[vin]/              one car: passport, log, reminders, gallery, listing, sale
   meet/          /meet/new    post a meet; /meet/:id to see one and say you're going
 api/passport-page.ts          /p/:vin's HTML, with the car in it for link previews
-  p/[vin].tsx    /p/:vin      a published passport — the only public screen
+  p/[vin].tsx    /p/:vin      a published passport, public
+  u/[handle].tsx /u/:handle   a member's page, public
 components/                   shared UI
 lib/
   vin.ts                      VIN validation and vPIC decoding
@@ -168,6 +177,8 @@ lib/
   meets.ts                    meets and who's going
   reminders.ts                what's due next, worked out from the log
   moderation.ts               reports and blocks
+  follows.ts / feed.ts        following, and the Following feed
+  members.ts                  member pages
   profile.ts / account.ts     identity, and deleting it
   auth.tsx                    session state
   supabase.ts                 database client
