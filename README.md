@@ -127,6 +127,14 @@ npm install --no-save embedded-postgres pg
 node supabase/tests/run.mjs
 ```
 
+### Sign-in email
+
+Sign-in confirmations go out through Resend (Supabase Auth, Authentication → Emails →
+SMTP Settings: `smtp.resend.com`, port 465, user `resend`, the sending-only API key as the
+password, sender `Sonder <noreply@imsonder.com>`). The email itself is
+`supabase/email-templates/confirm-signup.html`. Supabase doesn't read it from the repo, so a
+change here means pasting the body into Authentication → Emails → Templates → Confirm sign up.
+
 ### Turning on message emails
 
 Migration 0014 holds everything except what only the hosted project can do, so
