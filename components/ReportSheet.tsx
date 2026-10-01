@@ -12,12 +12,15 @@ import { focusRing, type PressState } from './ui';
 export function ReportSheet({
   visible,
   what,
+  outcome,
   onSubmit,
   onClose,
 }: {
   visible: boolean;
   /** "meet" or "listing", as the person would say it. */
   what: string;
+  /** What happens at three reports, when it isn't "it comes down". */
+  outcome?: string;
   onSubmit: (reason: ReportReason, note: string) => Promise<void>;
   onClose: () => void;
 }) {
@@ -62,8 +65,8 @@ export function ReportSheet({
                   Report sent
                 </Text>
                 <Text style={styles.body}>
-                  Thanks. Every report is read, and when three members report the same {what}, it
-                  comes down on its own until someone has looked at it.
+                  {outcome ??
+                    `Thanks. Every report is read, and when three members report the same ${what}, it comes down on its own until someone has looked at it.`}
                 </Text>
                 <Pressable
                   onPress={onClose}
@@ -79,7 +82,7 @@ export function ReportSheet({
                   Report this {what}
                 </Text>
                 <Text style={styles.body}>
-                  Reports are private. Whoever posted it isn&apos;t told who reported it.
+                  Reports are private. {what === 'message' ? 'Whoever sent it' : 'Whoever posted it'} isn&apos;t told who reported it.
                 </Text>
 
                 <View style={styles.reasons} accessibilityRole="radiogroup">

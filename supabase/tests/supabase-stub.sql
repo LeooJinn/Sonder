@@ -26,3 +26,20 @@ alter table storage.objects enable row level security;
 create function storage.foldername(name text) returns text[] language sql immutable as $$
   select string_to_array(name, '/')
 $$;
+
+-- Supabase Vault and pg_net, reduced to what send_message_emails() touches:
+-- a table of secrets, and a http_post that records the request instead of
+-- sending it. Same argument names as the real one, which is called with them.
+create schema vault;
+create table vault.decrypted_secrets (name text primary key, decrypted_secret text);
+create schema net;
+create table net.calls (id bigserial primary key, url text, headers jsonb, body jsonb);
+create function net.http_post(
+  url text,
+  body jsonb default '{}',
+  params jsonb default '{}',
+  headers jsonb default '{"Content-Type": "application/json"}',
+  timeout_milliseconds integer default 5000
+) returns bigint language sql as $$
+  insert into net.calls (url, headers, body) values (url, headers, body) returning id
+$$;

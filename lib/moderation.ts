@@ -2,8 +2,8 @@
  * Reporting and blocking (see 0011).
  *
  * A report goes to the people running Sonder and, at three reports from
- * different members, acts on its own. A block only changes what the blocker
- * sees; nobody is told.
+ * different members, acts on its own (for a message, by pausing its sender).
+ * A block only changes what the blocker sees; nobody is told.
  */
 
 import { supabase } from './supabase';
@@ -20,7 +20,7 @@ export const REPORT_REASONS: { value: ReportReason; label: string; hint: string 
 
 export type BlockedMember = { id: string; handle?: string; displayName?: string };
 
-async function report(kind: 'meet' | 'listing', targetId: string, reason: ReportReason, note?: string) {
+async function report(kind: 'meet' | 'listing' | 'message', targetId: string, reason: ReportReason, note?: string) {
   const reporterId = await requireUserId();
   const { error } = await supabase.from('reports').insert({
     reporter_id: reporterId,
@@ -40,6 +40,10 @@ export const reportMeet = (meetId: string, reason: ReportReason, note?: string) 
 /** Listings are reported by the ownership that's listed. */
 export const reportListing = (ownershipId: string, reason: ReportReason, note?: string) =>
   report('listing', ownershipId, reason, note);
+
+/** Only someone in the conversation can report one of its messages (0013). */
+export const reportMessage = (messageId: string, reason: ReportReason, note?: string) =>
+  report('message', messageId, reason, note);
 
 export async function blockMember(profileId: string): Promise<void> {
   const blockerId = await requireUserId();

@@ -92,6 +92,40 @@ export function formatClock(iso: string): string {
   return minutes === 0 ? `${hours} ${suffix}` : `${hours}:${String(minutes).padStart(2, '0')} ${suffix}`;
 }
 
+/** Midnight at the start of the day an instant falls on, in the viewer's timezone. */
+function startOfDay(d: Date): number {
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+}
+
+/** Whole calendar days from `iso` to `now`, by the viewer's own midnights. */
+function daysBetween(iso: string, now: Date): number {
+  return Math.round((startOfDay(now) - startOfDay(new Date(iso))) / 86_400_000);
+}
+
+/** "Today", "Yesterday", "Tue 29 Sep", or "Tue 29 Sep 2025" from another year. */
+export function formatMessageDay(iso: string, now = new Date()): string {
+  const days = daysBetween(iso, now);
+  if (days <= 0) return 'Today';
+  if (days === 1) return 'Yesterday';
+  const d = new Date(iso);
+  const base = `${WEEKDAYS[d.getDay()].slice(0, 3)} ${d.getDate()} ${MONTHS[d.getMonth()].slice(0, 3)}`;
+  return d.getFullYear() === now.getFullYear() ? base : `${base} ${d.getFullYear()}`;
+}
+
+/**
+ * The short stamp on an inbox row: the time if it was today, then
+ * "Yesterday", the weekday within the last week, and the date after that.
+ */
+export function formatInboxTime(iso: string, now = new Date()): string {
+  const days = daysBetween(iso, now);
+  const d = new Date(iso);
+  if (days <= 0) return formatClock(iso);
+  if (days === 1) return 'Yesterday';
+  if (days < 7) return WEEKDAYS[d.getDay()].slice(0, 3);
+  const base = `${d.getDate()} ${MONTHS[d.getMonth()].slice(0, 3)}`;
+  return d.getFullYear() === now.getFullYear() ? base : `${base} ${d.getFullYear()}`;
+}
+
 /**
  * "2026-10-12" and "09:30", read as the viewer's local time, to an ISO
  * instant. Null when either part isn't a real date or time.

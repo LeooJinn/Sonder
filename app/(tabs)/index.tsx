@@ -9,6 +9,7 @@ import { describeError } from '../../lib/errors';
 import { loadGarageReminders, type ReminderStatus } from '../../lib/reminders';
 import { formatMonthYear } from '../../lib/dates';
 import { groupVin } from '../../components/DataPage';
+import { MessagesLink } from '../../components/MessagesLink';
 import { Button, ErrorState, focusRing, type PressState } from '../../components/ui';
 import { colors, column, fonts, radius, type } from '../../lib/theme';
 
@@ -70,7 +71,10 @@ export default function GarageScreen() {
           <View style={styles.header}>
             <View style={styles.topBar}>
               <Text style={styles.wordmark}>Sonder</Text>
-              <Button label="Profile" variant="quiet" onPress={() => router.push('/profile')} />
+              <View style={styles.topLinks}>
+                <MessagesLink />
+                <Button label="Profile" variant="quiet" onPress={() => router.push('/profile')} />
+              </View>
             </View>
             {loaded && !isEmpty ? (
               <View style={styles.titleRow}>
@@ -182,6 +186,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     minHeight: 44,
   },
+  topLinks: { flexDirection: 'row', alignItems: 'center', gap: 20 },
   wordmark: {
     fontFamily: fonts.displayBold,
     fontSize: 26,

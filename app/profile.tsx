@@ -5,6 +5,7 @@ import {
   Platform,
   ScrollView,
   StyleSheet,
+  Switch,
   Text,
   View,
 } from 'react-native';
@@ -17,6 +18,7 @@ import { ConfirmDialog } from '../components/ConfirmDialog';
 import { deleteAccount } from '../lib/account';
 import { loadBlocked, unblockMember, type BlockedMember } from '../lib/moderation';
 import { loadMyFollowers, type Follower } from '../lib/follows';
+import { loadMessageEmails, setMessageEmails } from '../lib/messages';
 import { ownerName } from '../components/Timeline';
 import { regionLabel } from '../lib/regions';
 import { Button, Field, Notice } from '../components/ui';
@@ -34,6 +36,9 @@ export default function ProfileScreen() {
   const [askingDelete, setAskingDelete] = useState(false);
   const [blocked, setBlocked] = useState<BlockedMember[]>([]);
   const [followers, setFollowers] = useState<Follower[]>([]);
+  // Null until known, so the switch doesn't flash the wrong way.
+  const [messageEmails, setMessageEmailsOn] = useState<boolean | null>(null);
+  const [emailError, setEmailError] = useState<string | null>(null);
   // The handle as stored, not as typed: the page link must point somewhere real.
   const [savedHandle, setSavedHandle] = useState('');
   const router = useRouter();
@@ -41,7 +46,20 @@ export default function ProfileScreen() {
   useEffect(() => {
     loadBlocked().then(setBlocked).catch(() => {});
     loadMyFollowers().then(setFollowers).catch(() => {});
+    loadMessageEmails().then(setMessageEmailsOn).catch(() => {});
   }, []);
+
+  async function toggleMessageEmails(next: boolean) {
+    // Flips at once and goes back if it didn't save, like the public-link switch.
+    setMessageEmailsOn(next);
+    setEmailError(null);
+    try {
+      await setMessageEmails(next);
+    } catch (e) {
+      setMessageEmailsOn(!next);
+      setEmailError(e instanceof Error ? e.message : 'That did not save. Try again.');
+    }
+  }
 
   useEffect(() => {
     Promise.all([loadMyProfile(), supabase.auth.getUser()])
@@ -141,6 +159,29 @@ export default function ProfileScreen() {
         {saved && <Notice tone="success">Profile saved.</Notice>}
 
         <Button label="Save profile" onPress={handleSave} busy={saving} />
+
+        {messageEmails !== null && (
+          <View style={styles.emails}>
+            <View style={styles.switchRow}>
+              <View style={styles.switchText}>
+                <Text style={styles.emailsTitle}>Email me about unread messages</Text>
+                <Text style={styles.hint}>
+                  At most one email per conversation every few hours, and only if you haven&apos;t
+                  read the messages in Sonder. It says who wrote, never what they said.
+                </Text>
+              </View>
+              <Switch
+                value={messageEmails}
+                onValueChange={toggleMessageEmails}
+                accessibilityLabel="Email me about unread messages"
+                trackColor={{ false: colors.border, true: colors.accent }}
+                thumbColor={colors.paper}
+                {...(Platform.OS === 'web' ? { activeThumbColor: colors.paper } : {})}
+              />
+            </View>
+            {emailError ? <Text style={styles.emailError}>{emailError}</Text> : null}
+          </View>
+        )}
 
         <View style={styles.account}>
           <Text style={styles.accountLabel}>Signed in as</Text>
@@ -243,6 +284,12 @@ const styles = StyleSheet.create({
   field: { marginBottom: 24 },
   label: { ...type.label, color: colors.textMuted, marginBottom: 8 },
   hint: { ...type.caption, color: colors.textFaint, marginTop: 8 },
+
+  emails: { marginTop: 40, paddingTop: 24, borderTopWidth: 1, borderTopColor: colors.border },
+  switchRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 16 },
+  switchText: { flex: 1, gap: 4 },
+  emailsTitle: { ...type.bodyStrong, color: colors.text },
+  emailError: { ...type.caption, color: colors.danger, marginTop: 8 },
 
   account: {
     marginTop: 40,

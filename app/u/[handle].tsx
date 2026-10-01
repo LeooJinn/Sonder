@@ -8,6 +8,7 @@ import { describeError } from '../../lib/errors';
 import { useAuth } from '../../lib/auth';
 import { PhotoImage } from '../../components/PhotoImage';
 import { FollowButton } from '../../components/FollowButton';
+import { MessageButton } from '../../components/MessageButton';
 import { Button, ErrorState, focusRing, SectionHeader, type PressState } from '../../components/ui';
 import { colors, column, fonts, radius, type } from '../../lib/theme';
 
@@ -26,6 +27,8 @@ export default function MemberScreen() {
   const [member, setMember] = useState<Member | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  // Bumped when the follow button flips, so the Message button re-checks.
+  const [followChange, setFollowChange] = useState(0);
 
   const load = useCallback(() => {
     setLoading(true);
@@ -106,7 +109,12 @@ export default function MemberScreen() {
               This is your page. People see the cars you&apos;ve made public.
             </Text>
           ) : (
-            <FollowButton kind="member" id={member.id} name={name} />
+            <>
+              <FollowButton kind="member" id={member.id} name={name} onChange={() => setFollowChange((n) => n + 1)} />
+              <View style={styles.message}>
+                <MessageButton memberId={member.id} name={name} refreshKey={followChange} />
+              </View>
+            </>
           )}
         </View>
       </View>
@@ -228,6 +236,8 @@ const styles = StyleSheet.create({
   name: { ...type.hero, color: colors.text },
   handleLine: { ...type.body, color: colors.textMuted, marginTop: 4 },
   follow: { marginTop: 20 },
+  // Under the follow row rather than beside it, so Following doesn't move when Message appears.
+  message: { marginTop: 10, alignSelf: 'flex-start' },
   selfNote: { ...type.small, color: colors.textMuted },
 
   section: { marginTop: 40, paddingHorizontal: 4 },

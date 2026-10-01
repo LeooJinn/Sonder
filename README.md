@@ -55,14 +55,24 @@ one working slice at a time.
 - **Reminders** for oil changes, brake fluid, registration and the rest, by
   miles, months or both. Due dates come from the log's own mileage and dates,
   and ticking a reminder off in a log entry resets it
-- **Reporting and blocking** for meets and listings. Three reports from
-  different members take a meet or listing down automatically; reports are
-  read in the Supabase dashboard
+- **Reporting and blocking** for meets, listings and messages. Three reports
+  from different members take a meet or listing down automatically, or pause
+  a sender's messaging; reports are read in the Supabase dashboard
 - **Following** cars and members. A Following tab shows new log entries, cars
   going up for sale, newly published passports, sales and meets, newest first,
   with a dot when something is new. Following grants no new access: the feed
   only holds what was already public. Counts are public; who follows whom is
   visible only to the person followed. Blocking removes follows both ways
+- **Messages** between members who follow each other: text, plus a car card
+  that links to a published passport. Opened from Messages in the garage's top
+  bar (with an unread mark) or the Message button on a member's page. When the
+  mutual follow ends, or either side blocks, the conversation stays readable
+  but closed. Deleting a conversation clears it for you only
+- **An email for messages you haven't read**: at most one per conversation every
+  four hours, sent only once the oldest unread message is fifteen minutes old,
+  saying who wrote and how many, never what they said. On by default, with a
+  switch in Profile and an unsubscribe link in every email. Needs the one-time
+  setup under "Turning on message emails" below; until then nothing is sent
 - **Member pages** at `imsonder.com/u/<handle>`: a member's name, region and
   published cars, openable by anyone
 - A **front page** for people who aren't members yet: a car's life told along
@@ -74,7 +84,6 @@ one working slice at a time.
 
 **What's next**
 
-- Messaging between members who follow each other
 - Reminders that reach you outside the app: a push notification or an email
   when something comes due
 
@@ -107,7 +116,7 @@ integration: a new migration file pushed to `main` is applied to production
 automatically, and the "Supabase Preview" check on the commit reports how it went.
 Migrations 0001–0011 were applied by hand before the integration was connected and
 are recorded as applied in `supabase_migrations.schema_migrations`, so the
-integration skips them. Name new files with the next number, `0012_…sql` and on.
+integration skips them. Name new files with the next number, `0015_…sql` and on.
 
 The row-level security policies have tests. They apply every migration to a
 throwaway local Postgres and check, as an anonymous visitor and as signed-in
@@ -117,6 +126,30 @@ members, what each can read and write:
 npm install --no-save embedded-postgres pg
 node supabase/tests/run.mjs
 ```
+
+### Turning on message emails
+
+Migration 0014 holds everything except what only the hosted project can do, so
+until these steps are done `send_message_emails()` finds no key and sends
+nothing. Once, in the Supabase SQL Editor:
+
+```sql
+create extension if not exists pg_net;
+create extension if not exists pg_cron;
+
+-- Resend: an API key, and an address on a domain verified there (the one the
+-- auth emails already send from works).
+select vault.create_secret('re_...', 'resend_api_key');
+select vault.create_secret('Sonder <messages@imsonder.com>', 'message_email_from');
+
+select cron.schedule('send-message-emails', '*/5 * * * *', 'select public.send_message_emails()');
+```
+
+`select cron.unschedule('send-message-emails')` stops it. Emails are sent by
+Postgres through pg_net, which is asynchronous: a failure at Resend shows up in
+`net._http_response`, not as an error, and that email waits for its next window.
+The unsubscribe link goes to `api/unsubscribe.ts`, deployed with the rest of the
+site.
 
 Then either scan the QR code with Expo Go (Android: scan from inside the app — iOS: use the
 stock Camera app), or enter the `exp://` URL from the terminal manually. Your phone and
@@ -158,11 +191,13 @@ app/                          screens — a file's path is its route
     following.tsx /following  what followed cars and people have been doing
     market.tsx   /market      cars for sale
     meets.tsx    /meets       upcoming meets
+  messages/      /messages    the inbox; /messages/:id is one conversation
   add.tsx        /add         VIN entry
   profile.tsx    /profile     handle, display name, region
   vehicle/[vin]/              one car: passport, log, reminders, gallery, listing, sale
   meet/          /meet/new    post a meet; /meet/:id to see one and say you're going
 api/passport-page.ts          /p/:vin's HTML, with the car in it for link previews
+api/unsubscribe.ts            /api/unsubscribe: the link in message emails
   p/[vin].tsx    /p/:vin      a published passport, public
   u/[handle].tsx /u/:handle   a member's page, public
 components/                   shared UI
@@ -178,6 +213,7 @@ lib/
   reminders.ts                what's due next, worked out from the log
   moderation.ts               reports and blocks
   follows.ts / feed.ts        following, and the Following feed
+  messages.ts                 conversations, sending, and who can message whom
   members.ts                  member pages
   profile.ts / account.ts     identity, and deleting it
   auth.tsx                    session state
