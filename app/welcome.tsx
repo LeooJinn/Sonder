@@ -252,6 +252,7 @@ export default function WelcomeScreen() {
                     label="Start a passport"
                     onPress={() => router.push('/sign-in?mode=signup')}
                     style={styles.primary}
+                    glint
                   />
                   <VinLookup value={vin} onChange={setVin} onSubmit={lookUp} />
                 </View>

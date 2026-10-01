@@ -13,6 +13,7 @@ import { Stack, useRouter } from 'expo-router';
 import { decodeVin, type DecodedVehicle } from '../lib/vin';
 import { addVehicle } from '../lib/garage';
 import { DataPage } from '../components/DataPage';
+import { Stamp } from '../components/Stamp';
 import { VinInput } from '../components/VinInput';
 import { Button, Notice } from '../components/ui';
 import { colors, column, type } from '../lib/theme';
@@ -22,6 +23,8 @@ export default function AddVehicleScreen() {
   const [preview, setPreview] = useState<DecodedVehicle | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  // True from the moment the car is saved until we move on: the stamp comes down.
+  const [entered, setEntered] = useState(false);
   const router = useRouter();
 
   // The one orchestrated moment in the app: the data page rising into place
@@ -68,9 +71,10 @@ export default function AddVehicleScreen() {
 
     try {
       await addVehicle(preview);
-      // replace, not push: after saving, backing out should return to the
-      // garage rather than to this form with a stale VIN still in it.
-      router.replace(`/vehicle/${preview.vin}`);
+      // The car is on the books: stamp the page, hold it a beat so it is seen,
+      // then go. (replace, not push: after saving, backing out should return
+      // to the garage rather than to this form with a stale VIN still in it.)
+      setEntered(true);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Could not save that car.');
       setBusy(false);
@@ -129,8 +133,18 @@ export default function AddVehicleScreen() {
             }}
           >
             <Text style={styles.found}>Is this your car?</Text>
-            <DataPage vehicle={preview} />
-            <Button label="Add to garage" onPress={handleSave} busy={busy} style={styles.gap} />
+            <DataPage
+              vehicle={preview}
+              overlay={
+                <Stamp
+                  label="ENTERED"
+                  note={`SONDER ${new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).toUpperCase()}`}
+                  play={entered}
+                  onLanded={() => setTimeout(() => router.replace(`/vehicle/${preview.vin}`), 650)}
+                />
+              }
+            />
+            <Button label="Add to garage" onPress={handleSave} busy={busy} style={styles.gap} glint />
           </Animated.View>
         )}
       </ScrollView>

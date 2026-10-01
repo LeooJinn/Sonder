@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import {
   ActivityIndicator,
   Pressable,
@@ -11,6 +11,7 @@ import {
   type ViewStyle,
 } from 'react-native';
 import { colors, fonts, radius, type } from '../lib/theme';
+import { FoilSheen } from './FoilSheen';
 
 /**
  * React Native Web adds `focused` and `hovered` to the pressable state. The
@@ -51,6 +52,7 @@ export function Button({
   disabled,
   style,
   accessibilityHint,
+  glint,
 }: {
   label: string;
   onPress: () => void;
@@ -59,8 +61,21 @@ export function Button({
   disabled?: boolean;
   style?: StyleProp<ViewStyle>;
   accessibilityHint?: string;
+  /** Catch the light once when it first appears: for a screen's one primary action. */
+  glint?: boolean;
 }) {
   const inactive = disabled || busy;
+  const foil = variant === 'primary' && !disabled;
+  const solid = variant === 'primary' || variant === 'secondary' || variant === 'danger';
+  const [width, setWidth] = useState(0);
+  const [shine, setShine] = useState(0);
+
+  // The glint on arrival waits a beat, so it is seen rather than missed.
+  useEffect(() => {
+    if (!foil || !glint) return;
+    const id = setTimeout(() => setShine((n) => n + 1), 650);
+    return () => clearTimeout(id);
+  }, [foil, glint]);
 
   return (
     <Pressable
@@ -69,18 +84,23 @@ export function Button({
       accessibilityRole="button"
       accessibilityState={{ disabled: inactive, busy }}
       accessibilityHint={accessibilityHint}
+      onHoverIn={foil ? () => setShine((n) => n + 1) : undefined}
+      onLayout={foil ? (e) => setWidth(e.nativeEvent.layout.width) : undefined}
       style={(state) => {
         const { pressed, focused } = state as PressState;
         return [
           styles.base,
           styles[variant],
           disabled && variant === 'primary' && styles.primaryDisabled,
+          foil && styles.clip,
           pressed && styles.pressed,
+          pressed && solid && styles.pressedBox,
           focused && focusRing,
           style,
         ];
       }}
     >
+      {foil ? <FoilSheen shine={shine} width={width} /> : null}
       {busy ? (
         <ActivityIndicator color={variant === 'primary' ? colors.onAccent : colors.accent} />
       ) : (
@@ -232,6 +252,9 @@ const styles = StyleSheet.create({
   },
   danger: { borderWidth: 1, borderColor: colors.dangerLine },
   pressed: { opacity: 0.75 },
+  // A button gives under the thumb a little, as well as dimming.
+  pressedBox: { transform: [{ scale: 0.98 }] },
+  clip: { overflow: 'hidden' },
   text: { fontFamily: fonts.bodySemi, fontSize: 16 },
 
   field: { marginBottom: 20 },

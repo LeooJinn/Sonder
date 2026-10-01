@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { Image, StyleSheet, Text, View } from 'react-native';
 import type { DecodedVehicle } from '../lib/vin';
 import { colors, fonts, radius, type } from '../lib/theme';
+import { Guilloche } from './Guilloche';
 
 /** "2.0L 4-cyl Gasoline", skipping any pieces vPIC didn't return. */
 export function engineLine(v: DecodedVehicle): string {
@@ -123,11 +124,14 @@ export function DataPage({
   vehicle,
   photoUrl,
   holder,
+  overlay,
 }: {
   vehicle: DecodedVehicle;
   photoUrl?: string;
   /** "Kept by you since March 2024". Omitted before the car is saved. */
   holder?: string;
+  /** Something laid on the page itself, like a stamp. */
+  overlay?: ReactNode;
 }) {
   return (
     <View style={styles.page}>
@@ -141,6 +145,7 @@ export function DataPage({
       ) : null}
 
       <View style={styles.body}>
+        <Guilloche opacity={0.22} />
         <View style={styles.makeRow}>
           <Text style={styles.make}>{vehicle.make}</Text>
           <Text style={styles.year}>{vehicle.year}</Text>
@@ -163,6 +168,12 @@ export function DataPage({
       </View>
 
       <Mrz vehicle={vehicle} />
+
+      {overlay ? (
+        <View style={styles.overlay} pointerEvents="none">
+          {overlay}
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -174,6 +185,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   photo: { width: '100%', aspectRatio: 3 / 2, backgroundColor: colors.paperShade },
+  overlay: { position: 'absolute', top: 0, bottom: 0, left: 0, right: 0, alignItems: 'flex-end', justifyContent: 'flex-end', paddingRight: 18, paddingBottom: 76 },
   body: { paddingHorizontal: 20, paddingTop: 18, paddingBottom: 20 },
 
   makeRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' },

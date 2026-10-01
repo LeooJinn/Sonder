@@ -20,6 +20,8 @@ export type SavedVehicle = DecodedVehicle & {
   addedAt: string;
   /** Newest build log photo, used as the garage card's cover. */
   cover?: Cover;
+  /** The most recent odometer reading in the car's log, if any entry has one. */
+  odometer?: number;
 };
 
 export type Cover = {
@@ -178,6 +180,31 @@ async function loadCovers(ownershipIds: string[]): Promise<Map<string, Cover>> {
   return covers;
 }
 
+/**
+ * The latest odometer reading logged against each ownership. "Latest" is the
+ * entry with the newest date, not the highest number: a reading corrected
+ * downward after a typo should show as corrected.
+ */
+async function loadOdometers(ownershipIds: string[]): Promise<Map<string, number>> {
+  const readings = new Map<string, number>();
+  if (ownershipIds.length === 0) return readings;
+
+  const { data, error } = await supabase
+    .from('entries')
+    .select('ownership_id, odometer, occurred_on, created_at')
+    .in('ownership_id', ownershipIds)
+    .not('odometer', 'is', null)
+    .order('occurred_on', { ascending: false })
+    .order('created_at', { ascending: false });
+
+  if (error) throw new Error(error.message);
+
+  for (const row of (data ?? []) as { ownership_id: string; odometer: number }[]) {
+    if (!readings.has(row.ownership_id)) readings.set(row.ownership_id, row.odometer);
+  }
+  return readings;
+}
+
 /** Every vehicle currently in the garage, newest addition first. */
 export async function loadGarage(): Promise<SavedVehicle[]> {
   const userId = await requireUserId();
@@ -194,11 +221,17 @@ export async function loadGarage(): Promise<SavedVehicle[]> {
   if (error) throw new Error(error.message);
 
   const rows = data ?? [];
-  const covers = await loadCovers(rows.map((row) => row.id));
+  const ids = rows.map((row) => row.id);
+  const [covers, odometers] = await Promise.all([
+    loadCovers(ids),
+    // Extra: a garage without readings still shows.
+    loadOdometers(ids).catch(() => new Map<string, number>()),
+  ]);
 
   return rows.map((row) => ({
     ...toSavedVehicle(row.vehicles as unknown as VehicleRow, row.created_at),
     cover: covers.get(row.id),
+    odometer: odometers.get(row.id),
   }));
 }
 

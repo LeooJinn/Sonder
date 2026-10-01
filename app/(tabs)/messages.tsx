@@ -1,6 +1,7 @@
 import { useCallback, useRef, useState } from 'react';
-import { ActivityIndicator, FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
+import { FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import { Stack, useFocusEffect, useRouter } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   loadInbox,
   loadMutuals,
@@ -11,6 +12,10 @@ import {
 import { formatInboxTime } from '../../lib/dates';
 import { describeError } from '../../lib/errors';
 import { useAuth } from '../../lib/auth';
+import { Monogram } from '../../components/Monogram';
+import { CoverTexture } from '../../components/CoverTexture';
+import { Reveal } from '../../components/Reveal';
+import { SkeletonBlock } from '../../components/Skeleton';
 import { ownerName } from '../../components/Timeline';
 import { Button, ErrorState, focusRing, type PressState } from '../../components/ui';
 import { colors, column, fonts, type } from '../../lib/theme';
@@ -25,6 +30,7 @@ import { colors, column, fonts, type } from '../../lib/theme';
  */
 export default function MessagesScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { session } = useAuth();
   const [inbox, setInbox] = useState<InboxItem[] | null>(null);
   const [mutuals, setMutuals] = useState<MessagePerson[]>([]);
@@ -78,8 +84,8 @@ export default function MessagesScreen() {
 
   if (error && !inbox) {
     return (
-      <View style={styles.screen}>
-        <Stack.Screen options={{ title: 'Messages' }} />
+      <View style={[styles.screen, { paddingTop: insets.top }]}>
+        <Stack.Screen options={{ headerShown: false, title: 'Messages' }} />
         <ErrorState message={error} onRetry={() => load()} />
       </View>
     );
@@ -90,20 +96,40 @@ export default function MessagesScreen() {
   const empty = inbox !== null && inbox.length === 0;
 
   return (
-    <View style={styles.screen}>
-      <Stack.Screen options={{ title: 'Messages' }} />
+    <View style={[styles.screen, { paddingTop: insets.top }]}>
+      <Stack.Screen options={{ headerShown: false, title: 'Messages' }} />
 
+      <CoverTexture />
       <FlatList
         data={inbox ?? []}
         keyExtractor={(item) => item.conversationId}
         contentContainerStyle={styles.content}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={colors.accent} />}
-        renderItem={({ item }) => (
-          <Row item={item} onPress={() => router.push(`/messages/${item.conversationId}`)} />
+        ListHeaderComponent={
+          <Reveal rise={8} style={styles.header}>
+            <Text style={styles.title} accessibilityRole="header">
+              Messages
+            </Text>
+          </Reveal>
+        }
+        renderItem={({ item, index }) => (
+          <Reveal index={index} rise={10}>
+            <Row item={item} onPress={() => router.push(`/messages/${item.conversationId}`)} />
+          </Reveal>
         )}
         ListEmptyComponent={
           inbox === null ? (
-            <ActivityIndicator color={colors.accent} style={styles.loading} />
+            <View style={styles.loading} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+              {[0, 1, 2].map((i) => (
+                <View key={i} style={styles.ghost}>
+                  <SkeletonBlock style={styles.ghostSeal} />
+                  <View style={styles.ghostText}>
+                    <SkeletonBlock style={{ height: 16, width: '42%' }} />
+                    <SkeletonBlock style={{ height: 13, width: '78%', marginTop: 9 }} />
+                  </View>
+                </View>
+              ))}
+            </View>
           ) : empty ? (
             <View style={styles.empty}>
               <Text style={styles.emptyTitle} accessibilityRole="header">
@@ -169,6 +195,7 @@ function Row({ item, onPress }: { item: InboxItem; onPress: () => void }) {
         return [styles.row, (pressed || hovered) && styles.rowActive, focused && focusRing];
       }}
     >
+      <Monogram name={name} />
       <View style={styles.rowMain}>
         <View style={styles.rowTop}>
           <Text style={[styles.name, !unread && styles.nameRead]} numberOfLines={1}>
@@ -196,10 +223,18 @@ function Row({ item, onPress }: { item: InboxItem; onPress: () => void }) {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
-  content: { ...column, paddingHorizontal: 20, paddingTop: 4, paddingBottom: 56 },
-  loading: { marginTop: 48 },
+  content: { ...column, paddingHorizontal: 20, paddingBottom: 32, flexGrow: 1 },
+  header: { paddingTop: 20, marginBottom: 14 },
+  title: { ...type.hero, color: colors.text },
+  loading: { marginTop: 8, gap: 22 },
+  ghost: { flexDirection: 'row', alignItems: 'center', gap: 14 },
+  ghostSeal: { width: 46, height: 46, borderRadius: 23 },
+  ghostText: { flex: 1 },
 
   row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
     paddingVertical: 14,
     paddingHorizontal: 12,
     marginHorizontal: -12,
@@ -207,7 +242,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 0,
   },
   rowActive: { backgroundColor: colors.surface },
-  rowMain: { gap: 3 },
+  rowMain: { flex: 1, gap: 3 },
   rowTop: { flexDirection: 'row', alignItems: 'baseline', gap: 12 },
   name: { ...type.item, flex: 1, color: colors.text },
   nameRead: { fontFamily: fonts.bodyMedium },

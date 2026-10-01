@@ -32,10 +32,12 @@ import { knownMileage, loadReminders, type Reminder } from '../../../lib/reminde
 import { RemindersSummary } from '../../../components/Reminders';
 import { formatMonthYear } from '../../../lib/dates';
 import { DataPage } from '../../../components/DataPage';
+import { Reveal } from '../../../components/Reveal';
+import { Stamp } from '../../../components/Stamp';
 import { Timeline, ownerName, period, summarize, type Chapter } from '../../../components/Timeline';
 import { ConfirmDialog } from '../../../components/ConfirmDialog';
 import { Button, ErrorState, Field, SectionHeader } from '../../../components/ui';
-import { colors, column, fonts, radius, type } from '../../../lib/theme';
+import { colors, column, fonts, KIND_COLORS, radius, type } from '../../../lib/theme';
 
 /** Where a published passport lives. Local web builds link to themselves. */
 function passportUrl(vin: string): string {
@@ -56,6 +58,9 @@ export default function VehicleScreen() {
   const [entries, setEntries] = useState<LogEntry[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [isPublic, setIsPublic] = useState(false);
+  // True once the passport has been issued during this visit, so the stamp
+  // comes down; a passport that was already public just has it.
+  const [justIssued, setJustIssued] = useState(false);
   const [publishError, setPublishError] = useState<string | null>(null);
   // Null until known. A published car without a handle can be followed, but
   // its owner can't: people follow a person through their page at /u/handle.
@@ -118,6 +123,7 @@ export default function VehicleScreen() {
 
     try {
       await setPassportPublic(vin, next);
+      setJustIssued(next);
       // The database delists a car that stops being public; mirror it.
       if (!next) {
         setListing((current) => ({ ...current, forSale: false }));
@@ -270,17 +276,17 @@ export default function VehicleScreen() {
     <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
       <Stack.Screen options={{ title: `${vehicle.year} ${vehicle.make}` }} />
 
-      <DataPage
-        vehicle={vehicle}
-        photoUrl={gallery[0]?.url ?? vehicle.cover?.url}
-        holder={`Kept by you since ${formatMonthYear(vehicle.addedAt)}`}
-      />
+      <Reveal rise={20}>
+        <DataPage
+          vehicle={vehicle}
+          photoUrl={gallery[0]?.url ?? vehicle.cover?.url}
+          holder={`Kept by you since ${formatMonthYear(vehicle.addedAt)}`}
+        />
+      </Reveal>
 
-      <Button
-        label="Add to log"
-        onPress={() => router.push(`/vehicle/${vin}/add`)}
-        style={styles.addButton}
-      />
+      <Reveal index={1} style={styles.addButton}>
+        <Button label="Add to log" onPress={() => router.push(`/vehicle/${vin}/add`)} glint />
+      </Reveal>
 
       <View style={styles.section}>
         <RemindersSummary
@@ -336,6 +342,9 @@ export default function VehicleScreen() {
 
           {isPublic && (
             <View style={styles.linkRow}>
+              <View style={styles.issued}>
+                <Stamp label="ISSUED" note="PUBLIC PASSPORT" color={KIND_COLORS.service} compact instant={!justIssued} tilt={-4} />
+              </View>
               <Text style={styles.link} numberOfLines={1} selectable>
                 {passportUrl(vin).replace(/^https?:\/\/(www\.)?/, '')}
               </Text>
@@ -501,6 +510,7 @@ const styles = StyleSheet.create({
     borderTopColor: colors.border,
     gap: 12,
   },
+  issued: { alignSelf: 'flex-start', marginBottom: 2 },
   link: { fontFamily: fonts.mono, fontSize: 14, color: colors.text },
   linkActions: { flexDirection: 'row', alignItems: 'center', gap: 20 },
   linkButton: { minHeight: 44, paddingHorizontal: 16 },

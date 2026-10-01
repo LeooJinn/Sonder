@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { FlatList, StyleSheet, Text, View } from 'react-native';
 import { PhotoImage } from '../../components/PhotoImage';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -10,6 +10,11 @@ import { regionLabel } from '../../lib/regions';
 import { describeError } from '../../lib/errors';
 import { useHomeRegion } from '../../components/useHomeRegion';
 import { RegionPicker } from '../../components/RegionPicker';
+import { CoverTexture } from '../../components/CoverTexture';
+import { Guilloche } from '../../components/Guilloche';
+import { LiftPressable } from '../../components/LiftPressable';
+import { Reveal } from '../../components/Reveal';
+import { SkeletonCard } from '../../components/Skeleton';
 import { ErrorState, focusRing, type PressState } from '../../components/ui';
 import { colors, column, fonts, radius, type } from '../../lib/theme';
 
@@ -40,12 +45,13 @@ export default function MarketScreen() {
 
   return (
     <View style={[styles.screen, { paddingTop: insets.top }]}>
+      <CoverTexture />
       <FlatList
         data={listings ?? []}
         keyExtractor={(listing) => listing.vehicle.vin}
         contentContainerStyle={styles.list}
         ListHeaderComponent={
-          <View style={styles.header}>
+          <Reveal rise={8} style={styles.header}>
             <Text style={styles.title} accessibilityRole="header">
               For sale
             </Text>
@@ -62,16 +68,21 @@ export default function MarketScreen() {
                 title="Show cars in"
               />
             </View>
-          </View>
+          </Reveal>
         }
-        renderItem={({ item }) => (
-          <ListingCard listing={item} onPress={() => router.push(`/p/${item.vehicle.vin}`)} />
+        renderItem={({ item, index }) => (
+          <Reveal index={index}>
+            <ListingCard listing={item} onPress={() => router.push(`/p/${item.vehicle.vin}`)} />
+          </Reveal>
         )}
         ListEmptyComponent={
           error ? (
             <ErrorState message={error} onRetry={load} />
           ) : listings === null ? (
-            <ActivityIndicator color={colors.accent} style={styles.loading} />
+            <View style={styles.loading}>
+              <SkeletonCard />
+              <SkeletonCard />
+            </View>
           ) : (
             <View style={styles.empty}>
               <Text style={styles.emptyTitle}>
@@ -94,7 +105,7 @@ function ListingCard({ listing, onPress }: { listing: MarketListing; onPress: ()
   const place = regionLabel(listing.region);
 
   return (
-    <Pressable
+    <LiftPressable
       onPress={onPress}
       accessibilityRole="link"
       accessibilityLabel={`${vehicle.year} ${vehicle.make} ${vehicle.model}, ${
@@ -115,6 +126,7 @@ function ListingCard({ listing, onPress }: { listing: MarketListing; onPress: ()
         />
       ) : null}
       <View style={styles.cardBody}>
+        <Guilloche opacity={0.3} />
         <View style={styles.cardMain}>
           <Text style={styles.cardMake}>
             {vehicle.year} {vehicle.make}
@@ -129,7 +141,7 @@ function ListingCard({ listing, onPress }: { listing: MarketListing; onPress: ()
       <Text style={styles.cardMeta}>
         {place ? `${place}. ` : ''}Listed {formatAgo(listing.listedAt)}.
       </Text>
-    </Pressable>
+    </LiftPressable>
   );
 }
 
@@ -142,7 +154,7 @@ const styles = StyleSheet.create({
   intro: { ...type.body, color: colors.textMuted, marginTop: 10, maxWidth: 520 },
   filter: { marginTop: 20, marginBottom: 4 },
 
-  loading: { marginTop: 48 },
+  loading: { gap: 20, marginTop: 8 },
 
   card: { backgroundColor: colors.paper, borderRadius: radius.page, overflow: 'hidden' },
   cardPressed: { opacity: 0.85 },

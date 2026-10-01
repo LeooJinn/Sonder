@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { loadMeets, type Meet } from '../../lib/meets';
@@ -10,6 +10,9 @@ import { useHomeRegion } from '../../components/useHomeRegion';
 import { RegionPicker } from '../../components/RegionPicker';
 import { ownerName } from '../../components/Timeline';
 import { Button, ErrorState, focusRing, type PressState } from '../../components/ui';
+import { CoverTexture } from '../../components/CoverTexture';
+import { Reveal } from '../../components/Reveal';
+import { SkeletonRow } from '../../components/Skeleton';
 import { colors, column, fonts, radius, type } from '../../lib/theme';
 
 export default function MeetsScreen() {
@@ -34,12 +37,13 @@ export default function MeetsScreen() {
 
   return (
     <View style={[styles.screen, { paddingTop: insets.top }]}>
+      <CoverTexture />
       <FlatList
         data={meets ?? []}
         keyExtractor={(meet) => meet.id}
         contentContainerStyle={styles.list}
         ListHeaderComponent={
-          <View style={styles.header}>
+          <Reveal rise={8} style={styles.header}>
             <View style={styles.titleRow}>
               <Text style={styles.title} accessibilityRole="header">
                 Meets
@@ -61,16 +65,22 @@ export default function MeetsScreen() {
                 title="Show meets in"
               />
             </View>
-          </View>
+          </Reveal>
         }
-        renderItem={({ item }) => (
-          <MeetRow meet={item} showRegion={!region} onPress={() => router.push(`/meet/${item.id}`)} />
+        renderItem={({ item, index }) => (
+          <Reveal index={index} rise={12}>
+            <MeetRow meet={item} showRegion={!region} onPress={() => router.push(`/meet/${item.id}`)} />
+          </Reveal>
         )}
         ListEmptyComponent={
           error ? (
             <ErrorState message={error} onRetry={load} />
           ) : meets === null ? (
-            <ActivityIndicator color={colors.accent} style={styles.loading} />
+            <View style={styles.loading}>
+              <SkeletonRow />
+              <SkeletonRow />
+              <SkeletonRow />
+            </View>
           ) : (
             <View style={styles.empty}>
               <Text style={styles.emptyTitle}>
@@ -139,7 +149,7 @@ const styles = StyleSheet.create({
   intro: { ...type.body, color: colors.textMuted, marginTop: 10, maxWidth: 520 },
   filter: { marginTop: 20 },
 
-  loading: { marginTop: 48 },
+  loading: { marginTop: 8 },
 
   row: {
     flexDirection: 'row',

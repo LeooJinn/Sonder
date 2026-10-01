@@ -198,7 +198,7 @@ components:
 
 Sonder looks like the documents a car accumulates over its life. Every screen is the passport cover: a deep, tinted green that paints edge to edge. Anything that is about one specific car is printed on a pale security-paper page in dark ink, so it reads as a document rather than a card. Gold foil is reserved for the wordmark and for the way on: the one primary action, keyboard focus, and the place you currently are. The odometer, the machine-readable strip and the rubber stamp are the world's own devices, borrowed from real passports and real instrument clusters rather than from a UI kit.
 
-The system is flat and quiet. Depth comes from the contrast between cover and paper and from clipping (an odometer drum's digits disappear at the edge of its window), never from shadows. Type is drawn from California plates and highway signage: Barlow Condensed carries car names and headings the way a badge would, Barlow carries reading, and B612 Mono, made for cockpit displays, is kept strictly for machine data. Navigation is words, not icons, and the two marks the app needs (close, tick) are drawn as strokes rather than typed as glyphs.
+The system is flat and quiet. Depth comes from the contrast between cover and paper and from clipping (an odometer drum's digits disappear at the edge of its window), never from shadows. Type is drawn from California plates and highway signage: Barlow Condensed carries car names and headings the way a badge would, Barlow carries reading, and B612 Mono, made for cockpit displays, is kept strictly for machine data. Navigation is a drawn pictogram over a word. Every mark in the app (the five tab icons, close, tick) is drawn as strokes in one weight rather than typed as glyphs or borrowed from an icon set. Things move the way the objects they imitate move: an odometer's drums roll and catch, a rubber stamp comes down hard and stays, foil glints once as it turns. The paper is engraved, the way security paper is, so it reads as printed.
 
 The app is a phone app first. On a desktop browser the content sits in a centred reading column while the cover still fills the window.
 
@@ -206,6 +206,9 @@ The app is a phone app first. On a desktop browser the content sits in a centred
 - Passport-cover green ground; paper data pages in ink for anything about a specific car.
 - Foil (gold) means the way on: wordmark, one primary action, focus, current selection.
 - Flat: no shadows anywhere; depth is cover against paper.
+- Drawn pictograms in one stroke weight (1.75, round ends), each with a single small motion that says what the thing is.
+- Engraved paper: a fine guilloché interlace in the paper's own rule colour behind the ink, and a ghost of the cover's rosette in the corner of each tab screen.
+- Motion is mechanical, never springy: it decelerates into place, and only things physically struck or swung overshoot.
 - Barlow Condensed display, Barlow body, B612 Mono only for VINs, odometers, part numbers and the MRZ strip.
 - Each log-entry kind stamped in its own ink so a history can be scanned by colour.
 - Radii follow hierarchy: documents roundest, photos least.
@@ -309,7 +312,7 @@ The app's one button, in four variants. Tactile, plain, and never more than one 
 - **Quiet:** inline foil text (Compact, 15px), padded to a 44px hit area but laid out like plain text. Only for links that take you forward: Sign in, Post a meet, Add photos, Manage, and text links such as "Read its passport".
 - **Subtle:** the same inline shape in muted text, for every inline action that is not a way on: Cancel, Remove, Back, Show/Hide, Unblock, Report, Block, I can't make it.
 - **Danger:** a thin danger-red outline and danger text. Never the most prominent thing on a screen.
-- **Pressed / Focus:** pressed drops opacity to 0.75. Keyboard focus draws a 2px solid foil outline offset 2px (web only). Busy shows a spinner in the label's colour.
+- **Pressed / Focus:** pressed drops opacity to 0.75 and gives under the thumb (scale 0.98) on the filled variants. The primary button's foil catches the light once, a soft diagonal glint that crosses it on hover and when a screen's one primary action first appears; it never loops. Keyboard focus draws a 2px solid foil outline offset 2px (web only). Busy shows a spinner in the label's colour.
 
 ### Chips (kind picker and choice rows)
 - **Style:** 1px cover-rule outline, control radius, 44–48px tall, Barlow Medium 15 in muted text. Kind chips carry a 12px ring in the kind's ink.
@@ -331,7 +334,7 @@ The app's one button, in four variants. Tactile, plain, and never more than one 
 - **VIN entry:** seventeen 48px cells in three groups (maker, description, serial), each cell photo-radius on surface; the cursor cell's border is foil.
 
 ### Navigation
-- **Tab bar:** words, not icons: Garage, For sale, Meets in Barlow Condensed at the Item size (18). Unselected labels are faint; the selected label is cover text with a short 28×2px foil rule above it, like the tab on a file divider. Cover ground with a 1px top rule, sharing the 640px column.
+- **Tab bar:** five tabs (Garage, Following, For sale, Meets, Messages), each a 26px drawn pictogram over its name in Barlow Condensed (14px). Unselected is faint; the selected tab turns foil and its icon plays its motion once: the car draws and rolls in, the signal radiates from its dot, the price tag swings on its hole, the pin drops and ripples, the reply types. One 28×2px foil rule travels between tabs rather than vanishing from one and appearing on the next. Messages carries its unread count as a small danger-red badge; Following carries a dot, because news is not a to-do. Cover ground with a 1px top rule, sharing the 640px column. Pressing a tab squeezes it to 0.9.
 - **Stacked header:** 56px, in the column; a drawn chevron back button (44px, pill-pressed state on surface) and the screen title in Barlow Condensed 22. With no history it reads "Garage" and goes home.
 
 ### Data Page (signature)
@@ -345,6 +348,41 @@ A 1px cover-rule rail with a ring for each entry, the ring stroked in the entry 
 
 ### Dialogs
 A paper page (page radius, 22px padding, 440px max) over the cover scrim. Title in ink, body in faded ink. Destructive consequences are listed against a 2px stamp-red rule; the confirm button is a stamp-red outline, the cancel button a solid ink fill with paper text.
+
+
+### Stamp
+A rubber stamp: a 3px outer rule and a 1px inner rule in one ink, the label set in Barlow Condensed Bold with wide tracking (30px, or 22px compact) and a small line of B612 Mono beneath, tilted a few degrees. It is a milestone mark, not a status badge.
+
+### Parking bay
+The "Add a car" action at the end of the garage: a 2px dashed outline in the cover rule colour, the size of a card, a foil plus on the left and "Bay N / Add a car" beside it. The outline turns foil and the plus turns a quarter on hover or focus. It reads as a place you are about to park something, not as a button.
+
+### Monogram seal
+A person is shown as a round of paper with their initials in Barlow Condensed Bold ink, inside a 1px paper-rule ring. Everything about a person on Sonder is drawn from words, so there is no photo to fall back on.
+
+## Motion
+
+Motion in Sonder is modelled on the two kinds of object the app imitates: instruments and paperwork. Instruments move mechanically: a drum rolls and catches in its detent. Paperwork is acted on: a stamp comes down, a page is dealt onto the desk. Neither wobbles, so the curve is a confident ease-out (a long settle), 140ms for feedback, 240ms for state, 420-720ms for arrivals and the one authored moment on a surface.
+
+### Signature moments
+- **The odometer on a garage card.** The car's last logged mileage rolls up from zero on a small odometer when the card arrives, behind its entrance, using the same drums as the front page. The ones drum turns continuously and each other drum only while the one to its right carries.
+- **The stamp.** "ENTERED" comes down on a car's data page when it is added to the garage, a large, faint, tilted impression that drops to size, rings once on impact and stays; the app holds a beat and then moves to the new car. "ISSUED" stamps the passport panel when a car is made public. Stamps are for milestones only. On paper the ink is stamp red; on the cover it is the sky ink, because red ink is dark on green.
+- **The tab icons.** Each plays one motion when its tab becomes current.
+- **The empty garage** draws a car in one line, then turns its wheels once as it comes to rest.
+
+### Supporting motion
+- **Arrival.** Lists deal in: a short rise and fade, each item a little after the last, capped at six so a long list never makes anyone wait for its tail. Only on first mount.
+- **Lift.** On a pointer, a card rises 3-4px; a garage card's photo also leans in. Under a thumb a card gives (0.985). No shadow appears, so the movement alone says it is alive.
+- **Loading** is a page-shaped placeholder (photo, name, a small line) with a light passing across, so the layout does not jump when the real thing arrives. It is the only motion that loops, and it stops when loading does.
+- **New messages** in an open conversation come in with the same short rise; the history you opened to does not.
+
+### Named Rules
+**The Reduced Motion Rule.** Every animation reads the device's reduced-motion setting. When it is on, travel, drawing and sweeping land in their final state at once; colour and state changes remain.
+
+**The Detent Rule.** Nothing overshoots unless it is physically struck or swung (a stamp, a hanging tag). A drum catches; it does not bounce.
+
+## Engraved Paper
+
+Anything printed on paper carries a faint guilloché: two interlaced families of fine sine waves in the paper's own rule colour at about a third strength, behind the ink, filling the body of the data page and each garage card. It is what makes paper look printed rather than flat, and it never competes with the ink on top. The cover carries the matching ghost: thirty-six thin ellipses turned about one point, in the cover's rule colour, off the top corner of each tab screen. Neither adds depth; the system stays flat.
 
 ## Do's and Don'ts
 
@@ -363,6 +401,7 @@ A paper page (page radius, 22px padding, 440px max) over the cover scrim. Title 
 - **Don't** put a stamp, status or ornament in foil; it reads as a second call to action.
 - **Don't** add drop shadows; separate with paper, a hairline or a shade step.
 - **Don't** introduce gray or black; every neutral is tinted from the cover green.
-- **Don't** use icons for navigation, or typed "×"/"✓" glyphs for marks; use words and the drawn marks.
+- **Don't** type "×"/"✓" glyphs, use an emoji, or borrow an icon from a set; draw marks in the house stroke (1.75, round caps and joins, on a 24-unit grid) and pair every navigation icon with its word.
+- **Don't** add spring or bounce motion by reflex, loop anything that is not loading, or animate without a reduced-motion path. Reduced motion lands every animation in its final state at once; colour and state changes stay.
 - **Don't** set paragraphs in Barlow Condensed, or prose numbers in the mono.
 - **Don't** put cover text colours on paper or ink colours on the cover.

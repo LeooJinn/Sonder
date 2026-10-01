@@ -13,6 +13,9 @@ import { PhotoImage } from '../../components/PhotoImage';
 import { FollowButton } from '../../components/FollowButton';
 import { ownerName } from '../../components/Timeline';
 import { ErrorState, focusRing, type PressState } from '../../components/ui';
+import { CoverTexture } from '../../components/CoverTexture';
+import { Reveal } from '../../components/Reveal';
+import { SkeletonRow } from '../../components/Skeleton';
 import { colors, column, fonts, KIND_COLORS, radius, type } from '../../lib/theme';
 
 /**
@@ -96,6 +99,7 @@ export default function FollowingScreen() {
   return (
     <View style={[styles.screen, { paddingTop: insets.top }]}>
       <Stack.Screen options={{ headerShown: false, title: 'Following' }} />
+      <CoverTexture />
       <FlatList
         data={items ?? []}
         keyExtractor={(item) => item.key}
@@ -104,16 +108,20 @@ export default function FollowingScreen() {
         onEndReachedThreshold={0.5}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={colors.accent} />}
         ListHeaderComponent={
-          <View style={styles.header}>
+          <Reveal rise={8} style={styles.header}>
             <Text style={styles.title} accessibilityRole="header">
               Following
             </Text>
             <Text style={styles.intro}>
               New work on the cars you follow, and what the people you follow get up to.
             </Text>
-          </View>
+          </Reveal>
         }
-        renderItem={({ item }) => <FeedLine item={item} onPress={() => open(item)} />}
+        renderItem={({ item, index }) => (
+          <Reveal index={index} rise={12}>
+            <FeedLine item={item} onPress={() => open(item)} />
+          </Reveal>
+        )}
         ListFooterComponent={
           loadingMore ? <ActivityIndicator color={colors.accent} style={styles.more} /> : null
         }
@@ -121,7 +129,11 @@ export default function FollowingScreen() {
           error ? (
             <ErrorState message={error} onRetry={() => load()} />
           ) : items === null ? (
-            <ActivityIndicator color={colors.accent} style={styles.loading} />
+            <View style={styles.loading}>
+              <SkeletonRow />
+              <SkeletonRow />
+              <SkeletonRow />
+            </View>
           ) : (
             <Empty
               place={place}
@@ -345,7 +357,7 @@ const styles = StyleSheet.create({
   title: { ...type.hero, color: colors.text },
   intro: { ...type.body, color: colors.textMuted, marginTop: 10, maxWidth: 520 },
 
-  loading: { marginTop: 48 },
+  loading: { marginTop: 8 },
   more: { marginVertical: 24 },
 
   line: {

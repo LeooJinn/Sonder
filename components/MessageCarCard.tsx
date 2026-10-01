@@ -1,7 +1,8 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import type { MessageCar } from '../lib/messages';
 import { colors, fonts, radius, type } from '../lib/theme';
+import { LiftPressable } from './LiftPressable';
 import { PhotoImage } from './PhotoImage';
 import { focusRing, type PressState } from './ui';
 
@@ -31,7 +32,8 @@ export function MessageCarCard({ car }: { car?: MessageCar }) {
   const name = [vehicle.year, vehicle.make, vehicle.model].filter(Boolean).join(' ');
 
   return (
-    <Pressable
+    <LiftPressable
+      lift={3}
       onPress={() => router.push(`/p/${vehicle.vin}`)}
       accessibilityRole="link"
       accessibilityLabel={`${name}. Opens its passport.`}
@@ -58,7 +60,7 @@ export function MessageCarCard({ car }: { car?: MessageCar }) {
         </Text>
         <Text style={styles.caption}>Read its passport</Text>
       </View>
-    </Pressable>
+    </LiftPressable>
   );
 }
 

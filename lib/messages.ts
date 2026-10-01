@@ -285,15 +285,31 @@ export async function startConversation(otherId: string): Promise<string> {
   return data as string;
 }
 
+/** Things that change the unread count tell the badge, so it needn't wait for its next poll. */
+const unreadListeners = new Set<() => void>();
+
+export function onUnreadChange(listener: () => void): () => void {
+  unreadListeners.add(listener);
+  return () => {
+    unreadListeners.delete(listener);
+  };
+}
+
+function unreadChanged() {
+  unreadListeners.forEach((listener) => listener());
+}
+
 export async function markRead(conversationId: string): Promise<void> {
   const { error } = await supabase.rpc('mark_conversation_read', { conversation: conversationId });
   if (error) throw new Error(error.message);
+  unreadChanged();
 }
 
 /** Delete a conversation for the member only; the other side keeps theirs. */
 export async function clearConversation(conversationId: string): Promise<void> {
   const { error } = await supabase.rpc('clear_conversation', { conversation: conversationId });
   if (error) throw new Error(error.message);
+  unreadChanged();
 }
 
 export type MessageAccess = {

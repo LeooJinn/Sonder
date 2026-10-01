@@ -244,6 +244,7 @@ export default function SignInScreen() {
           onPress={handleSubmit}
           busy={busy}
           style={styles.submit}
+          glint
         />
 
         <Link href="/welcome" style={styles.about}>

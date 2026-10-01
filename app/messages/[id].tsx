@@ -30,6 +30,7 @@ import { useAuth } from '../../lib/auth';
 import { ConfirmDialog } from '../../components/ConfirmDialog';
 import { MessageCarCard } from '../../components/MessageCarCard';
 import { MessageComposer } from '../../components/MessageComposer';
+import { Reveal } from '../../components/Reveal';
 import { ReportSheet } from '../../components/ReportSheet';
 import { ownerName } from '../../components/Timeline';
 import { Button, ErrorState, focusRing, type PressState } from '../../components/ui';
@@ -109,6 +110,9 @@ export default function ThreadScreen() {
   const list = useRef<FlatList<Row>>(null);
   const atBottom = useRef(true);
   const seen = useRef(new Set<string>());
+  // Set once the first page has been shown. Anything that arrives after that
+  // comes in with a little motion; the history you open to doesn't.
+  const opened = useRef(false);
 
   const load = useCallback(
     (quiet = false) => {
@@ -155,6 +159,7 @@ export default function ThreadScreen() {
 
   useEffect(() => {
     for (const m of messages) seen.current.add(m.id);
+    if (messages.length > 0) opened.current = true;
   }, [messages]);
 
   const rows = useMemo(() => toRows(messages), [messages]);
@@ -283,6 +288,7 @@ export default function ThreadScreen() {
           ) : (
             <Bubble
               message={item.message}
+              fresh={opened.current && !seen.current.has(item.message.id)}
               endOfRun={item.endOfRun}
               open={selected === item.message.id}
               onToggle={() => setSelected((now) => (now === item.message.id ? null : item.message.id))}
@@ -346,12 +352,15 @@ export default function ThreadScreen() {
  */
 function Bubble({
   message,
+  fresh,
   endOfRun,
   open,
   onToggle,
   onReport,
 }: {
   message: Message;
+  /** Arrived just now, so it comes in rather than being there. */
+  fresh: boolean;
   endOfRun: boolean;
   open: boolean;
   onToggle: () => void;
@@ -367,7 +376,7 @@ function Bubble({
     </View>
   );
 
-  return (
+  const bubble = (
     <View style={[styles.message, mine ? styles.messageMine : styles.messageTheirs, endOfRun && styles.messageEnd]}>
       {mine ? (
         content
@@ -397,6 +406,8 @@ function Bubble({
       ) : null}
     </View>
   );
+
+  return fresh ? <Reveal rise={10}>{bubble}</Reveal> : bubble;
 }
 
 const styles = StyleSheet.create({
