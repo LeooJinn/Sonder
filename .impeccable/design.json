@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-09-27T20:39:02+00:00",
+  "generatedAt": "2026-10-01T20:54:40+00:00",
   "title": "Design System: Sonder",
   "extensions": {
     "colorMeta": {
@@ -470,14 +470,44 @@
     },
     "motion": [
       {
+        "name": "arrive",
+        "value": "rise 16px and fade, 540ms, cubic-bezier(0.16, 1, 0.3, 1); siblings 70ms apart, capped at six",
+        "purpose": "Lists deal in like papers onto a desk. Only on first mount."
+      },
+      {
+        "name": "lift",
+        "value": "card rises 3-4px over 420ms on hover; scales to 0.985 under a thumb",
+        "purpose": "A pressable card is alive without a shadow. A garage card's photo also leans in to 1.045."
+      },
+      {
         "name": "press",
-        "value": "opacity 0.75 while pressed (0.8 in dialogs, 0.85 on cards)",
-        "purpose": "The only press feedback; no scale or colour transitions."
+        "value": "opacity 0.75, plus scale 0.98 on filled buttons; tab squeezes to 0.9",
+        "purpose": "Feedback under the thumb."
+      },
+      {
+        "name": "foil-glint",
+        "value": "a soft diagonal band crosses the primary button once, 820ms",
+        "purpose": "On hover and when a screen's one primary action first appears. Never loops."
       },
       {
         "name": "drum-roll",
-        "value": "scroll-linked, linear, no easing; mechanical carry (a drum turns only while the one to its right rolls 9 to 0)",
-        "purpose": "The odometer on the front page. Under reduced motion the reading steps between event mileages."
+        "value": "scroll-linked on the front page; on a garage card, 800-1700ms ease-out from zero to the last reading; mechanical carry",
+        "purpose": "The odometer. Under reduced motion the reading is simply shown."
+      },
+      {
+        "name": "stamp",
+        "value": "scale 1.9 to 1 and 9 degrees of tilt in the first quarter of 720ms, then a ring of impact",
+        "purpose": "Milestones only: ENTERED when a car is added, ISSUED when a passport goes public."
+      },
+      {
+        "name": "tab-icon",
+        "value": "one motion per icon over ~840ms when its tab becomes current; the foil rule glides between tabs in 420ms",
+        "purpose": "Car rolls in, signal radiates, tag swings, pin drops and ripples, reply types."
+      },
+      {
+        "name": "skeleton",
+        "value": "a light crosses a page-shaped placeholder every 1.5s",
+        "purpose": "The only loop; it stops when loading does."
       }
     ],
     "breakpoints": [
@@ -541,9 +571,9 @@
       "name": "Tab Bar",
       "kind": "nav",
       "refersTo": "tab",
-      "description": "Words, not icons; a short foil rule marks the current tab.",
-      "html": "<nav class=\"ds-tabs\"><a class=\"ds-tab ds-tab-on\" href=\"#\"><i></i>Garage</a><a class=\"ds-tab\" href=\"#\"><i></i>For sale</a><a class=\"ds-tab\" href=\"#\"><i></i>Meets</a></nav>",
-      "css": ".ds-tabs { display: flex; background: #16302A; border-top: 1px solid #31514A; padding-bottom: 10px; } .ds-tab { flex: 1; display: flex; flex-direction: column; align-items: center; min-height: 48px; font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 18px; color: #8DA69D; text-decoration: none; } .ds-tab i { width: 28px; height: 2px; margin-bottom: 10px; background: transparent; } .ds-tab-on { color: #E8EDE5; } .ds-tab-on i { background: #D4B46E; } .ds-tab:hover { color: #A7B9B1; } .ds-tab:focus-visible { outline: 2px solid #D4B46E; outline-offset: 2px; }"
+      "description": "Five drawn pictograms over their names; a foil rule glides to the current tab; Messages carries an unread badge.",
+      "html": "<nav class=\"ds-tabs\"><i class=\"ds-rule\"></i><a class=\"ds-tab ds-tab-on\" href=\"#\"><svg viewBox=\"0 0 24 24\"><path d=\"M2.5 16h19\"/></svg>Garage</a><a class=\"ds-tab\" href=\"#\"><svg viewBox=\"0 0 24 24\"><path d=\"M12 12h.01\"/></svg>Following</a><a class=\"ds-tab\" href=\"#\"><svg viewBox=\"0 0 24 24\"><path d=\"M4 4l8 8\"/></svg>For sale</a><a class=\"ds-tab\" href=\"#\"><svg viewBox=\"0 0 24 24\"><path d=\"M12 21l-5-6\"/></svg>Meets</a><a class=\"ds-tab\" href=\"#\"><svg viewBox=\"0 0 24 24\"><path d=\"M5 5h14v10H5z\"/></svg>Messages</a></nav>",
+      "css": ".ds-tabs { position: relative; display: flex; background: #16302A; border-top: 1px solid #31514A; padding-bottom: 8px; } .ds-rule { position: absolute; top: -1px; left: calc((100% / 5 - 28px) / 2); width: 28px; height: 2px; background: #D4B46E; transition: transform 420ms cubic-bezier(0.16, 1, 0.3, 1); } .ds-tab { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; min-height: 56px; padding-top: 9px; font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 14px; color: #8DA69D; text-decoration: none; } .ds-tab svg { width: 26px; height: 26px; fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; } .ds-tab-on { color: #E8EDE5; } .ds-tab-on svg { stroke: #D4B46E; } .ds-tab:focus-visible { outline: 2px solid #D4B46E; outline-offset: 2px; }"
     },
     {
       "name": "Kind Chip",
@@ -576,6 +606,30 @@
       "description": "A change of owner marked the way a passport marks a crossing: milestone ink, rotated.",
       "html": "<div class=\"ds-stamp-wrap\"><div class=\"ds-stamp\"><div class=\"ds-stamp-title\">Sold</div><div class=\"ds-stamp-line\">58,210 mi, to its second owner</div></div></div>",
       "css": ".ds-stamp-wrap { background: #16302A; padding: 24px; } .ds-stamp { display: inline-block; padding: 10px 16px; border: 2px solid #BCA9F4; border-radius: 6px; transform: rotate(-4deg); color: #BCA9F4; } .ds-stamp-title { font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 30px; line-height: 32px; } .ds-stamp-line { font-family: 'Barlow', sans-serif; font-weight: 600; font-size: 14px; font-variant-numeric: tabular-nums; }"
+    },
+    {
+      "name": "Stamp",
+      "kind": "mark",
+      "refersTo": "stamp",
+      "description": "A rubber stamp for milestones: double rule, Condensed label, mono note, tilted.",
+      "html": "<div class=\"ds-stamp\"><div><b>ENTERED</b><small>SONDER 01 OCT 2026</small></div></div>",
+      "css": ".ds-stamp { display: inline-block; border: 3px solid #8E2A24; border-radius: 6px; padding: 3px; transform: rotate(-6deg); opacity: .94; } .ds-stamp > div { border: 1px solid #8E2A24; border-radius: 4px; padding: 6px 14px; text-align: center; color: #8E2A24; } .ds-stamp b { display: block; font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 30px; line-height: 32px; letter-spacing: 3px; } .ds-stamp small { font-family: 'B612 Mono', monospace; font-size: 10px; letter-spacing: 1.5px; }"
+    },
+    {
+      "name": "Parking Bay",
+      "kind": "action",
+      "refersTo": "bay",
+      "description": "The add-a-car action: an empty bay in dashed paint, room for one more.",
+      "html": "<a class=\"ds-bay\" href=\"#\"><span class=\"ds-plus\"></span><span><small>Bay 2</small><b>Add a car</b></span></a>",
+      "css": ".ds-bay { display: flex; align-items: center; gap: 18px; min-height: 112px; padding: 0 22px; border: 2px dashed #31514A; border-radius: 14px; color: #E8EDE5; text-decoration: none; } .ds-bay:hover { border-color: #D4B46E; } .ds-plus { position: relative; width: 28px; height: 28px; } .ds-plus::before, .ds-plus::after { content: ''; position: absolute; background: #D4B46E; } .ds-plus::before { left: 0; right: 0; top: 13px; height: 2px; } .ds-plus::after { top: 0; bottom: 0; left: 13px; width: 2px; } .ds-bay small { display: block; font-family: 'B612 Mono', monospace; font-size: 12px; letter-spacing: 1.5px; color: #8DA69D; } .ds-bay b { font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 28px; }"
+    },
+    {
+      "name": "Monogram Seal",
+      "kind": "avatar",
+      "refersTo": "seal",
+      "description": "A person as a round of paper with their initials, inside a thin ring.",
+      "html": "<span class=\"ds-seal\"><i>SO</i></span>",
+      "css": ".ds-seal { display: inline-block; width: 46px; height: 46px; padding: 3px; border-radius: 50%; background: #E3E9DF; box-sizing: border-box; } .ds-seal i { display: flex; align-items: center; justify-content: center; height: 100%; border: 1px solid #BFCBBB; border-radius: 50%; font-family: 'Barlow Condensed', sans-serif; font-style: normal; font-weight: 700; font-size: 18px; letter-spacing: .5px; color: #14201C; }"
     }
   ],
   "narrative": {
@@ -587,7 +641,10 @@
       "Flat: no shadows anywhere; depth is cover against paper.",
       "Barlow Condensed display, Barlow body, B612 Mono only for VINs, odometers, part numbers and the MRZ strip.",
       "Each log-entry kind stamped in its own ink so a history can be scanned by colour.",
-      "Radii follow hierarchy: documents roundest, photos least."
+      "Radii follow hierarchy: documents roundest, photos least.",
+      "Drawn pictograms in one stroke weight (1.75, round ends), each with a single small motion that says what the thing is.",
+      "Engraved paper: a fine guilloche interlace behind the ink, and a ghost of the cover's rosette in the corner of each tab screen.",
+      "Motion is mechanical, never springy: it decelerates into place, and only things physically struck or swung overshoot."
     ],
     "rules": [
       {
@@ -619,6 +676,16 @@
         "name": "The Flat Paper Rule",
         "body": "Documents lie flat on the cover. Separation comes from paper against green, a hairline rule, or a shade step, never from a drop shadow.",
         "section": "elevation"
+      },
+      {
+        "name": "The Reduced Motion Rule",
+        "body": "Every animation reads the device's reduced-motion setting. When it is on, travel, drawing and sweeping land in their final state at once; colour and state changes remain.",
+        "section": "motion"
+      },
+      {
+        "name": "The Detent Rule",
+        "body": "Nothing overshoots unless it is physically struck or swung (a stamp, a hanging tag). A drum catches; it does not bounce.",
+        "section": "motion"
       }
     ],
     "dos": [
@@ -635,9 +702,10 @@
       "Don't put a stamp, status or ornament in foil; it reads as a second call to action.",
       "Don't add drop shadows; separate with paper, a hairline or a shade step.",
       "Don't introduce gray or black; every neutral is tinted from the cover green.",
-      "Don't use icons for navigation, or typed \"\u00d7\"/\"\u2713\" glyphs for marks; use words and the drawn marks.",
       "Don't set paragraphs in Barlow Condensed, or prose numbers in the mono.",
-      "Don't put cover text colours on paper or ink colours on the cover."
+      "Don't put cover text colours on paper or ink colours on the cover.",
+      "Don't type \"×\"/\"✓\" glyphs, use an emoji, or borrow an icon from a set; draw marks in the house stroke (1.75, round caps and joins, 24-unit grid) and pair every navigation icon with its word.",
+      "Don't add spring or bounce motion by reflex, loop anything that is not loading, or animate without a reduced-motion path."
     ]
   }
 }
