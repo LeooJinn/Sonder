@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="%LANG_ISO_CODE%">
+  <head>
+    <meta charset="utf-8" />
+    <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+    <title>%WEB_TITLE%</title>
+    <!-- The logo, as the home-screen icon and the link preview. Tags marked data-site-default are the
+         site-wide fallback: api/passport-page.ts removes them when it writes a car's own preview. -->
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <meta property="og:site_name" content="Sonder" data-site-default />
+    <meta property="og:type" content="website" data-site-default />
+    <meta property="og:title" content="Sonder" data-site-default />
+    <meta property="og:description" content="Every car has a life of its own. Sonder keeps a car's history with the car." data-site-default />
+    <meta property="og:image" content="https://www.imsonder.com/og-image.png" data-site-default />
+    <meta property="og:image:width" content="1200" data-site-default />
+    <meta property="og:image:height" content="630" data-site-default />
+    <meta property="og:image:alt" content="Sonder: every car has a life of its own." data-site-default />
+    <meta name="twitter:card" content="summary_large_image" data-site-default />
+    <meta name="twitter:image" content="https://www.imsonder.com/og-image.png" data-site-default />
+    <!-- The `react-native-web` recommended style reset: https://necolas.github.io/react-native-web/docs/setup/#root-element -->
+    <style id="expo-reset">
+      /* These styles make the body full-height */
+      html,
+      body {
+        height: 100%;
+      }
+      /* These styles disable body scrolling if you are using <ScrollView> */
+      body {
+        overflow: hidden;
+      }
+      /* These styles make the root element full-height */
+      #root {
+        display: flex;
+        height: 100%;
+        flex: 1;
+      }
+    </style>
+  </head>
+
+  <body>
+    <!-- Use static rendering with Expo Router to support running without JavaScript. -->
+    <noscript>
+      You need to enable JavaScript to run this app.
+    </noscript>
+    <!-- The root element for your Expo app. -->
+    <div id="root"></div>
+  </body>
+</html>

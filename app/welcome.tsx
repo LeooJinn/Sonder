@@ -21,6 +21,7 @@ import { regionLabel } from '../lib/regions';
 import { ordinal } from '../lib/dates';
 import { Odometer } from '../components/Odometer';
 import { DataPage } from '../components/DataPage';
+import { LogoMark } from '../components/LogoMark';
 import { ownerName } from '../components/Timeline';
 import { Button, focusRing, noOutline, type PressState } from '../components/ui';
 import { colors, fonts, KIND_COLORS, radius, type, wideColumn } from '../lib/theme';
@@ -230,7 +231,10 @@ export default function WelcomeScreen() {
         >
           <View style={styles.column}>
             <View style={styles.topBar}>
-              <Text style={styles.wordmark}>Sonder</Text>
+              <View style={styles.brand}>
+                <LogoMark size={34} />
+                <Text style={styles.wordmark}>Sonder</Text>
+              </View>
               <Button label="Sign in" variant="quiet" onPress={() => router.push('/sign-in')} />
             </View>
 
@@ -466,6 +470,7 @@ const styles = StyleSheet.create({
     minHeight: 44,
     marginBottom: 40,
   },
+  brand: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   wordmark: { fontFamily: fonts.displayBold, fontSize: 26, color: colors.accent, letterSpacing: 0.5 },
   headline: { ...type.hero, color: colors.text, maxWidth: 820 },
   headlineWide: type.poster,

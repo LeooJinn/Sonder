@@ -359,6 +359,9 @@ The "Add a car" action at the end of the garage: a 2px dashed outline in the cov
 ### Monogram seal
 A person is shown as a round of paper with their initials in Barlow Condensed Bold ink, inside a 1px paper-rule ring. Everything about a person on Sonder is drawn from words, so there is no photo to fall back on.
 
+### Logo mark
+A foil Barlow Condensed S on a cover-green tile, over the cover's own engraved rosette: the app icon at small size (`components/LogoMark.tsx`). It appears beside the wordmark on the front page and above it on the sign-in cover, and nowhere else: foil means the wordmark, and the mark is part of the wordmark. It is flat (a hairline cover-rule border, no shadow), takes the control radius, or the page radius from 56px up, and is hidden from screen readers because the word "Sonder" always sits next to it. The same S is the app icon, the browser-tab icon (a plainer version without the rosette, which turns to mush at 16px), the home-screen icon (`public/apple-touch-icon.png`) and the link-preview card (`public/og-image.png`).
+
 ## Motion
 
 Motion in Sonder is modelled on the two kinds of object the app imitates: instruments and paperwork. Instruments move mechanically: a drum rolls and catches in its detent. Paperwork is acted on: a stamp comes down, a page is dealt onto the desk. Neither wobbles, so the curve is a confident ease-out (a long settle), 140ms for feedback, 240ms for state, 420-720ms for arrivals and the one authored moment on a surface.

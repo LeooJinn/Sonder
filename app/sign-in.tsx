@@ -11,6 +11,7 @@ import {
 import { Link, Stack, useLocalSearchParams } from 'expo-router';
 import { supabase } from '../lib/supabase';
 import { describeError } from '../lib/errors';
+import { LogoMark } from '../components/LogoMark';
 import { Button, Field, Notice, focusRing, type PressState } from '../components/ui';
 import { colors, fonts, radius, type } from '../lib/theme';
 
@@ -140,6 +141,7 @@ export default function SignInScreen() {
         {/* The cover. Laid out like a passport's: centred, foil, one line
             saying what the document is. */}
         <View style={styles.cover}>
+          <LogoMark size={64} />
           <View style={styles.coverRule} />
           <Text style={styles.wordmark} accessibilityRole="header">
             Sonder

@@ -128,6 +128,8 @@ async function describe(car: Car, pageUrl: string): Promise<string> {
   const title = `${car.title} on Sonder`;
   const description = `${sale}${kept}${history}`;
   const image = photo ? `${SUPABASE_URL}/storage/v1/object/public/${BUCKET}/${photo.storage_path}` : undefined;
+  // A car with no photo still previews with the Sonder card (public/og-image.png), not a blank.
+  const fallback = new URL('/og-image.png', pageUrl).href;
 
   const tags = [
     `<title>${escape(title)}</title>`,
@@ -137,11 +139,19 @@ async function describe(car: Car, pageUrl: string): Promise<string> {
     `<meta property="og:url" content="${escape(pageUrl)}" />`,
     `<meta property="og:title" content="${escape(title)}" />`,
     `<meta property="og:description" content="${escape(description)}" />`,
-    `<meta name="twitter:card" content="${image ? 'summary_large_image' : 'summary'}" />`,
+    `<meta name="twitter:card" content="summary_large_image" />`,
     `<meta name="twitter:title" content="${escape(title)}" />`,
     `<meta name="twitter:description" content="${escape(description)}" />`,
   ];
-  if (image) {
+  if (!image) {
+    tags.push(
+      `<meta property="og:image" content="${escape(fallback)}" />`,
+      `<meta name="twitter:image" content="${escape(fallback)}" />`,
+      `<meta property="og:image:alt" content="Sonder: every car has a life of its own." />`,
+      `<meta property="og:image:width" content="1200" />`,
+      `<meta property="og:image:height" content="630" />`
+    );
+  } else {
     tags.push(
       `<meta property="og:image" content="${escape(image)}" />`,
       `<meta name="twitter:image" content="${escape(image)}" />`,
@@ -175,6 +185,8 @@ export async function GET(request: Request): Promise<Response> {
       const car = await findCar(vin);
       if (car) {
         const tags = await describe(car, pageUrl);
+        // The page carries site-wide fallback tags (public/index.html); a car's own preview replaces them.
+        html = html.replace(/[ \t]*<meta [^>]*data-site-default[^>]*>\n?/g, '');
         html = /<title>[^<]*<\/title>/.test(html)
           ? html.replace(/<title>[^<]*<\/title>/, tags)
           : html.replace('</head>', `    ${tags}\n  </head>`);
