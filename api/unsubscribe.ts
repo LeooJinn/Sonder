@@ -1,15 +1,20 @@
 /**
- * Turn off message emails from the link in one: /api/unsubscribe?t=<token>.
+ * Turn off one kind of email from the link in it:
+ *   /api/unsubscribe?t=<token>                  message emails (the first links sent)
+ *   /api/unsubscribe?for=messages&t=<token>     the same
+ *   /api/unsubscribe?for=reminders&t=<token>    reminder emails
  *
- * The token belongs to one member and does nothing but this. GET only asks
+ * The token belongs to one member and one kind of email, and does nothing but
+ * turn that kind off. An unknown `for` is refused rather than guessed at. GET only asks
  * "stop these emails?" and shows a button: mail scanners open every link in
  * a message, and opening a link must not be what unsubscribes someone. POST
  * does it, both from that button and from a mail app's own Unsubscribe
- * button (List-Unsubscribe-Post, sent by send_message_emails in 0014).
+ * button (List-Unsubscribe-Post, sent by send_message_emails in 0014 and
+ * send_reminder_emails in 0015).
  *
  * Runs with the public anon key like the rest of the app; the database
- * function behind it (unsubscribe_message_emails) is callable without signing
- * in and changes nothing else.
+ * functions behind it (unsubscribe_message_emails, unsubscribe_reminder_emails)
+ * are callable without signing in and change nothing else.
  */
 
 const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL ?? '';
@@ -17,9 +22,35 @@ const ANON_KEY = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ?? '';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-async function unsubscribe(token: string): Promise<boolean | null> {
+type List = {
+  /** The database function that turns this kind of email off. */
+  rpc: string;
+  ask: string;
+  askBody: string;
+  done: string;
+  doneBody: string;
+};
+
+const LISTS: Record<'messages' | 'reminders', List> = {
+  messages: {
+    rpc: 'unsubscribe_message_emails',
+    ask: 'Stop message emails?',
+    askBody: 'You will still see your messages in Sonder. You can turn these emails back on in your profile.',
+    done: 'You will not get these emails',
+    doneBody: 'Your messages are still waiting in Sonder. You can turn the emails back on in your profile.',
+  },
+  reminders: {
+    rpc: 'unsubscribe_reminder_emails',
+    ask: 'Stop reminder emails?',
+    askBody: 'You will still see your reminders in Sonder. You can turn these emails back on in your profile.',
+    done: 'You will not get these emails',
+    doneBody: 'Your reminders are still in Sonder. You can turn the emails back on in your profile.',
+  },
+};
+
+async function unsubscribe(list: List, token: string): Promise<boolean | null> {
   try {
-    const response = await fetch(`${SUPABASE_URL}/rest/v1/rpc/unsubscribe_message_emails`, {
+    const response = await fetch(`${SUPABASE_URL}/rest/v1/rpc/${list.rpc}`, {
       method: 'POST',
       headers: { apikey: ANON_KEY, Authorization: `Bearer ${ANON_KEY}`, 'content-type': 'application/json' },
       body: JSON.stringify({ token }),
@@ -32,9 +63,9 @@ async function unsubscribe(token: string): Promise<boolean | null> {
 }
 
 /** A small page in the app's own colours: paper on the passport cover. */
-function page(title: string, body: string, action?: { label: string; token: string }): Response {
+function page(title: string, body: string, action?: { label: string; token: string; list: string }): Response {
   const form = action
-    ? `<form method="post" action="/api/unsubscribe?t=${action.token}">` +
+    ? `<form method="post" action="/api/unsubscribe?for=${action.list}&amp;t=${action.token}">` +
       `<button type="submit">${action.label}</button></form>`
     : '';
   const html = `<!doctype html>
@@ -81,27 +112,39 @@ function tokenOf(request: Request): string | null {
   return UUID.test(token) ? token.toLowerCase() : null;
 }
 
+/** Which kind of email the link is for. No `for` means messages, so the links already sent keep working. */
+function listOf(request: Request): ['messages' | 'reminders', List] | null {
+  const name = new URL(request.url).searchParams.get('for') ?? 'messages';
+  return name === 'messages' || name === 'reminders' ? [name, LISTS[name]] : null;
+}
+
+const INVALID = [
+  "This link isn't valid",
+  'It may have been cut short when it was copied. Open the email again and use its link.',
+] as const;
+
 export async function GET(request: Request): Promise<Response> {
   const token = tokenOf(request);
-  if (!token) return page("This link isn't valid", 'It may have been cut short when it was copied. Open the email again and use its link.');
-  return page(
-    'Stop message emails?',
-    'You will still see your messages in Sonder. You can turn these emails back on in your profile.',
-    { label: 'Stop these emails', token }
-  );
+  const found = listOf(request);
+  if (!token || !found) return page(...INVALID);
+  const [name, list] = found;
+  return page(list.ask, list.askBody, { label: 'Stop these emails', token, list: name });
 }
 
 export async function POST(request: Request): Promise<Response> {
   const token = tokenOf(request);
-  if (!token) return page("This link isn't valid", 'It may have been cut short when it was copied. Open the email again and use its link.');
+  const found = listOf(request);
+  if (!token || !found) return page(...INVALID);
+  const [name, list] = found;
 
-  const done = await unsubscribe(token);
+  const done = await unsubscribe(list, token);
   if (done === null) {
     return page("That didn't work", 'Sonder could not be reached just now. Try the link again in a minute.', {
       label: 'Try again',
       token,
+      list: name,
     });
   }
   if (!done) return page("This link isn't valid", 'It does not match anyone any more. If you still get these emails, turn them off in your profile.');
-  return page('You will not get these emails', 'Your messages are still waiting in Sonder. You can turn the emails back on in your profile.');
+  return page(list.done, list.doneBody);
 }

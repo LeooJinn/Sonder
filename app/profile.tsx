@@ -19,10 +19,40 @@ import { deleteAccount } from '../lib/account';
 import { loadBlocked, unblockMember, type BlockedMember } from '../lib/moderation';
 import { loadMyFollowers, type Follower } from '../lib/follows';
 import { loadMessageEmails, setMessageEmails } from '../lib/messages';
+import { loadReminderEmails, setReminderEmails } from '../lib/reminders';
 import { ownerName } from '../components/Timeline';
 import { regionLabel } from '../lib/regions';
 import { Button, Field, Notice } from '../components/ui';
 import { colors, column, fonts, radius, type } from '../lib/theme';
+
+function EmailSwitchRow({
+  title,
+  hint,
+  value,
+  onValueChange,
+}: {
+  title: string;
+  hint: string;
+  value: boolean;
+  onValueChange: (next: boolean) => void;
+}) {
+  return (
+    <View style={styles.switchRow}>
+      <View style={styles.switchText}>
+        <Text style={styles.emailsTitle}>{title}</Text>
+        <Text style={styles.hint}>{hint}</Text>
+      </View>
+      <Switch
+        value={value}
+        onValueChange={onValueChange}
+        accessibilityLabel={title}
+        trackColor={{ false: colors.border, true: colors.accent }}
+        thumbColor={colors.paper}
+        {...(Platform.OS === 'web' ? { activeThumbColor: colors.paper } : {})}
+      />
+    </View>
+  );
+}
 
 export default function ProfileScreen() {
   const [handle, setHandle] = useState('');
@@ -38,6 +68,7 @@ export default function ProfileScreen() {
   const [followers, setFollowers] = useState<Follower[]>([]);
   // Null until known, so the switch doesn't flash the wrong way.
   const [messageEmails, setMessageEmailsOn] = useState<boolean | null>(null);
+  const [reminderEmails, setReminderEmailsOn] = useState<boolean | null>(null);
   const [emailError, setEmailError] = useState<string | null>(null);
   // The handle as stored, not as typed: the page link must point somewhere real.
   const [savedHandle, setSavedHandle] = useState('');
@@ -47,16 +78,21 @@ export default function ProfileScreen() {
     loadBlocked().then(setBlocked).catch(() => {});
     loadMyFollowers().then(setFollowers).catch(() => {});
     loadMessageEmails().then(setMessageEmailsOn).catch(() => {});
+    loadReminderEmails().then(setReminderEmailsOn).catch(() => {});
   }, []);
 
-  async function toggleMessageEmails(next: boolean) {
+  async function toggleEmails(
+    next: boolean,
+    setShown: (on: boolean) => void,
+    save: (on: boolean) => Promise<void>
+  ) {
     // Flips at once and goes back if it didn't save, like the public-link switch.
-    setMessageEmailsOn(next);
+    setShown(next);
     setEmailError(null);
     try {
-      await setMessageEmails(next);
+      await save(next);
     } catch (e) {
-      setMessageEmailsOn(!next);
+      setShown(!next);
       setEmailError(e instanceof Error ? e.message : 'That did not save. Try again.');
     }
   }
@@ -160,25 +196,24 @@ export default function ProfileScreen() {
 
         <Button label="Save profile" onPress={handleSave} busy={saving} />
 
-        {messageEmails !== null && (
+        {(messageEmails !== null || reminderEmails !== null) && (
           <View style={styles.emails}>
-            <View style={styles.switchRow}>
-              <View style={styles.switchText}>
-                <Text style={styles.emailsTitle}>Email me about unread messages</Text>
-                <Text style={styles.hint}>
-                  At most one email per conversation every few hours, and only if you haven&apos;t
-                  read the messages in Sonder. It says who wrote, never what they said.
-                </Text>
-              </View>
-              <Switch
+            {messageEmails !== null && (
+              <EmailSwitchRow
+                title="Email me about unread messages"
+                hint="At most one email per conversation every few hours, and only if you haven't read the messages in Sonder. It says who wrote, never what they said."
                 value={messageEmails}
-                onValueChange={toggleMessageEmails}
-                accessibilityLabel="Email me about unread messages"
-                trackColor={{ false: colors.border, true: colors.accent }}
-                thumbColor={colors.paper}
-                {...(Platform.OS === 'web' ? { activeThumbColor: colors.paper } : {})}
+                onValueChange={(next) => toggleEmails(next, setMessageEmailsOn, setMessageEmails)}
               />
-            </View>
+            )}
+            {reminderEmails !== null && (
+              <EmailSwitchRow
+                title="Email me when a reminder is due"
+                hint="At most one email a week, listing what has come due on your cars. It names the car and the reminder, never a date or a mileage."
+                value={reminderEmails}
+                onValueChange={(next) => toggleEmails(next, setReminderEmailsOn, setReminderEmails)}
+              />
+            )}
             {emailError ? <Text style={styles.emailError}>{emailError}</Text> : null}
           </View>
         )}
@@ -285,7 +320,7 @@ const styles = StyleSheet.create({
   label: { ...type.label, color: colors.textMuted, marginBottom: 8 },
   hint: { ...type.caption, color: colors.textFaint, marginTop: 8 },
 
-  emails: { marginTop: 40, paddingTop: 24, borderTopWidth: 1, borderTopColor: colors.border },
+  emails: { marginTop: 40, paddingTop: 24, gap: 24, borderTopWidth: 1, borderTopColor: colors.border },
   switchRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 16 },
   switchText: { flex: 1, gap: 4 },
   emailsTitle: { ...type.bodyStrong, color: colors.text },

@@ -116,6 +116,9 @@ export default function RemindersScreen() {
     if (reminder.lastDoneOn && !/^\d{4}-\d{2}-\d{2}$/.test(reminder.lastDoneOn)) {
       return setFormError('Enter the date it was last done as YYYY-MM-DD.');
     }
+    if (reminder.lastDoneOn && (reminder.lastDoneOn < '1900-01-01' || reminder.lastDoneOn > '2100-12-31')) {
+      return setFormError('Use a date between 1900 and 2100.');
+    }
 
     setSaving(true);
     try {
@@ -176,7 +179,8 @@ export default function RemindersScreen() {
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <Text style={styles.intro}>
           Each reminder is due at whichever comes first, the miles or the months. When you log the
-          work, tick it off in the entry and the clock resets.
+          work, tick it off in the entry and the clock resets. Sonder also emails you when one comes
+          due; you can turn that off in Profile.
         </Text>
 
         {reminders.length > 0 && (

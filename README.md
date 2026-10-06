@@ -72,7 +72,13 @@ one working slice at a time.
   four hours, sent only once the oldest unread message is fifteen minutes old,
   saying who wrote and how many, never what they said. On by default, with a
   switch in Profile and an unsubscribe link in every email. Needs the one-time
-  setup under "Turning on message emails" below; until then nothing is sent
+  setup under "Turning on emails" below; until then nothing is sent
+- **An email when a reminder comes due**: a digest of the reminders that have newly
+  come due on your cars (by miles or months, whichever comes first), at most one a
+  week, plus one follow-up two weeks later if one is still due. It names the car and
+  the reminder you wrote, never a date, a mileage or anything from your log. On by
+  default, with a switch in Profile and an unsubscribe link in every email. Needs the
+  one-time setup under "Turning on emails" below; until then nothing is sent
 - **Member pages** at `imsonder.com/u/<handle>`: a member's name, region and
   published cars, openable by anyone
 - A **front page** for people who aren't members yet: a car's life told along
@@ -84,8 +90,7 @@ one working slice at a time.
 
 **What's next**
 
-- Reminders that reach you outside the app: a push notification or an email
-  when something comes due
+- A push notification when a reminder comes due
 
 ---
 
@@ -127,6 +132,12 @@ npm install --no-save embedded-postgres pg
 node supabase/tests/run.mjs
 ```
 
+The same run also checks that the database and the app agree on when a reminder
+is due (`lib/reminderStatus.ts` against `reminder_is_due()` in 0015), and runs
+the reminder-email checks in `supabase/tests/reminder-emails.mjs` against a
+second scratch database. Postgres refuses to run as root, so inside a container
+run it as an ordinary user.
+
 ### Sign-in email
 
 Sign-in confirmations go out through Resend (Supabase Auth, Authentication → Emails →
@@ -135,11 +146,14 @@ password, sender `Sonder <noreply@imsonder.com>`). The email itself is
 `supabase/email-templates/confirm-signup.html`. Supabase doesn't read it from the repo, so a
 change here means pasting the body into Authentication → Emails → Templates → Confirm sign up.
 
-### Turning on message emails
+### Turning on emails
 
-Migration 0014 holds everything except what only the hosted project can do, so
-until these steps are done `send_message_emails()` finds no key and sends
-nothing. Once, in the Supabase SQL Editor:
+Migrations 0014 (messages) and 0015 (reminders) hold everything except what only
+the hosted project can do. Until the steps below are done, `send_message_emails()`
+and `send_reminder_emails()` find no key and send nothing.
+
+**If you have never turned on emails.** In the Supabase SQL Editor, paste this
+and press Run (replace `re_...` with your Resend API key):
 
 ```sql
 create extension if not exists pg_net;
@@ -153,11 +167,52 @@ select vault.create_secret('Sonder <messages@imsonder.com>', 'message_email_from
 select cron.schedule('send-message-emails', '*/5 * * * *', 'select public.send_message_emails()');
 ```
 
-`select cron.unschedule('send-message-emails')` stops it. Emails are sent by
-Postgres through pg_net, which is asynchronous: a failure at Resend shows up in
-`net._http_response`, not as an error, and that email waits for its next window.
-The unsubscribe link goes to `api/unsubscribe.ts`, deployed with the rest of the
-site.
+**Reminder emails (do this whether or not message emails were already on).**
+First check that the deploy with the new unsubscribe page is live: open
+`https://www.imsonder.com/api/unsubscribe?for=reminders&t=00000000-0000-0000-0000-000000000000`.
+It should say "Stop reminder emails?" (do not press the button). Then, in the
+SQL Editor, paste this and press Run:
+
+```sql
+-- Reminders that are already due are not news: tell nobody about them.
+select public.silence_current_reminder_emails();
+-- Every 5 minutes from 16:00 to 17:55 UTC (9am Pacific, noon Eastern).
+select cron.schedule('send-reminder-emails', '*/5 16-17 * * *', 'select public.send_reminder_emails()');
+```
+
+(Leave out the first line to send everyone a one-time catch-up email about
+reminders that are already due.) Reminder emails use the same Resend key. They
+send from `message_email_from` unless you also add a sender of their own:
+
+```sql
+select vault.create_secret('Sonder <reminders@imsonder.com>', 'reminder_email_from');
+```
+
+**Try it (two minutes).** In the app: open a car, Reminders, add "Oil change",
+set Last done to a date at least eight months ago, Save. In the SQL Editor run
+`select public.send_reminder_emails(settle_days => 0);`. It returns how many
+emails it sent, and the email arrives within a minute. (A reminder normally has
+to be two days old before it is emailed, because you have just seen it in the
+app; `settle_days => 0` skips that wait for the test.) If it returns 0, the
+usual reasons are: the switch in Profile is off; the key or sender is missing in
+Vault; you were emailed in the last 7 days
+(`update reminder_email_settings set last_emailed_on = null;` clears that); or
+the reminder was already due when you ran `silence_current_reminder_emails()`
+(editing its Last done date counts as new).
+
+**Behaviour.** At most 2 emails per run, 40 a day (Resend's free plan allows
+about 100 a day, shared with sign-in and message emails). Postgres sends through
+pg_net, which is asynchronous. Each run reads Resend's answer to the earlier
+ones: a refusal that may pass (rate limit, outage) is undone and tried again on
+the next run, and again the next morning; a bad address (400/422) is not retried.
+To look:
+`select status_code, content from net._http_response order by created desc limit 5;`
+and `select status, count(*) from reminder_email_sends group by status;`.
+
+**Stop or move it.** `select cron.unschedule('send-reminder-emails');` stops it
+(`send-message-emails` for messages). To change the hour, unschedule and
+schedule again with another hour; the time is UTC. `select cron.unschedule(...)`
+does not affect the other kind of email.
 
 Then either scan the QR code with Expo Go (Android: scan from inside the app — iOS: use the
 stock Camera app), or enter the `exp://` URL from the terminal manually. Your phone and
@@ -205,7 +260,7 @@ app/                          screens — a file's path is its route
   vehicle/[vin]/              one car: passport, log, reminders, gallery, listing, sale
   meet/          /meet/new    post a meet; /meet/:id to see one and say you're going
 api/passport-page.ts          /p/:vin's HTML, with the car in it for link previews
-api/unsubscribe.ts            /api/unsubscribe: the link in message emails
+api/unsubscribe.ts            /api/unsubscribe: the link in message and reminder emails
   p/[vin].tsx    /p/:vin      a published passport, public
   u/[handle].tsx /u/:handle   a member's page, public
 components/                   shared UI
@@ -219,6 +274,7 @@ lib/
   market.ts                   listing a car, and browsing listings
   meets.ts                    meets and who's going
   reminders.ts                what's due next, worked out from the log
+  reminderStatus.ts           reminder due-ness: pure, shared with the database tests
   moderation.ts               reports and blocks
   follows.ts / feed.ts        following, and the Following feed
   messages.ts                 conversations, sending, and who can message whom

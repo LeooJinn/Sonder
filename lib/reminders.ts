@@ -10,27 +10,17 @@ import { supabase } from './supabase';
 import { findOwnershipId, requireUserId } from './garage';
 import { today } from './dates';
 import type { LogEntry } from './log';
+import {
+  knownMileage,
+  reminderStatus as statusOn,
+  type NewReminder,
+  type Reminder,
+  type ReminderState,
+  type ReminderStatus,
+} from './reminderStatus';
 
-export type Reminder = {
-  id: string;
-  title: string;
-  everyMiles?: number;
-  everyMonths?: number;
-  lastDoneOn?: string;
-  lastDoneOdometer?: number;
-};
-
-export type NewReminder = Omit<Reminder, 'id'>;
-
-export type ReminderState = 'overdue' | 'soon' | 'ok' | 'untracked';
-
-export type ReminderStatus = {
-  state: ReminderState;
-  /** "Due in 800 mi or 3 months", "Overdue by 2 weeks". */
-  text: string;
-  /** Sort key: most urgent first. */
-  urgency: number;
-};
+export { knownMileage };
+export type { NewReminder, Reminder, ReminderState, ReminderStatus };
 
 /**
  * True when some phrase of the text mentions `include` without `exclude`.
@@ -60,19 +50,6 @@ export const PRESETS: (NewReminder & { matches: (text: string) => boolean })[] =
   { title: 'Registration', everyMonths: 12, matches: phrase(/registration|smog/i) },
 ];
 
-/** Miles and months left before a reminder counts as coming up. */
-const SOON_MILES = 500;
-const SOON_DAYS = 30;
-
-/** The highest odometer reading anywhere in the log: the car's mileage, as far as Sonder knows. */
-export function knownMileage(entries: LogEntry[], reminders: Reminder[] = []): number | undefined {
-  const readings = [
-    ...entries.map((e) => e.odometer),
-    ...reminders.map((r) => r.lastDoneOdometer),
-  ].filter((n): n is number => n !== undefined);
-  return readings.length ? Math.max(...readings) : undefined;
-}
-
 /** The most recent log entry that looks like this job, for pre-filling "last done". */
 export function lastMatchingEntry(
   entries: LogEntry[],
@@ -83,83 +60,16 @@ export function lastMatchingEntry(
     .sort((a, b) => b.occurredOn.localeCompare(a.occurredOn))[0];
 }
 
-function daysBetween(fromIso: string, toIso: string): number {
-  const [y1, m1, d1] = fromIso.split('-').map(Number);
-  const [y2, m2, d2] = toIso.split('-').map(Number);
-  return Math.round((Date.UTC(y2, m2 - 1, d2) - Date.UTC(y1, m1 - 1, d1)) / 86_400_000);
-}
-
-/** "2026-03-31" plus one month is the last day of April, not 1 May. */
-function addMonths(iso: string, months: number): string {
-  const [y, m, d] = iso.split('-').map(Number);
-  const target = new Date(Date.UTC(y, m - 1 + months, 1));
-  const lastDay = new Date(Date.UTC(target.getUTCFullYear(), target.getUTCMonth() + 1, 0)).getUTCDate();
-  target.setUTCDate(Math.min(d, lastDay));
-  return target.toISOString().slice(0, 10);
-}
-
-function miles(n: number): string {
-  return `${n.toLocaleString('en-US')} mi`;
-}
-
-/** 12 days, 3 weeks, 5 months, 2 years: the unit someone would actually say. */
-function span(days: number): string {
-  if (days < 14) return `${days} ${days === 1 ? 'day' : 'days'}`;
-  if (days < 60) return `${Math.round(days / 7)} weeks`;
-  if (days < 730) return `${Math.round(days / 30.44)} months`;
-  return `${Math.round(days / 365.25)} years`;
-}
-
 /**
- * Where a reminder stands. With both a mileage and a time interval, it's due
- * at whichever comes first — the way a service book reads.
+ * Where a reminder stands today. The rule itself lives in ./reminderStatus,
+ * which has no imports so the database tests can load it on its own.
  */
 export function reminderStatus(
   reminder: Reminder,
   mileage: number | undefined,
   onDate: string = today()
 ): ReminderStatus {
-  const milesLeft =
-    reminder.everyMiles !== undefined && reminder.lastDoneOdometer !== undefined && mileage !== undefined
-      ? reminder.lastDoneOdometer + reminder.everyMiles - mileage
-      : undefined;
-  const daysLeft =
-    reminder.everyMonths !== undefined && reminder.lastDoneOn !== undefined
-      ? daysBetween(onDate, addMonths(reminder.lastDoneOn, reminder.everyMonths))
-      : undefined;
-
-  if (milesLeft === undefined && daysLeft === undefined) {
-    return {
-      state: 'untracked',
-      text: 'Add when it was last done to see when it’s due',
-      urgency: Number.MAX_SAFE_INTEGER,
-    };
-  }
-
-  const overdueMiles = milesLeft !== undefined && milesLeft < 0;
-  const overdueDays = daysLeft !== undefined && daysLeft < 0;
-  // Scale miles and days onto one axis for sorting: roughly 30 miles a day.
-  const urgency = Math.min(milesLeft ?? Infinity, (daysLeft ?? Infinity) * 30);
-
-  if (overdueMiles || overdueDays) {
-    const parts = [
-      overdueMiles ? miles(-milesLeft!) : '',
-      overdueDays ? span(-daysLeft!) : '',
-    ].filter(Boolean);
-    return { state: 'overdue', text: `Overdue by ${parts.join(' and ')}`, urgency };
-  }
-
-  if (milesLeft === 0 || daysLeft === 0) {
-    return { state: 'soon', text: 'Due now', urgency };
-  }
-
-  const parts = [
-    milesLeft !== undefined ? miles(milesLeft) : '',
-    daysLeft !== undefined ? span(daysLeft) : '',
-  ].filter(Boolean);
-  const soon =
-    (milesLeft !== undefined && milesLeft <= SOON_MILES) || (daysLeft !== undefined && daysLeft <= SOON_DAYS);
-  return { state: soon ? 'soon' : 'ok', text: `Due in ${parts.join(' or ')}`, urgency };
+  return statusOn(reminder, mileage, onDate);
 }
 
 // ---------------------------------------------------------------------------
@@ -269,7 +179,8 @@ export async function loadGarageReminders(): Promise<Map<string, { title: string
   })[];
   if (rows.length === 0) return new Map();
 
-  // Mileage per car: the highest odometer reading in each ownership's log.
+  // Mileage per car, the way the car's own page works it out: the highest
+  // reading in the log or on any of its reminders.
   const ownershipIds = [...new Set(rows.map((r) => r.ownership_id))];
   const { data: readings, error: readingsError } = await supabase
     .from('entries')
@@ -278,15 +189,19 @@ export async function loadGarageReminders(): Promise<Map<string, { title: string
     .not('odometer', 'is', null);
 
   if (readingsError) throw new Error(readingsError.message);
-  const mileage = new Map<string, number>();
+  const readingsOf = new Map<string, { odometer: number }[]>();
   for (const r of readings as { ownership_id: string; odometer: number }[]) {
-    mileage.set(r.ownership_id, Math.max(mileage.get(r.ownership_id) ?? 0, r.odometer));
+    readingsOf.set(r.ownership_id, [...(readingsOf.get(r.ownership_id) ?? []), { odometer: r.odometer }]);
+  }
+  const remindersOf = new Map<string, Reminder[]>();
+  for (const row of rows) {
+    remindersOf.set(row.ownership_id, [...(remindersOf.get(row.ownership_id) ?? []), toReminder(row)]);
   }
 
   const worst = new Map<string, { title: string; status: ReminderStatus }>();
   for (const row of rows) {
     const reminder = toReminder(row);
-    const known = Math.max(mileage.get(row.ownership_id) ?? 0, reminder.lastDoneOdometer ?? 0) || undefined;
+    const known = knownMileage(readingsOf.get(row.ownership_id) ?? [], remindersOf.get(row.ownership_id));
     const status = reminderStatus(reminder, known);
     if (status.state !== 'overdue' && status.state !== 'soon') continue;
 
@@ -295,4 +210,23 @@ export async function loadGarageReminders(): Promise<Map<string, { title: string
     if (!current || status.urgency < current.status.urgency) worst.set(vin, { title: reminder.title, status });
   }
   return worst;
+}
+
+/** Whether the signed-in member gets an email when a reminder comes due (0015). */
+export async function loadReminderEmails(): Promise<boolean> {
+  const me = await requireUserId();
+  const { data, error } = await supabase
+    .from('reminder_email_settings')
+    .select('enabled')
+    .eq('profile_id', me)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  // Every profile gets a row; if one somehow has none, the default is on.
+  return data?.enabled ?? true;
+}
+
+export async function setReminderEmails(enabled: boolean): Promise<void> {
+  const me = await requireUserId();
+  const { error } = await supabase.from('reminder_email_settings').update({ enabled }).eq('profile_id', me);
+  if (error) throw new Error(error.message);
 }

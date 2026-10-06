@@ -31,7 +31,7 @@ History belongs to the car, not to the app user. Entries hang off an ownership p
 - Build log (mods, service, repairs, milestones) with dates, odometer, cost, parts and photos; per-car gallery.
 - Public passports at a shareable link, showing every owner's chapter; previous owners are named only if they published.
 - Selling a car transfers it; the history stays readable and read-only for the buyer.
-- For sale listings (price, seller-written contact line) on published passports; Meets by region; reminders by miles/months; reporting and blocking.
+- For sale listings (price, seller-written contact line) on published passports; Meets by region; reminders by miles/months, emailed when they come due; reporting and blocking.
 - Expo (SDK 57) and React Native, shipped as a web app on Vercel from `main`; the same codebase runs on iOS/Android through Expo Go. No App Store release yet — the owner will decide when.
 - Supabase (Postgres, auth, storage, row-level security). Free plan: no on-the-fly image transformation.
 - Region only, never a precise location, for people and meets.
