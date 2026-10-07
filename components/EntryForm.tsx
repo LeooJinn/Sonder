@@ -119,6 +119,11 @@ export function EntryForm({
       return;
     }
 
+    if (odometer.trim() && Number(odometer.replace(/[^\d]/g, '')) > 9_999_999) {
+      setError('Enter an odometer reading under 10,000,000.');
+      return;
+    }
+
     setSaving(true);
     try {
       await onSubmit({

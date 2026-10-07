@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { findEntry, removeEntry, updateEntry, type LogEntry } from '../../../../lib/log';
@@ -17,6 +17,10 @@ export default function EditEntryScreen() {
   const [loaded, setLoaded] = useState(false);
   const [askingDelete, setAskingDelete] = useState(false);
   const router = useRouter();
+  // What a failed try already did, so saving again does not upload the same
+  // photos twice or remove the same photo twice.
+  const uploaded = useRef(new Set<string>());
+  const removed = useRef(new Set<string>());
 
   useEffect(() => {
     loadReminders(vin).then(setReminders).catch(() => {});
@@ -37,13 +41,17 @@ export default function EditEntryScreen() {
     // Deletions first, so a failed upload doesn't leave the user looking at
     // photos they thought they had removed.
     for (const photoId of removedPhotoIds) {
+      if (removed.current.has(photoId)) continue;
       const photo = entry?.photos.find((p) => p.id === photoId);
       if (photo) await removePhoto(photo);
+      removed.current.add(photoId);
     }
 
     const startPosition = entry?.photos.length ?? 0;
     for (const [index, uri] of newPhotoUris.entries()) {
+      if (uploaded.current.has(uri)) continue;
       await addPhoto(id, uri, startPosition + index);
+      uploaded.current.add(uri);
     }
 
     await markDone(completes, patch.occurredOn, patch.odometer);

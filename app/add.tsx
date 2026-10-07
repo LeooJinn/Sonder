@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
 import {
-  AccessibilityInfo,
   Animated,
   KeyboardAvoidingView,
   Platform,
@@ -18,6 +17,7 @@ import { Stamp } from '../components/Stamp';
 import { VinInput } from '../components/VinInput';
 import { Button, Field, Notice } from '../components/ui';
 import { colors, column, type } from '../lib/theme';
+import { duration, ease, nativeDriver, useReducedMotion } from '../lib/motion';
 
 export default function AddVehicleScreen() {
   const [vin, setVin] = useState('');
@@ -36,24 +36,24 @@ export default function AddVehicleScreen() {
   // The one orchestrated moment in the app: the data page rising into place
   // once the factory record comes back. Skipped when reduce motion is on.
   const reveal = useRef(new Animated.Value(0)).current;
+  const reduceMotion = useReducedMotion();
   useEffect(() => {
     if (!preview) {
       reveal.setValue(0);
       return;
     }
-    AccessibilityInfo.isReduceMotionEnabled().then((reduce) => {
-      if (reduce) {
-        reveal.setValue(1);
-        return;
-      }
-      Animated.spring(reveal, {
-        toValue: 1,
-        damping: 18,
-        stiffness: 140,
-        useNativeDriver: Platform.OS !== 'web',
-      }).start();
-    });
-  }, [preview, reveal]);
+    if (reduceMotion) {
+      reveal.setValue(1);
+      return;
+    }
+    // A confident arrival that settles, with no overshoot (lib/motion.ts).
+    Animated.timing(reveal, {
+      toValue: 1,
+      duration: duration.focal,
+      easing: ease.out,
+      useNativeDriver: nativeDriver,
+    }).start();
+  }, [preview, reveal, reduceMotion]);
 
   async function handleDecode() {
     if (vin.length !== 17) return;
