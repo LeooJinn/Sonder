@@ -38,6 +38,7 @@ type VpicResult = {
 };
 
 const VPIC_URL = 'https://vpic.nhtsa.dot.gov/api/vehicles/DecodeVinValues';
+const LOOKUP_TIMEOUT_MS = 15_000;
 
 /**
  * A VIN is 17 characters. I, O and Q are excluded from the alphabet
@@ -67,18 +68,32 @@ export async function decodeVin(vin: string): Promise<DecodedVehicle> {
     throw new Error('That is not a valid VIN. It should be 17 characters, no I, O or Q.');
   }
 
-  const response = await fetch(`${VPIC_URL}/${cleaned}?format=json`);
+  // vPIC can be slow or stall; without a limit the button just spins.
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), LOOKUP_TIMEOUT_MS);
+  let response: Response;
+  try {
+    response = await fetch(`${VPIC_URL}/${cleaned}?format=json`, { signal: controller.signal });
+  } catch {
+    throw new Error('Could not reach the vehicle database. Check your connection and try again.');
+  } finally {
+    clearTimeout(timer);
+  }
 
   if (!response.ok) {
     throw new Error('Could not reach the vehicle database. Check your connection.');
   }
 
-  const body = (await response.json()) as { Results: VpicResult[] };
-  const result = body.Results[0];
+  const body = (await response.json()) as { Results?: VpicResult[] };
+  const result = body.Results?.[0];
 
-  // vPIC returns 200 OK even for VINs it cannot decode; the real status is in ErrorCode.
-  // "0" means clean. Anything else is a partial or failed decode.
-  if (result.ErrorCode !== '0') {
+  // vPIC returns 200 OK whatever happens, with its verdict in ErrorCode: "0"
+  // is clean, and many real cars come back with a warning instead (a check
+  // digit that does not calculate, as on many imports; an incomplete record).
+  // What matters is whether it identified the car. The person confirms the
+  // result on the next screen ("Is this your car?"), so a typo that decodes to
+  // some other car is caught there.
+  if (!result || !result.Make || !result.ModelYear) {
     throw new Error('That VIN could not be decoded. Double-check the characters.');
   }
 
