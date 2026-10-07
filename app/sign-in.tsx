@@ -11,11 +11,11 @@ import {
 import { Link, Stack, useLocalSearchParams } from 'expo-router';
 import { supabase } from '../lib/supabase';
 import { describeError } from '../lib/errors';
-import { LogoMark } from '../components/LogoMark';
+import { PassportCover } from '../components/PassportCover';
 import { Button, Field, Notice, focusRing, type PressState } from '../components/ui';
 import { colors, fonts, radius, type } from '../lib/theme';
 
-type Mode = 'signIn' | 'signUp';
+type Mode = 'signIn' | 'signUp' | 'reset';
 
 /** Supabase's own rate limit on resends. Matching it avoids a confusing error. */
 const RESEND_COOLDOWN_SECONDS = 60;
@@ -31,9 +31,12 @@ function isUnconfirmedEmailError(error: { code?: string; message: string }): boo
 
 export default function SignInScreen() {
   // /sign-in?mode=signup opens on Create account: the front page's
-  // "Start a passport" is for people who don't have one yet.
+  // "Start a passport" is for people who don't have one yet. ?mode=reset
+  // opens on "Forgot password", where an expired reset link sends people.
   const params = useLocalSearchParams<{ mode?: string }>();
-  const [mode, setMode] = useState<Mode>(params.mode === 'signup' ? 'signUp' : 'signIn');
+  const [mode, setMode] = useState<Mode>(
+    params.mode === 'signup' ? 'signUp' : params.mode === 'reset' ? 'reset' : 'signIn'
+  );
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -46,6 +49,7 @@ export default function SignInScreen() {
   const [cooldown, setCooldown] = useState(0);
 
   const isSignUp = mode === 'signUp';
+  const isReset = mode === 'reset';
 
   // Ticks the cooldown down once a second. Re-running on each change is what
   // makes it a countdown; the cleanup stops it when the screen goes away.
@@ -77,7 +81,36 @@ export default function SignInScreen() {
     setResending(false);
   }
 
+  async function handleReset() {
+    if (cooldown > 0) return;
+    setError(null);
+    setNotice(null);
+
+    if (!email.trim()) {
+      setError('Enter the email you signed up with.');
+      return;
+    }
+
+    setBusy(true);
+    // The link in the email is built by the template (supabase/email-templates/
+    // reset-password.html), so there is no redirect to pass here.
+    const { error: resetError } = await supabase.auth.resetPasswordForEmail(email.trim());
+    setBusy(false);
+
+    if (resetError) {
+      setError(describeError(resetError));
+      return;
+    }
+    // The same answer whether or not an account exists, so this form can't be
+    // used to find out who has one.
+    setNotice(
+      `If there is an account for ${email.trim()}, a link to choose a new password is on its way. Check your spam folder too.`
+    );
+    setCooldown(RESEND_COOLDOWN_SECONDS);
+  }
+
   async function handleSubmit() {
+    if (isReset) return handleReset();
     setError(null);
     setNotice(null);
 
@@ -138,45 +171,48 @@ export default function SignInScreen() {
       <Stack.Screen options={{ headerShown: false, title: 'Sign in' }} />
 
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        {/* The cover. Laid out like a passport's: centred, foil, one line
-            saying what the document is. */}
-        <View style={styles.cover}>
-          <LogoMark size={64} />
-          <View style={styles.coverRule} />
-          <Text style={styles.wordmark} accessibilityRole="header">
-            Sonder
+        <PassportCover />
+
+        {!isReset && (
+          <Text style={styles.lead}>
+            A logbook that stays with the car. Mods, service and repairs, handed to the next owner
+            when it sells.
           </Text>
-          <Text style={styles.docType}>Vehicle passport</Text>
-          <View style={styles.coverRule} />
-        </View>
+        )}
 
-        <Text style={styles.lead}>
-          A logbook that stays with the car. Mods, service and repairs, handed to the next owner
-          when it sells.
-        </Text>
-
-        <View style={styles.tabs} accessibilityRole="tablist">
-          {(['signIn', 'signUp'] as const).map((option) => {
-            const selected = mode === option;
-            return (
-              <Pressable
-                key={option}
-                onPress={() => switchMode(option)}
-                accessibilityRole="tab"
-                accessibilityState={{ selected }}
-                style={(state) => [
-                  styles.tab,
-                  selected && styles.tabSelected,
-                  (state as PressState).focused && focusRing,
-                ]}
-              >
-                <Text style={[styles.tabText, selected && styles.tabTextSelected]}>
-                  {option === 'signIn' ? 'Sign in' : 'Create account'}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </View>
+        {isReset ? (
+          <View style={styles.resetHead}>
+            <Text style={styles.resetTitle} accessibilityRole="header">
+              Reset your password
+            </Text>
+            <Text style={styles.resetBody}>
+              Enter your email and we will send a link to choose a new one.
+            </Text>
+          </View>
+        ) : (
+          <View style={styles.tabs} accessibilityRole="tablist">
+            {(['signIn', 'signUp'] as const).map((option) => {
+              const selected = mode === option;
+              return (
+                <Pressable
+                  key={option}
+                  onPress={() => switchMode(option)}
+                  accessibilityRole="tab"
+                  accessibilityState={{ selected }}
+                  style={(state) => [
+                    styles.tab,
+                    selected && styles.tabSelected,
+                    (state as PressState).focused && focusRing,
+                  ]}
+                >
+                  <Text style={[styles.tabText, selected && styles.tabTextSelected]}>
+                    {option === 'signIn' ? 'Sign in' : 'Create account'}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        )}
 
         <Field
           label="Email"
@@ -197,30 +233,43 @@ export default function SignInScreen() {
           autoComplete="email"
         />
 
-        <Field
-          label="Password"
-          value={password}
-          onChangeText={setPassword}
-          placeholder={isSignUp ? 'At least 8 characters' : 'Your password'}
-          secureTextEntry={!showPassword}
-          autoCapitalize="none"
-          autoCorrect={false}
-          textContentType={isSignUp ? 'newPassword' : 'password'}
-          autoComplete={isSignUp ? 'new-password' : 'current-password'}
-          onSubmitEditing={handleSubmit}
-          accessory={
-            <Button
-              label={showPassword ? 'Hide' : 'Show'}
-              variant="subtle"
-              onPress={() => setShowPassword((v) => !v)}
-            />
-          }
-        />
+        {!isReset && (
+          <>
+          <Field
+            label="Password"
+            value={password}
+            onChangeText={setPassword}
+            placeholder={isSignUp ? 'At least 8 characters' : 'Your password'}
+            secureTextEntry={!showPassword}
+            autoCapitalize="none"
+            autoCorrect={false}
+            textContentType={isSignUp ? 'newPassword' : 'password'}
+            autoComplete={isSignUp ? 'new-password' : 'current-password'}
+            onSubmitEditing={handleSubmit}
+            accessory={
+              <Button
+                label={showPassword ? 'Hide' : 'Show'}
+                variant="subtle"
+                onPress={() => setShowPassword((v) => !v)}
+              />
+            }
+          />
+
+            {!isSignUp && (
+              <Button
+                label="Forgot password?"
+                variant="subtle"
+                onPress={() => switchMode('reset')}
+                style={styles.forgot}
+              />
+            )}
+          </>
+        )}
 
         {error && <Notice tone="error">{error}</Notice>}
         {notice && <Notice tone="success">{notice}</Notice>}
 
-        {unconfirmedEmail && (
+        {unconfirmedEmail && !isReset && (
           <View style={styles.resend}>
             <Text style={styles.resendTitle}>Didn&apos;t get the email?</Text>
             <Text style={styles.resendBody}>
@@ -242,12 +291,30 @@ export default function SignInScreen() {
         )}
 
         <Button
-          label={isSignUp ? 'Create account' : 'Sign in'}
+          label={
+            isReset
+              ? cooldown > 0
+                ? `Send again in ${cooldown}s`
+                : 'Send reset link'
+              : isSignUp
+                ? 'Create account'
+                : 'Sign in'
+          }
           onPress={handleSubmit}
           busy={busy}
+          disabled={isReset && cooldown > 0}
           style={styles.submit}
           glint
         />
+
+        {isReset && (
+          <Button
+            label="Back to sign in"
+            variant="quiet"
+            onPress={() => switchMode('signIn')}
+            style={styles.back}
+          />
+        )}
 
         <Link href="/welcome" style={styles.about}>
           What is Sonder?
@@ -267,17 +334,6 @@ const styles = StyleSheet.create({
     width: '100%',
     alignSelf: 'center',
   },
-
-  cover: { alignItems: 'center', gap: 14, marginBottom: 40 },
-  coverRule: { width: 56, height: 1, backgroundColor: colors.border },
-  wordmark: {
-    fontFamily: fonts.displayBold,
-    fontSize: 80,
-    lineHeight: 78,
-    color: colors.accent,
-    letterSpacing: 1,
-  },
-  docType: { fontFamily: fonts.display, fontSize: type.item.fontSize, color: colors.accent, letterSpacing: 1 },
 
   lead: { ...type.lead, color: colors.textMuted, textAlign: 'center', marginBottom: 36 },
 
@@ -310,7 +366,13 @@ const styles = StyleSheet.create({
   resendTitle: { ...type.bodyStrong, color: colors.text },
   resendBody: { ...type.small, color: colors.textMuted, marginBottom: 4 },
 
+  resetHead: { gap: 8, marginBottom: 24 },
+  resetTitle: { ...type.bodyStrong, color: colors.text },
+  resetBody: { ...type.small, color: colors.textMuted },
+  forgot: { alignSelf: 'flex-end', marginTop: -8, marginBottom: 8 },
+
   submit: { marginTop: 8 },
+  back: { marginTop: 12 },
   about: {
     alignSelf: 'center',
     marginTop: 28,
