@@ -89,6 +89,10 @@ one working slice at a time.
   Sonder's own `/reset-password` page and is only used up when a new password is
   saved, so a mail scanner opening it doesn't kill it. Needs the Reset Password
   template pasted in once (see "Sign-in email" below)
+- **Change email and change password** in Profile, both asking for the current
+  password first. A new email only takes effect once the confirmation link is followed
+  (from both addresses, when Supabase is set to ask for that). Needs the Change Email
+  Address template pasted in once (see "Sign-in email" below)
 - Everything stored in Postgres, so a garage follows the account to any
   device and survives reinstalling the app
 
@@ -156,6 +160,12 @@ password"). Its link is built from the project's Site URL, so check that
 Authentication → URL Configuration → Site URL is `https://www.imsonder.com`. No Redirect
 URL needs adding. Supabase limits reset requests to one a minute per address, and the
 link expires after an hour.
+
+The change-email message is `supabase/email-templates/change-email.html`, pasted into
+Authentication → Emails → Templates → **Change Email Address** (subject: "Confirm your
+new Sonder email"). It is sent to the old and the new address when Authentication →
+Sign In / Providers → Email → "Secure email change" is on, which it should stay: a
+stolen session alone then cannot move an account to a new address.
 
 ### Turning on emails
 
@@ -272,6 +282,7 @@ app/                          screens — a file's path is its route
   welcome.tsx    /welcome     the front page for visitors: the odometer story and a VIN lookup
   sign-in.tsx    /sign-in     sign in or create an account, or ask for a password reset
   reset-password.tsx /reset-password  where the reset email's link lands: choose a new password
+  confirm-email.tsx /confirm-email    where a change-email link lands: press to confirm
   (tabs)/                     the four tabs; the group adds nothing to URLs
     index.tsx    /            the garage
     following.tsx /following  what followed cars and people have been doing

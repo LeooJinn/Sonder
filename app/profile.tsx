@@ -15,6 +15,7 @@ import { signOut } from '../lib/auth';
 import { supabase } from '../lib/supabase';
 import { RegionPicker } from '../components/RegionPicker';
 import { ConfirmDialog } from '../components/ConfirmDialog';
+import { AccountSecurity } from '../components/AccountSecurity';
 import { deleteAccount } from '../lib/account';
 import { loadBlocked, unblockMember, type BlockedMember } from '../lib/moderation';
 import { loadMyFollowers, type Follower } from '../lib/follows';
@@ -221,6 +222,7 @@ export default function ProfileScreen() {
         <View style={styles.account}>
           <Text style={styles.accountLabel}>Signed in as</Text>
           <Text style={styles.email}>{email}</Text>
+          <AccountSecurity email={email} />
           <Button
             label="Sign out"
             variant="secondary"
