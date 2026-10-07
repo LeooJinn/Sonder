@@ -15,7 +15,7 @@ import { PassportCover } from '../components/PassportCover';
 import { Button, Field, Notice, focusRing, type PressState } from '../components/ui';
 import { colors, fonts, radius, type } from '../lib/theme';
 
-type Mode = 'signIn' | 'signUp' | 'reset';
+type Mode = 'signIn' | 'signUp' | 'reset' | 'link';
 
 /** Supabase's own rate limit on resends. Matching it avoids a confusing error. */
 const RESEND_COOLDOWN_SECONDS = 60;
@@ -32,10 +32,17 @@ function isUnconfirmedEmailError(error: { code?: string; message: string }): boo
 export default function SignInScreen() {
   // /sign-in?mode=signup opens on Create account: the front page's
   // "Start a passport" is for people who don't have one yet. ?mode=reset
-  // opens on "Forgot password", where an expired reset link sends people.
+  // opens on "Forgot password", where an expired reset link sends people, and
+  // ?mode=link on "Email me a sign-in link", likewise for an expired one.
   const params = useLocalSearchParams<{ mode?: string }>();
   const [mode, setMode] = useState<Mode>(
-    params.mode === 'signup' ? 'signUp' : params.mode === 'reset' ? 'reset' : 'signIn'
+    params.mode === 'signup'
+      ? 'signUp'
+      : params.mode === 'reset'
+        ? 'reset'
+        : params.mode === 'link'
+          ? 'link'
+          : 'signIn'
   );
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -50,6 +57,9 @@ export default function SignInScreen() {
 
   const isSignUp = mode === 'signUp';
   const isReset = mode === 'reset';
+  const isLink = mode === 'link';
+  /** The two modes that ask for an email and nothing else. */
+  const emailOnly = isReset || isLink;
 
   // Ticks the cooldown down once a second. Re-running on each change is what
   // makes it a countdown; the cleanup stops it when the screen goes away.
@@ -81,7 +91,8 @@ export default function SignInScreen() {
     setResending(false);
   }
 
-  async function handleReset() {
+  /** Send the reset link or the sign-in link: both ask for just an email. */
+  async function handleEmailLink() {
     if (cooldown > 0) return;
     setError(null);
     setNotice(null);
@@ -92,25 +103,32 @@ export default function SignInScreen() {
     }
 
     setBusy(true);
-    // The link in the email is built by the template (supabase/email-templates/
-    // reset-password.html), so there is no redirect to pass here.
-    const { error: resetError } = await supabase.auth.resetPasswordForEmail(email.trim());
+    // The links in these emails are built by their templates (supabase/
+    // email-templates/), so there is no redirect to pass here.
+    const { error: sendError } = isLink
+      ? await supabase.auth.signInWithOtp({ email: email.trim(), options: { shouldCreateUser: false } })
+      : await supabase.auth.resetPasswordForEmail(email.trim());
     setBusy(false);
 
-    if (resetError) {
-      setError(describeError(resetError));
+    // With sign-up off for this form, an address that has no account comes
+    // back as an error. Treated as success: the answer must be the same
+    // whether or not an account exists, or this form tells strangers who has one.
+    const noAccount =
+      isLink && sendError && (sendError.code === 'otp_disabled' || /signups? not allowed/i.test(sendError.message));
+    if (sendError && !noAccount) {
+      setError(describeError(sendError));
       return;
     }
-    // The same answer whether or not an account exists, so this form can't be
-    // used to find out who has one.
     setNotice(
-      `If there is an account for ${email.trim()}, a link to choose a new password is on its way. Check your spam folder too.`
+      isLink
+        ? `If there is an account for ${email.trim()}, a link that signs you in is on its way. Check your spam folder too.`
+        : `If there is an account for ${email.trim()}, a link to choose a new password is on its way. Check your spam folder too.`
     );
     setCooldown(RESEND_COOLDOWN_SECONDS);
   }
 
   async function handleSubmit() {
-    if (isReset) return handleReset();
+    if (emailOnly) return handleEmailLink();
     setError(null);
     setNotice(null);
 
@@ -173,20 +191,22 @@ export default function SignInScreen() {
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <PassportCover />
 
-        {!isReset && (
+        {!emailOnly && (
           <Text style={styles.lead}>
             A logbook that stays with the car. Mods, service and repairs, handed to the next owner
             when it sells.
           </Text>
         )}
 
-        {isReset ? (
+        {emailOnly ? (
           <View style={styles.resetHead}>
             <Text style={styles.resetTitle} accessibilityRole="header">
-              Reset your password
+              {isLink ? 'Sign in with a link' : 'Reset your password'}
             </Text>
             <Text style={styles.resetBody}>
-              Enter your email and we will send a link to choose a new one.
+              {isLink
+                ? 'Enter your email and we will send a link that signs you in. No password needed.'
+                : 'Enter your email and we will send a link to choose a new one.'}
             </Text>
           </View>
         ) : (
@@ -233,7 +253,7 @@ export default function SignInScreen() {
           autoComplete="email"
         />
 
-        {!isReset && (
+        {!emailOnly && (
           <>
           <Field
             label="Password"
@@ -256,12 +276,10 @@ export default function SignInScreen() {
           />
 
             {!isSignUp && (
-              <Button
-                label="Forgot password?"
-                variant="subtle"
-                onPress={() => switchMode('reset')}
-                style={styles.forgot}
-              />
+              <View style={styles.helpRow}>
+                <Button label="Email me a sign-in link" variant="subtle" onPress={() => switchMode('link')} />
+                <Button label="Forgot password?" variant="subtle" onPress={() => switchMode('reset')} />
+              </View>
             )}
           </>
         )}
@@ -269,7 +287,7 @@ export default function SignInScreen() {
         {error && <Notice tone="error">{error}</Notice>}
         {notice && <Notice tone="success">{notice}</Notice>}
 
-        {unconfirmedEmail && !isReset && (
+        {unconfirmedEmail && !emailOnly && (
           <View style={styles.resend}>
             <Text style={styles.resendTitle}>Didn&apos;t get the email?</Text>
             <Text style={styles.resendBody}>
@@ -292,22 +310,24 @@ export default function SignInScreen() {
 
         <Button
           label={
-            isReset
+            emailOnly
               ? cooldown > 0
                 ? `Send again in ${cooldown}s`
-                : 'Send reset link'
+                : isLink
+                  ? 'Send sign-in link'
+                  : 'Send reset link'
               : isSignUp
                 ? 'Create account'
                 : 'Sign in'
           }
           onPress={handleSubmit}
           busy={busy}
-          disabled={isReset && cooldown > 0}
+          disabled={emailOnly && cooldown > 0}
           style={styles.submit}
           glint
         />
 
-        {isReset && (
+        {emailOnly && (
           <Button
             label="Back to sign in"
             variant="quiet"
@@ -369,7 +389,7 @@ const styles = StyleSheet.create({
   resetHead: { gap: 8, marginBottom: 24 },
   resetTitle: { ...type.bodyStrong, color: colors.text },
   resetBody: { ...type.small, color: colors.textMuted },
-  forgot: { alignSelf: 'flex-end', marginTop: -8, marginBottom: 8 },
+  helpRow: { flexDirection: 'row', justifyContent: 'space-between', flexWrap: 'wrap', marginTop: -8, marginBottom: 8 },
 
   submit: { marginTop: 8 },
   back: { marginTop: 12 },

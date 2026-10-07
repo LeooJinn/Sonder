@@ -96,9 +96,11 @@ function RouteGuard() {
     // a stranger can open. Redirecting them to sign-in would defeat the point
     // of a shareable link.
     const onPublicRoute = segments[0] === 'p' || segments[0] === 'u';
-    // Where a password-reset or change-email message lands: the person opening
-    // it may not be signed in on that device.
-    const onReset = segments[0] === 'reset-password' || segments[0] === 'confirm-email';
+    // Where a password-reset, change-email or sign-in-link message lands: the
+    // person opening it may not be signed in on that device.
+    const onReset = segments[0] === 'reset-password' ||
+      segments[0] === 'confirm-email' ||
+      segments[0] === 'sign-in-link';
 
     if (!session && !onSignIn && !onPublicRoute && !onWelcome && !onReset) {
       router.replace('/welcome');
