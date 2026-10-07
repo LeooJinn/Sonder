@@ -25,19 +25,6 @@
 -- the function first.
 
 -- ---------------------------------------------------------------------------
--- Keep last-done dates sane
--- ---------------------------------------------------------------------------
-
--- 0010 put no bounds on last_done_on, and any member can write any date. A
--- date near the year 5,000,000 makes date arithmetic raise, which would stop
--- the nightly job for everyone. NOT VALID so applying this can never fail on
--- a row that is already there; the sender below ignores such rows anyway.
-alter table reminders
-  add constraint reminders_last_done_on_sane
-  check (last_done_on is null or last_done_on between date '1900-01-01' and date '2100-12-31')
-  not valid;
-
--- ---------------------------------------------------------------------------
 -- A member's choice, and the token that lets an email act on it
 -- ---------------------------------------------------------------------------
 
@@ -115,8 +102,10 @@ grant execute on function public.unsubscribe_reminder_emails(uuid) to anon, auth
    lacks its inputs is ignored; with neither, a reminder is never due.
 
    The bigint keeps two large intervals from raising "integer out of range".
-   The case keeps a date outside 1900-2100 (see the constraint above) from
-   raising in the date arithmetic: such a row is treated as having no date. */
+   The case keeps a date outside 1900-2100 from raising in the date arithmetic
+   (any member can write a last-done date near the year 5,000,000, which would
+   otherwise stop the nightly job for everyone): such a date counts as no
+   date. The app would still work such a date out, but no log is dated then. */
 create function public.reminder_is_due(
   every_miles        integer,
   every_months       integer,
@@ -162,16 +151,24 @@ as $$
 $$;
 
 /* "2020 Ford Escape". The year, make and model come from a vehicles row, and
-   any member can create one with any text, so only letters, digits, spaces,
-   and & ' + - survive, cut to 40. */
+   any member can create one first, with any text, so what reaches an email is
+   limited: a four-digit year or none, only letters, digits, spaces and & ' + -,
+   cut to 40, and at most four digits in the make and model together (a real
+   model has a few, like F-150; a phone number has seven). Anything else is
+   just "car". */
 create function public.email_car(year text, make text, model text)
 returns text
 language sql
 immutable
 as $$
-  select coalesce(nullif(left(btrim(regexp_replace(
-           regexp_replace(concat_ws(' ', year, make, model), '[[:space:][:cntrl:]]+', ' ', 'g'),
-           '[^[:alnum:] &''+-]', '', 'g')), 40), ''), 'car');
+  select case
+    when length(regexp_replace(concat_ws('', make, model), '[^0-9]', '', 'g')) > 4 then 'car'
+    else coalesce(nullif(left(btrim(regexp_replace(
+           regexp_replace(
+             concat_ws(' ', case when year ~ '^[0-9]{4}$' then year end, make, model),
+             '[[:space:][:cntrl:]]+', ' ', 'g'),
+           '[^[:alnum:] &''+-]', '', 'g')), 40), ''), 'car')
+  end;
 $$;
 
 revoke all on function public.reminder_is_due(integer, integer, date, integer, integer, date) from public, anon, authenticated;
@@ -230,15 +227,18 @@ revoke all on reminder_email_sends from anon, authenticated;
    two runs can never pick the same one. A reminder is due as of `on_date`
    when reminder_is_due() says so, on a car the member owns now. It is
    emailed when:
-     - it has existed for `settle_days`, so one just created or edited in the
-       app, which the member has already seen there, waits;
+     - it has existed for `settle_days`, so one just created in the app, which
+       the member has already seen there, waits (one edited into being due
+       is emailed the next morning: nothing records when a reminder changed);
      - this episode has not been emailed yet, or it is still due
        `follow_up_days` after the first email and has had fewer than
        `max_per_episode` (the one gentle follow-up, then silence);
      - the member has emails on, a confirmed address, is not suspended, and
        was last emailed at least `member_gap_days` ago. Everything eligible at
        that moment goes in one digest.
-   At most `max_emails` members per call, the longest-waiting first.
+   At most `max_emails` members per call, oldest account first: a sign-up
+   cannot jump the queue, so a swarm of new accounts cannot use up the day's
+   emails. `only_profile` limits a call to one member (for trying it out).
 
    First it forgets reminders that are no longer due or whose car was sold:
    fixing a mistyped odometer or lengthening an interval starts the reminder
@@ -249,7 +249,8 @@ create function public.claim_reminder_emails(
   member_gap_days integer default 7,
   settle_days     integer default 2,
   max_emails      integer default 2,
-  on_date         date    default (now() at time zone 'utc')::date
+  on_date         date    default (now() at time zone 'utc')::date,
+  only_profile    uuid    default null
 )
 returns table (
   recipient_id      uuid,
@@ -264,16 +265,30 @@ language sql
 security definer
 set search_path = public
 as $$
+  -- A car's mileage is worked out once per car, not once per reminder: any
+  -- member can add reminders without limit, and per reminder it is quadratic.
+  with mileage as materialized (
+    select o.id as ownership_id, public.known_mileage(o.id) as mileage
+      from ownerships o
+     where exists (select 1 from reminders r where r.ownership_id = o.id)
+  )
   delete from reminder_emails re
-   using reminders r, ownerships o
+   using reminders r
+   join ownerships o on o.id = r.ownership_id
+   join mileage m on m.ownership_id = o.id
    where r.id = re.reminder_id
-     and o.id = r.ownership_id
      and (o.ended_on is not null
           or o.owner_id is null
           or not public.reminder_is_due(r.every_miles, r.every_months, r.last_done_on,
-                                        r.last_done_odometer, public.known_mileage(r.ownership_id), on_date));
+                                        r.last_done_odometer, m.mileage, on_date));
 
-  with due as (
+  with mileage as materialized (
+    select o.id as ownership_id, public.known_mileage(o.id) as mileage
+      from ownerships o
+     where o.ended_on is null and o.owner_id is not null
+       and exists (select 1 from reminders r where r.ownership_id = o.id)
+  ),
+  due as (
     select r.id as reminder_id,
            r.ownership_id,
            o.owner_id as recipient_id,
@@ -290,10 +305,11 @@ as $$
            case when re.reminder_id is null then null else to_jsonb(re) end as prev
     from reminders r
     join ownerships o on o.id = r.ownership_id and o.ended_on is null and o.owner_id is not null
+    join mileage m on m.ownership_id = o.id
     join vehicles v on v.id = o.vehicle_id
     left join reminder_emails re on re.reminder_id = r.id
     where public.reminder_is_due(r.every_miles, r.every_months, r.last_done_on,
-                                 r.last_done_odometer, public.known_mileage(r.ownership_id), on_date)
+                                 r.last_done_odometer, m.mileage, on_date)
       and (r.created_at at time zone 'utc')::date <= on_date - settle_days
   ),
   fresh as (
@@ -310,8 +326,9 @@ as $$
       and u.email_confirmed_at is not null
       and (u.banned_until is null or u.banned_until <= now())
       and (s.last_emailed_on is null or s.last_emailed_on <= on_date - member_gap_days)
+      and (only_profile is null or s.profile_id = only_profile)
       and exists (select 1 from fresh f where f.recipient_id = s.profile_id)
-    order by s.last_emailed_on nulls first, s.profile_id
+    order by u.created_at, s.profile_id
     limit max_emails
   ),
   picked as (
@@ -364,7 +381,7 @@ as $$
   group by pc.recipient_id, pc.email, pc.unsubscribe_token;
 $$;
 
-revoke all on function public.claim_reminder_emails(integer, integer, integer, integer, integer, date) from public, anon, authenticated;
+revoke all on function public.claim_reminder_emails(integer, integer, integer, integer, integer, date, uuid) from public, anon, authenticated;
 
 /* Read what Resend said about the emails sent earlier and undo the ones it
    refused for a reason that may pass (a rate limit, an outage, a key not yet
@@ -440,13 +457,19 @@ language sql
 security definer
 set search_path = public
 as $$
-  with silenced as (
+  with mileage as materialized (
+    select o.id as ownership_id, public.known_mileage(o.id) as mileage
+      from ownerships o
+     where o.ended_on is null and o.owner_id is not null
+       and exists (select 1 from reminders r where r.ownership_id = o.id)
+  ),
+  silenced as (
     insert into reminder_emails (reminder_id, first_sent_on, last_sent_on, sent_count, last_done_on, last_done_odometer)
     select r.id, on_date, on_date, 2, r.last_done_on, r.last_done_odometer
     from reminders r
-    join ownerships o on o.id = r.ownership_id and o.ended_on is null and o.owner_id is not null
+    join mileage m on m.ownership_id = r.ownership_id
     where public.reminder_is_due(r.every_miles, r.every_months, r.last_done_on,
-                                 r.last_done_odometer, public.known_mileage(r.ownership_id), on_date)
+                                 r.last_done_odometer, m.mileage, on_date)
     on conflict (reminder_id) do nothing
     returning 1
   )
@@ -467,10 +490,12 @@ revoke all on function public.silence_current_reminder_emails(date) from public,
    emails per run (Resend allows about two requests a second) and forty a day,
    leaving room for sign-in and message emails on the same account. Each run
    first reads what Resend said about the earlier ones and undoes any it
-   turned away, so the next run tries again. */
+   turned away, so the next run tries again. A digest lists at most ten cars,
+   then "and N more cars". `only_profile` limits a run to one member. */
 create function public.send_reminder_emails(
-  on_date     date    default (now() at time zone 'utc')::date,
-  settle_days integer default 2
+  on_date      date    default (now() at time zone 'utc')::date,
+  settle_days  integer default 2,
+  only_profile uuid    default null
 )
 returns integer
 language plpgsql
@@ -481,6 +506,8 @@ declare
   site     constant text := 'https://www.imsonder.com';
   per_run  constant integer := 2;
   per_day  constant integer := 40;
+  max_cars constant integer := 10;
+  shown_cars integer;
   api_key  text;
   sender   text;
   room     integer;
@@ -527,7 +554,8 @@ begin
     select * from public.claim_reminder_emails(
       settle_days => settle_days,
       max_emails => least(per_run, room),
-      on_date => on_date)
+      on_date => on_date,
+      only_profile => only_profile)
   loop
     heading := case when due.follow_up then 'Still due: ' else '' end
             || case when due.total = 1 then 'A reminder is due'
@@ -536,7 +564,10 @@ begin
 
     blocks := '';
     plain := '';
+    shown_cars := 0;
     for car in select * from jsonb_array_elements(due.cars) loop
+      shown_cars := shown_cars + 1;
+      exit when shown_cars > max_cars;
       blocks := blocks
         || '<p style="margin:18px 0 2px;font-size:13px;line-height:20px;color:#526159;">'
         || public.html_escape(car ->> 'car') || '</p>';
@@ -557,6 +588,12 @@ begin
         plain := plain || '  and ' || (jsonb_array_length(car -> 'titles') - 8) || E' more\n';
       end if;
     end loop;
+    if jsonb_array_length(due.cars) > max_cars then
+      blocks := blocks
+        || '<p style="margin:18px 0 2px;font-size:13px;line-height:20px;color:#526159;">and '
+        || (jsonb_array_length(due.cars) - max_cars) || ' more cars</p>';
+      plain := plain || E'\nand ' || (jsonb_array_length(due.cars) - max_cars) || E' more cars\n';
+    end if;
 
     select net.http_post(
       url := 'https://api.resend.com/emails',
@@ -611,7 +648,7 @@ begin
 end;
 $$;
 
-revoke all on function public.send_reminder_emails(date, integer) from public, anon, authenticated;
+revoke all on function public.send_reminder_emails(date, integer, uuid) from public, anon, authenticated;
 
 -- Reminders that are already due when this is applied are not news.
 select public.silence_current_reminder_emails();

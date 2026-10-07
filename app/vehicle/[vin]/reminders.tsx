@@ -116,9 +116,6 @@ export default function RemindersScreen() {
     if (reminder.lastDoneOn && !/^\d{4}-\d{2}-\d{2}$/.test(reminder.lastDoneOn)) {
       return setFormError('Enter the date it was last done as YYYY-MM-DD.');
     }
-    if (reminder.lastDoneOn && (reminder.lastDoneOn < '1900-01-01' || reminder.lastDoneOn > '2100-12-31')) {
-      return setFormError('Use a date between 1900 and 2100.');
-    }
 
     setSaving(true);
     try {

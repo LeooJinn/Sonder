@@ -180,9 +180,12 @@ select public.silence_current_reminder_emails();
 select cron.schedule('send-reminder-emails', '*/5 16-17 * * *', 'select public.send_reminder_emails()');
 ```
 
-(Leave out the first line to send everyone a one-time catch-up email about
-reminders that are already due.) Reminder emails use the same Resend key. They
-send from `message_email_from` unless you also add a sender of their own:
+(Migration 0015 already did the first line once, when it was applied. Running it
+again only covers reminders that came due since. To announce everything that is
+due now instead, run `delete from reminder_emails;` before scheduling: members
+with something due then get one email each, at most 40 a day.) Reminder emails
+use the same Resend key. They send from `message_email_from` unless you also add
+a sender of their own:
 
 ```sql
 select vault.create_secret('Sonder <reminders@imsonder.com>', 'reminder_email_from');
@@ -190,17 +193,25 @@ select vault.create_secret('Sonder <reminders@imsonder.com>', 'reminder_email_fr
 
 **Try it (two minutes).** In the app: open a car, Reminders, add "Oil change",
 set Last done to a date at least eight months ago, Save. In the SQL Editor run
-`select public.send_reminder_emails(settle_days => 0);`. It returns how many
-emails it sent, and the email arrives within a minute. (A reminder normally has
-to be two days old before it is emailed, because you have just seen it in the
-app; `settle_days => 0` skips that wait for the test.) If it returns 0, the
-usual reasons are: the switch in Profile is off; the key or sender is missing in
-Vault; you were emailed in the last 7 days
-(`update reminder_email_settings set last_emailed_on = null;` clears that); or
-the reminder was already due when you ran `silence_current_reminder_emails()`
-(editing its Last done date counts as new).
+the line below, with your own handle. It sends only to you and skips the usual
+two-day wait (a reminder normally has to be two days old before it is emailed,
+because you have just seen it in the app):
 
-**Behaviour.** At most 2 emails per run, 40 a day (Resend's free plan allows
+```sql
+select public.send_reminder_emails(settle_days => 0,
+  only_profile => (select id from profiles where handle = 'yourhandle'));
+```
+
+It returns how many emails it sent (1), and the email arrives within a minute.
+If it returns 0, the usual reasons are: the switch in Profile is off; the key or
+sender is missing in Vault; you were emailed in the last 7 days
+(`update reminder_email_settings set last_emailed_on = null where profile_id =
+(select id from profiles where handle = 'yourhandle');` clears that, for you
+only); or the reminder was already due when you ran
+`silence_current_reminder_emails()` (editing its Last done date counts as new).
+
+**Behaviour.** A digest lists up to ten cars. At most 2 emails per run, 40 a day,
+oldest accounts first (Resend's free plan allows
 about 100 a day, shared with sign-in and message emails). Postgres sends through
 pg_net, which is asynchronous. Each run reads Resend's answer to the earlier
 ones: a refusal that may pass (rate limit, outage) is undone and tried again on

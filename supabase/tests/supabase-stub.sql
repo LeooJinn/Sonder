@@ -10,13 +10,14 @@ alter default privileges in schema public grant all on functions to anon, authen
 
 create schema auth;
 grant usage on schema auth to anon, authenticated;
--- email_confirmed_at and banned_until are what the reminder emails check;
--- the default keeps every fixture user confirmed.
+-- email_confirmed_at, banned_until and created_at are what the reminder
+-- emails check; the default keeps every fixture user confirmed.
 create table auth.users (
   id uuid primary key,
   email text,
   email_confirmed_at timestamptz default now(),
-  banned_until timestamptz
+  banned_until timestamptz,
+  created_at timestamptz default now()
 );
 create function auth.uid() returns uuid language sql stable as $$
   -- Same fallback order as Supabase's own definition.

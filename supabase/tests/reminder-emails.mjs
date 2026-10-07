@@ -91,8 +91,13 @@ export async function reminderEmailChecks({ port, admin }) {
     const tok = (await one(`select unsubscribe_token t from reminder_email_settings where profile_id='${U(31)}'`)).t;
     ok(ann.headers['List-Unsubscribe'] === `<https://www.imsonder.com/api/unsubscribe?for=reminders&t=${tok}>` && ann.headers['List-Unsubscribe-Post'] === 'List-Unsubscribe=One-Click', 'one-click unsubscribe header, for= first');
     ok(ann.html.includes(`for=reminders&amp;t=${tok}`), 'html href uses &amp;');
+    ok(ann.text.includes(`Stop these emails: https://www.imsonder.com/api/unsubscribe?for=reminders&t=${tok}`), 'the plain-text part carries the same unsubscribe link');
     console.log('   ben car label:', JSON.stringify(ben.text.split('\n').slice(0,4)));
     ok(ben.text.split('\n')[2] === '2019 Evil scripthttpxcoab1 Click now', 'hostile car label is stripped of punctuation and newlines');
+    const label = async (y, m, d) => (await one(`select public.email_car($1, $2, $3) l`, [y, m, d])).l;
+    ok(await label('2020', 'Ford', 'F-150') === '2020 Ford F-150', 'a real car label is kept');
+    ok(await label('2020', 'Account locked call 1 800 555 0199', 'to unlock now') === 'car', 'a label with a phone number in it is just "car"');
+    ok(await label('Account locked', 'Ford', 'Escape') === 'Ford Escape', 'a year that is not four digits is dropped');
     ok(ann.from === 'Sonder <messages@imsonder.test>' && ann.to[0] === 'ann@x', 'from fallback and to');
     ok((await one(`select count(*)::int c from reminder_email_sends where status='pending'`)).c === 2, 'ledger has two pending sends');
     ok((await one(`select public.send_reminder_emails('${D}') r`)).r === 0, 'second run: nothing left (cat has nothing due, others in gap)');
@@ -157,44 +162,47 @@ export async function reminderEmailChecks({ port, admin }) {
     await c.query(`update reminders set every_months = 6 where id = '60000000-0000-0000-0000-000000000031'`);
     ok((await q(`select * from public.claim_reminder_emails(on_date => '2026-10-25', max_emails => 10)`)).filter(x => x.email === 'ann@x' && x.follow_up === false).length === 1, 'interval edited away then back is a fresh email');
 
-    // --- settle: reminder created today waits
-    await c.query(`insert into reminders (id, ownership_id, title, every_months, last_done_on) values ('60000000-0000-0000-0000-000000000038','20000000-0000-0000-0000-000000000034','Fresh today',1,'2020-01-01')`);
+    // --- settle: a reminder created today waits
+    // 38 is old, like every other fixture: later checks run on dates in 2027
+    // and must not depend on today's date.
+    await c.query(`insert into reminders (id, ownership_id, title, every_months, last_done_on, created_at) values ('60000000-0000-0000-0000-000000000038','20000000-0000-0000-0000-000000000034','Belts',1,'2020-01-01','2020-01-08')`);
     await c.query(`update reminder_email_settings set last_emailed_on = null`);
     const today = (await one(`select (now() at time zone 'utc')::date d`)).d.toISOString().slice(0,10);
+    await c.query(`begin`);
+    await c.query(`delete from reminders where id = '60000000-0000-0000-0000-000000000038'`);
+    await c.query(`insert into reminders (id, ownership_id, title, every_months, last_done_on) values ('60000000-0000-0000-0000-000000000040','20000000-0000-0000-0000-000000000034','Fresh today',1,'2020-01-01')`);
     ok((await q(`select * from public.claim_reminder_emails(on_date => '${today}', max_emails => 10)`)).filter(x => x.email === 'cat@x').length === 0, 'a reminder created today is held back (settle_days 2)');
-    ok((await q(`select * from public.claim_reminder_emails(settle_days => 0, on_date => '${today}', max_emails => 10)`)).filter(x => x.email === 'cat@x').length === 1, 'settle_days => 0 releases it (the owner\'s try-it)');
+    ok((await q(`select * from public.claim_reminder_emails(settle_days => 0, on_date => '${today}', max_emails => 10)`)).filter(x => x.email === 'cat@x').length === 1, 'settle_days => 0 releases it');
+    await c.query(`rollback`);
     await c.query(`delete from reminder_emails`);
 
     // --- exclusions
     await c.query(`update reminder_email_settings set last_emailed_on = null, enabled = true where profile_id in ('${U(31)}','${U(32)}','${U(33)}')`);
-    const who = async () => (await q(`select email from public.claim_reminder_emails(on_date => '2026-12-01', settle_days => 0, max_emails => 10)`)).map(x => x.email).sort().join(',');
+    const who = async () => (await q(`select recipient_id from public.claim_reminder_emails(on_date => '2026-12-01', settle_days => 0, max_emails => 10)`)).map(x => x.recipient_id).sort().join(',');
+    await c.query(`begin`); ok((await who()).includes(U(31)), 'control: ann is emailed when nothing excludes her'); await c.query(`rollback`);
     await c.query(`begin`); 
     await c.query(`update reminder_email_settings set enabled = false where profile_id = '${U(31)}'`);
-    ok(!(await who()).includes('ann@x'), 'switch off: not emailed'); ok((await one(`select count(*)::int c from reminder_emails r join reminders m on m.id=r.reminder_id where m.ownership_id in ('20000000-0000-0000-0000-000000000031','20000000-0000-0000-0000-000000000032')`)).c === 0, 'switch off: nothing marked');
+    ok(!(await who()).includes(U(31)), 'switch off: not emailed'); ok((await one(`select count(*)::int c from reminder_emails r join reminders m on m.id=r.reminder_id where m.ownership_id in ('20000000-0000-0000-0000-000000000031','20000000-0000-0000-0000-000000000032')`)).c === 0, 'switch off: nothing marked');
     await c.query(`rollback`);
     await c.query(`begin`);
     await c.query(`update auth.users set banned_until = now() + interval '1 day' where id = '${U(31)}'`);
-    ok(!(await who()).includes('ann@x'), 'banned: not emailed'); await c.query(`rollback`);
+    ok(!(await who()).includes(U(31)), 'banned: not emailed'); await c.query(`rollback`);
     await c.query(`begin`); await c.query(`update auth.users set email_confirmed_at = null where id = '${U(31)}'`);
-    ok(!(await who()).includes('ann@x'), 'unconfirmed: not emailed'); await c.query(`rollback`);
+    ok(!(await who()).includes(U(31)), 'unconfirmed: not emailed'); await c.query(`rollback`);
     await c.query(`begin`); await c.query(`update auth.users set email = null where id = '${U(31)}'`);
-    ok(!(await who()).includes('ann@x'), 'no address: not emailed'); await c.query(`rollback`);
+    ok(!(await who()).includes(U(31)), 'no address: not emailed'); await c.query(`rollback`);
     await c.query(`begin`); await c.query(`update ownerships set ended_on = '2026-11-01' where id in ('20000000-0000-0000-0000-000000000031','20000000-0000-0000-0000-000000000032')`);
-    ok(!(await who()).includes('ann@x'), 'sold cars: not emailed'); await c.query(`rollback`);
+    ok(!(await who()).includes(U(31)), 'sold cars: not emailed'); await c.query(`rollback`);
     await c.query(`begin`); await c.query(`update ownerships set owner_id = null where id in ('20000000-0000-0000-0000-000000000031','20000000-0000-0000-0000-000000000032')`);
-    ok(!(await who()).includes('ann@x'), 'orphaned ownership: not emailed'); await c.query(`rollback`);
+    ok(!(await who()).includes(U(31)), 'orphaned ownership: not emailed'); await c.query(`rollback`);
     await c.query(`delete from reminder_emails`);
 
-    // --- poison rows
-    await raises(`set role authenticated; set request.jwt.claim.sub = '${U(33)}'; insert into reminders (ownership_id, title, every_months, last_done_on) values ('20000000-0000-0000-0000-000000000034','Poison',12,'5874897-12-31')`, '23514', 'a member cannot write a date out of range');
-    await c.query(`reset role`);
-    await c.query(`alter table reminders drop constraint reminders_last_done_on_sane`);
+    // --- poison rows: nothing stops a member writing a silly date, so the job must cope
     await c.query(`insert into reminders (id, ownership_id, title, every_months, last_done_on, created_at) values ('60000000-0000-0000-0000-000000000039','20000000-0000-0000-0000-000000000034','Poison',12,'5874897-12-31','2020-01-01')`);
     const pz = await q(`select * from public.claim_reminder_emails(on_date => '2026-12-01', settle_days => 0, max_emails => 10)`);
-    ok(pz.length >= 2, 'a legacy out-of-range row does not stop the run for everyone');
+    ok(pz.length >= 2, 'a date near the year 5,000,000 does not stop the run for everyone');
     ok(!pz.some(x => x.email === 'cat@x' && x.total > 1), 'and is never itself due');
     await c.query(`delete from reminders where id = '60000000-0000-0000-0000-000000000039'`);
-    await c.query(`alter table reminders add constraint reminders_last_done_on_sane check (last_done_on is null or last_done_on between date '1900-01-01' and date '2100-12-31') not valid`);
     await c.query(`delete from reminder_emails`);
     ok((await one(`select public.reminder_is_due(2147483647, null, null, 2147483647, 0, '2026-01-01') r`)).r === false, 'int overflow guarded');
 
@@ -214,11 +222,17 @@ export async function reminderEmailChecks({ port, admin }) {
     await c.query(`alter table net._http_response_x rename to _http_response`);
 
     // --- advisory lock
-    const c2 = new pg.Client({host:'localhost',port,user:'postgres',password:'postgres',database: name }); await c2.connect();
-    await c2.query(`begin`); await c2.query(`select pg_advisory_xact_lock(hashtext('send_reminder_emails'))`);
-    await c.query(`update reminder_email_settings set last_emailed_on = null`); await c.query(`delete from reminder_emails`);
-    ok((await one(`select public.send_reminder_emails('2026-12-20', 0) r`)).r === 0, 'while another session holds the lock: returns 0');
-    await c2.query(`rollback`); await c2.end();
+    const c2 = new pg.Client({host:'localhost',port,user:'postgres',password:'postgres',database: name });
+    c2.on('error', () => {});
+    await c2.connect();
+    try {
+      await c2.query(`begin`); await c2.query(`select pg_advisory_xact_lock(hashtext('send_reminder_emails'))`);
+      await c.query(`update reminder_email_settings set last_emailed_on = null`); await c.query(`delete from reminder_emails`);
+      ok((await one(`select public.send_reminder_emails('2026-12-20', 0) r`)).r === 0, 'while another session holds the lock: returns 0');
+    } finally {
+      await c2.query(`rollback`).catch(() => {});
+      await c2.end();
+    }
 
     // --- privileges
     for (const fn of [`public.send_reminder_emails()`, `public.claim_reminder_emails()`, `public.settle_reminder_email_sends()`, `public.silence_current_reminder_emails()`, `public.known_mileage('20000000-0000-0000-0000-000000000031')`, `public.reminder_is_due(1,1,null,null,null,null)`, `public.email_car('a','b','c')`]) {
@@ -241,7 +255,12 @@ export async function reminderEmailChecks({ port, admin }) {
     ok((await one(`select public.unsubscribe_reminder_emails('${mtok}') r`)).r === false, 'a message-email token does not unsubscribe reminders');
     ok((await one(`select public.unsubscribe_reminder_emails('${t2}') r`)).r === true, 'right token: true, callable as anon');
     await c.query('reset role');
-    ok((await one(`select r.enabled r, m.enabled m from reminder_email_settings r, message_email_settings m where r.profile_id='${U(32)}' and m.profile_id='${U(32)}'`)).m === true, 'message emails untouched');
+    const flags = await one(`select r.enabled r, m.enabled m from reminder_email_settings r, message_email_settings m where r.profile_id='${U(32)}' and m.profile_id='${U(32)}'`);
+    ok(flags.r === false, 'and the reminder switch is now off');
+    ok(flags.m === true, 'message emails untouched');
+    await c.query(`begin`);
+    ok(!(await q(`select recipient_id from public.claim_reminder_emails(on_date => '2026-12-02', settle_days => 0, max_emails => 10)`)).some(x => x.recipient_id === U(32)), 'an unsubscribed member is not emailed');
+    await c.query(`rollback`);
 
     // --- undo restores a follow-up to its earlier state
     await c.query(`delete from reminder_emails; delete from reminder_email_sends; delete from net.calls; delete from net._http_response`);
@@ -272,8 +291,68 @@ export async function reminderEmailChecks({ port, admin }) {
     await c.query(`delete from reminders where id = '60000000-0000-0000-0000-000000000038'`);
     await c.query(`insert into net._http_response (id, status_code) values (${f2.request_id}, 429) on conflict (id) do update set status_code = 429`);
     await c.query(`select public.settle_reminder_email_sends()`);
-    ok(true, 'undo after the reminder was deleted does not fail');
+    ok((await one(`select status from reminder_email_sends where request_id = ${f2.request_id}`)).status === 'released', 'undo after the reminder was deleted: released without raising');
+    // The same when the refused email was a follow-up: the earlier record is
+    // put back, unless the reminder is gone.
+    await c.query(`delete from reminder_emails; delete from reminder_email_sends; delete from net.calls; delete from net._http_response`);
+    await c.query(`update reminder_email_settings set enabled = (profile_id = '${U(33)}'), last_emailed_on = null`);
+    await c.query(`insert into reminders (id, ownership_id, title, every_months, last_done_on, created_at) values ('60000000-0000-0000-0000-000000000041','20000000-0000-0000-0000-000000000034','Wipers',1,'2020-01-01','2020-01-09')`);
+    await c.query(`select public.send_reminder_emails('2027-04-01', 0)`);
+    const w1 = await one(`select request_id from reminder_email_sends where status = 'pending'`);
+    await c.query(`insert into net._http_response (id, status_code) values (${w1.request_id}, 200)`);
+    ok((await one(`select public.send_reminder_emails('2027-04-15', 0) r`)).r === 1, 'a follow-up is sent two weeks later');
+    const w2 = await one(`select request_id from reminder_email_sends where status = 'pending'`);
+    await c.query(`delete from reminders where id = '60000000-0000-0000-0000-000000000041'`);
+    await c.query(`insert into net._http_response (id, status_code) values (${w2.request_id}, 503)`);
+    ok((await one(`select public.settle_reminder_email_sends() r`)).r === 1, 'a refused follow-up for a reminder that is gone is undone without raising');
+    ok((await one(`select count(*)::int c from reminder_emails where reminder_id = '60000000-0000-0000-0000-000000000041'`)).c === 0, 'and the deleted reminder does not come back');
     await c.query(`update reminder_email_settings set enabled = true`);
+
+    // --- two emails a run, oldest accounts first
+    await c.query(`begin`);
+    await c.query(`delete from reminder_emails; delete from reminder_email_sends; delete from net.calls; delete from net._http_response`);
+    await c.query(`update reminder_email_settings set last_emailed_on = null, enabled = profile_id in ('${U(31)}','${U(32)}','${U(33)}')`);
+    await c.query(`insert into reminders (id, ownership_id, title, every_months, last_done_on, created_at) values ('60000000-0000-0000-0000-000000000042','20000000-0000-0000-0000-000000000034','Belts',1,'2020-01-01','2020-01-10')`);
+    // ann signed up just now; cat is the oldest account, then ben.
+    await c.query(`update auth.users set created_at = case id when '${U(31)}' then now() when '${U(32)}' then timestamptz '2021-01-01' when '${U(33)}' then timestamptz '2020-01-01' else created_at end`);
+    ok((await one(`select public.send_reminder_emails('2027-03-01', 0) r`)).r === 2, 'per-run cap: three members are due and two get an email');
+    ok((await q(`select body->'to'->>0 as t from net.calls order by id`)).map(x => x.t).sort().join(',') === 'ben@x,cat@x', 'oldest accounts first: a new sign-up does not jump the queue');
+    ok((await one(`select public.send_reminder_emails('2027-03-01', 0) r`)).r === 1, 'the third member is emailed on the next run');
+    ok((await one(`select public.send_reminder_emails('2027-03-01', 0) r`)).r === 0, 'and nobody is emailed twice');
+    await c.query(`rollback`);
+
+    // --- one member only, and a digest that lists at most ten cars
+    await c.query(`begin`);
+    await c.query(`delete from reminder_emails; delete from reminder_email_sends; delete from net.calls; delete from net._http_response`);
+    await c.query(`update reminder_email_settings set last_emailed_on = null, enabled = profile_id in ('${U(31)}','${U(32)}','${U(33)}')`);
+    ok((await one(`select public.send_reminder_emails('2027-05-01', 0, '${U(32)}') r`)).r === 1, 'only_profile: one member is emailed');
+    ok((await q(`select body->'to'->>0 as t from net.calls`)).map(x => x.t).join(',') === 'ben@x', 'and it is that member');
+    await c.query(`delete from net.calls`);
+    await c.query(`
+      with v as (
+        insert into vehicles (vin, year, make, model)
+        select 'CAPCAR' || lpad(g::text, 11, '0'), '2020', 'Make', 'Model ' || g from generate_series(1, 12) g
+        returning id),
+      o as (
+        insert into ownerships (vehicle_id, owner_id) select id, '${U(33)}' from v returning id)
+      insert into reminders (ownership_id, title, every_months, last_done_on, created_at)
+      select id, 'Cap job', 1, '2020-01-01', '2020-01-01' from o`);
+    ok((await one(`select public.send_reminder_emails('2027-05-01', 0, '${U(33)}') r`)).r === 1, 'a member with twelve cars due is emailed once');
+    const big = (await one(`select body from net.calls`)).body;
+    ok((big.html.match(/Model /g) || []).length === 10 && big.html.includes('and 2 more cars') && big.text.includes('and 2 more cars'), 'the digest lists ten cars and then "and 2 more cars"');
+    ok(big.subject === '12 reminders are due on Sonder', 'the subject still counts them all: ' + big.subject);
+    await c.query(`rollback`);
+
+    // --- a member cannot make the daily job slow by piling up reminders
+    await c.query(`begin`);
+    await c.query(`insert into reminders (ownership_id, title, every_months, last_done_on, created_at)
+                   select '20000000-0000-0000-0000-000000000034', 'Bulk ' || g, 240, '2026-01-01', '2020-01-01' from generate_series(1, 20000) g`);
+    const t0 = Date.now();
+    await q(`select * from public.claim_reminder_emails(on_date => '2026-12-01', settle_days => 0, max_emails => 10)`);
+    const took = Date.now() - t0;
+    ok(took < 5000, `20,000 reminders on one car are claimed in ${took} ms (a car's mileage is worked out once, not once per reminder)`);
+    await c.query(`rollback`);
+
     // --- silence
     await c.query(`delete from reminder_emails`);
     const sil = (await one(`select public.silence_current_reminder_emails('2026-12-21') n`)).n;
@@ -292,7 +371,7 @@ export async function reminderEmailChecks({ port, admin }) {
     ok((await one(`select count(*)::int c from reminder_emails where reminder_id in ('60000000-0000-0000-0000-000000000031','60000000-0000-0000-0000-000000000034')`)).c === 0, 'deleting the ownership removes the episode records');
   } finally {
     await c.end();
-    await admin.query(`drop database if exists ${name}`);
+    await admin.query(`drop database if exists ${name} with (force)`);
   }
   console.log(`${n} reminder email checks passed.`);
 }
