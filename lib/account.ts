@@ -45,22 +45,27 @@ async function currentPhotoPaths(userId: string): Promise<string[]> {
 /**
  * Delete the signed-in user's account.
  *
- * Storage first, then the database, then sign out. The order matters: once
- * the rows are gone their storage paths are unrecoverable, and the files
- * would bill forever with nothing pointing at them.
+ * The paths of the files that must go are worked out first, while the rows
+ * that name them still exist. Then the database, then the files, then sign
+ * out. Database first, because the other way round a failure after the files
+ * were gone left cars in the garage whose photos were missing; a failure
+ * after the database leaves only files nothing points at, which cost a little
+ * and can be swept up, and the account is gone as the person asked.
  */
 export async function deleteAccount(): Promise<void> {
   const { data: auth } = await supabase.auth.getUser();
   if (!auth.user) throw new Error('You need to be signed in.');
 
   const paths = await currentPhotoPaths(auth.user.id);
-  if (paths.length > 0) {
-    const { error } = await supabase.storage.from(BUCKET).remove(paths);
-    if (error) throw new Error(error.message);
-  }
 
   const { error } = await supabase.rpc('delete_my_account');
   if (error) throw new Error(error.message);
+
+  if (paths.length > 0) {
+    // Best effort: the account is already gone, and there is nobody left to
+    // tell about a file that could not be removed.
+    await supabase.storage.from(BUCKET).remove(paths).catch(() => {});
+  }
 
   // The session's user no longer exists; clear it locally so the app doesn't
   // sit holding a token for a deleted account.
