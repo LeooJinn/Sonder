@@ -16,6 +16,7 @@ import { supabase } from '../lib/supabase';
 import { RegionPicker } from '../components/RegionPicker';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { AccountSecurity } from '../components/AccountSecurity';
+import { LegalLinks } from '../components/LegalLinks';
 import { deleteAccount } from '../lib/account';
 import { loadPastVehicles, requestTransferCode, type SavedVehicle } from '../lib/garage';
 import { TransferCodeDialog } from '../components/TransferCodeDialog';
@@ -270,6 +271,10 @@ export default function ProfileScreen() {
           onClose={() => setNewCode(null)}
         />
 
+        <View style={styles.legalBlock}>
+          <LegalLinks align="left" />
+        </View>
+
         <View style={styles.account}>
           <Text style={styles.accountLabel}>Signed in as</Text>
           <Text style={styles.email}>{email}</Text>
@@ -377,6 +382,7 @@ const styles = StyleSheet.create({
   switchRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 16 },
   switchText: { flex: 1, gap: 4 },
   emailsTitle: { ...type.bodyStrong, color: colors.text },
+  legalBlock: { marginTop: 32 },
   sold: { marginTop: 40, paddingTop: 24, gap: 8, borderTopWidth: 1, borderTopColor: colors.border },
   soldRow: { gap: 4, marginTop: 8 },
   soldName: { ...type.body, color: colors.text },

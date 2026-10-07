@@ -98,11 +98,12 @@ function RouteGuard() {
     const onPublicRoute = segments[0] === 'p' || segments[0] === 'u';
     // Where a password-reset, change-email or sign-in-link message lands: the
     // person opening it may not be signed in on that device.
+    const onLegal = segments[0] === 'privacy' || segments[0] === 'terms';
     const onReset = segments[0] === 'reset-password' ||
       segments[0] === 'confirm-email' ||
       segments[0] === 'sign-in-link';
 
-    if (!session && !onSignIn && !onPublicRoute && !onWelcome && !onReset) {
+    if (!session && !onSignIn && !onPublicRoute && !onWelcome && !onReset && !onLegal) {
       router.replace('/welcome');
     } else if (session && onSignIn) {
       router.replace('/');
