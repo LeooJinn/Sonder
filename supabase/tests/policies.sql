@@ -5,6 +5,10 @@
 -- it; Sam also owns a Civic he never published; a third member is a stranger
 -- to both.
 
+-- Accounts in these fixtures are a month old unless a check says otherwise:
+-- reports only count from accounts a week old (0017).
+alter table profiles alter column created_at set default now() - interval '30 days';
+
 -- Fixture, as superuser.
 insert into auth.users (id, email) values
   ('00000000-0000-0000-0000-00000000000a', 'seller@x'),
@@ -851,9 +855,10 @@ reset role;
 insert into vehicles (vin) select 'CAP' || lpad(g::text, 14, '0') from generate_series(1, 26) g;
 insert into ownerships (vehicle_id, owner_id)
   select id, 'b0000000-0000-0000-0000-000000000005' from vehicles where vin like 'CAP%' order by vin limit 25;
+insert into t_codes select 'car26', id::text from vehicles where vin = 'CAP' || lpad('26', 14, '0');
 set role authenticated;
 set request.jwt.claim.sub = 'b0000000-0000-0000-0000-000000000005';
-select pg_temp.denied($$insert into ownerships (vehicle_id, owner_id) select id, 'b0000000-0000-0000-0000-000000000005' from vehicles where vin = 'CAP' || lpad('26', 14, '0')$$, 'a 26th car is refused');
+select pg_temp.denied($$insert into ownerships (vehicle_id, owner_id) values ((select code::uuid from t_codes where name = 'car26'), 'b0000000-0000-0000-0000-000000000005')$$, 'a 26th car is refused');
 reset role;
 
 -- Vehicle rows have to look like vehicles.
@@ -899,4 +904,159 @@ insert into reports (reporter_id, target_kind, target_id, reason, note) values
 select pg_temp.check(true, 'a member can report a VIN someone else has claimed');
 select pg_temp.denied($$update profiles set handle = 'AB' where id = 'b0000000-0000-0000-0000-000000000004'$$, 'a handle the app would refuse is refused by the database too');
 select pg_temp.denied($$update profiles set display_name = repeat('x', 61) where id = 'b0000000-0000-0000-0000-000000000004'$$, 'a 61-character display name is refused');
+reset role;
+
+-- ---------------- 0017: visibility ----------------
+-- Gus is a stranger to everyone. Each of the others stays private to him until
+-- there is a real connection, and then becomes readable.
+reset role;
+insert into auth.users (id, email) values
+  ('b1000000-0000-0000-0000-000000000001', 'gus@x'),  -- the observer
+  ('b1000000-0000-0000-0000-000000000002', 'ida@x'),  -- blocked by Gus
+  ('b1000000-0000-0000-0000-000000000003', 'joy@x'),  -- hosts a visible meet
+  ('b1000000-0000-0000-0000-000000000004', 'kai@x'),  -- going to it
+  ('b1000000-0000-0000-0000-000000000005', 'lou@x'),  -- hosts a hidden meet
+  ('b1000000-0000-0000-0000-000000000006', 'max@x'),  -- in a conversation with Gus
+  ('b1000000-0000-0000-0000-000000000007', 'ned@x'),  -- follows Gus
+  ('b1000000-0000-0000-0000-000000000008', 'oli@x');  -- publishes a car
+update profiles set handle = 'ned_f' where id = 'b1000000-0000-0000-0000-000000000007';
+update profiles set handle = 'una_f' where id = 'b0000000-0000-0000-0000-000000000001';
+
+create function pg_temp.sees_profile(who uuid) returns boolean language sql as $$
+  select exists (select 1 from profiles where id = who)
+$$;
+grant execute on function pg_temp.sees_profile(uuid) to authenticated;
+
+set role authenticated;
+set request.jwt.claim.sub = 'b1000000-0000-0000-0000-000000000001';
+select pg_temp.check(pg_temp.sees_profile('b1000000-0000-0000-0000-000000000001'), 'a member reads their own profile');
+select pg_temp.check(not pg_temp.sees_profile('b0000000-0000-0000-0000-000000000001'), 'a stranger cannot read the profile of a previous owner who never published');
+select pg_temp.check(pg_temp.sees_profile('b0000000-0000-0000-0000-000000000002'), 'but can read the profile of an owner who published');
+select pg_temp.check(not pg_temp.sees_profile('b1000000-0000-0000-0000-000000000002'), 'a stranger is private until there is a connection');
+select pg_temp.denied($$insert into member_follows (follower_id, followed_id) values ('b1000000-0000-0000-0000-000000000001', 'b0000000-0000-0000-0000-000000000001')$$, 'a member who is not visible cannot be followed');
+reset role;
+
+-- Connections: follow, block, hosting, going, conversation, being followed.
+insert into member_follows (follower_id, followed_id) values ('b1000000-0000-0000-0000-000000000001', 'b0000000-0000-0000-0000-000000000001');
+insert into member_follows (follower_id, followed_id) values ('b1000000-0000-0000-0000-000000000007', 'b1000000-0000-0000-0000-000000000001');
+insert into blocks (blocker_id, blocked_id) values ('b1000000-0000-0000-0000-000000000001', 'b1000000-0000-0000-0000-000000000002');
+insert into meets (id, host_id, title, region, place, starts_at) values
+  ('f1000000-0000-0000-0000-000000000001', 'b1000000-0000-0000-0000-000000000003', 'Open meet', 'us-ca-los-angeles', 'Car park', now() + interval '2 days');
+insert into meets (id, host_id, title, region, place, starts_at, hidden_at) values
+  ('f1000000-0000-0000-0000-000000000002', 'b1000000-0000-0000-0000-000000000005', 'Hidden meet', 'us-ca-los-angeles', 'Car park', now() + interval '2 days', now());
+insert into meet_rsvps (meet_id, profile_id, vehicle_id) values
+  ('f1000000-0000-0000-0000-000000000001', 'b1000000-0000-0000-0000-000000000004', 'c0000000-0000-0000-0000-000000000002');
+insert into conversations (id, member_low, member_high) values
+  ('f2000000-0000-0000-0000-000000000001', 'b1000000-0000-0000-0000-000000000001', 'b1000000-0000-0000-0000-000000000006');
+insert into conversation_members (conversation_id, profile_id) values
+  ('f2000000-0000-0000-0000-000000000001', 'b1000000-0000-0000-0000-000000000001'),
+  ('f2000000-0000-0000-0000-000000000001', 'b1000000-0000-0000-0000-000000000006');
+insert into ownerships (id, vehicle_id, owner_id, is_public) values
+  ('d1000000-0000-0000-0000-000000000001', (select id from vehicles where vin = 'CAP' || lpad('26', 14, '0')), 'b1000000-0000-0000-0000-000000000008', true);
+
+set role authenticated;
+set request.jwt.claim.sub = 'b1000000-0000-0000-0000-000000000001';
+select pg_temp.check(pg_temp.sees_profile('b0000000-0000-0000-0000-000000000001'), 'a member you follow is readable');
+select pg_temp.check(pg_temp.sees_profile('b1000000-0000-0000-0000-000000000007'), 'a member who follows you is readable');
+select pg_temp.check(pg_temp.sees_profile('b1000000-0000-0000-0000-000000000002'), 'a member you blocked is readable, so your block list can name them');
+select pg_temp.check(pg_temp.sees_profile('b1000000-0000-0000-0000-000000000003'), 'the host of a visible meet is readable');
+select pg_temp.check(pg_temp.sees_profile('b1000000-0000-0000-0000-000000000004'), 'someone going to a visible meet is readable');
+select pg_temp.check(not pg_temp.sees_profile('b1000000-0000-0000-0000-000000000005'), 'the host of a hidden meet is not');
+select pg_temp.check(pg_temp.sees_profile('b1000000-0000-0000-0000-000000000006'), 'someone in a conversation with you is readable');
+select pg_temp.check(pg_temp.sees_profile('b1000000-0000-0000-0000-000000000008'), 'an owner who published is readable');
+reset role;
+
+-- Vehicles: owned, published, or at a visible meet; nothing else.
+set role authenticated;
+set request.jwt.claim.sub = 'b1000000-0000-0000-0000-000000000001';
+select pg_temp.check((select count(*) from vehicles where vin like 'CAP%') = 1, 'a member lists only the cars they can see, not every VIN in the system');
+select pg_temp.check((select count(*) from vehicles where vin = 'TEST00000000000A1') = 1, 'a published car is readable');
+select pg_temp.check((select count(*) from vehicles where vin = 'TEST00000000000A2') = 1, 'a car going to a visible meet is readable');
+reset role;
+delete from meet_rsvps where meet_id = 'f1000000-0000-0000-0000-000000000001';
+set role authenticated;
+set request.jwt.claim.sub = 'b1000000-0000-0000-0000-000000000001';
+select pg_temp.check((select count(*) from vehicles where vin = 'TEST00000000000A2') = 0, 'and not once it is not going anywhere');
+select pg_temp.denied($$insert into vehicles (vin) values ('TEST00000000000C1')$$, 'a member cannot insert a vehicle row directly');
+create temp table t_ids (name text, id uuid);
+grant all on t_ids to authenticated;
+insert into t_ids select 'first', public.ensure_vehicle('TEST00000000000C2', '2015', 'Honda', 'Fit', null, null, null, null, null, null, null, null);
+insert into t_ids select 'again', public.ensure_vehicle('TEST00000000000C2', '1999', 'Someone', 'Else', null, null, null, null, null, null, null, null);
+select pg_temp.check((select a.id = b.id from t_ids a, t_ids b where a.name = 'first' and b.name = 'again'), 'ensure_vehicle returns the same row for the same VIN');
+select pg_temp.denied($$select public.ensure_vehicle('TEST0000000000I11', '2015', 'Honda', 'Fit', null, null, null, null, null, null, null, null)$$, 'ensure_vehicle refuses a VIN that is not one');
+reset role;
+select pg_temp.check((select make = 'Honda' from vehicles where vin = 'TEST00000000000C2'), 'and the first decode stays');
+set role anon;
+select pg_temp.denied($$select public.ensure_vehicle('TEST00000000000C3', '2015', 'Honda', 'Fit', null, null, null, null, null, null, null, null)$$, 'a visitor cannot create vehicles');
+reset role;
+
+-- Reports: only accounts a week old count, and the target has to exist.
+update ownerships set is_public = true, for_sale = true, asking_price_cents = 900000, sale_contact = 'Text 555-0101'
+ where owner_id = 'b0000000-0000-0000-0000-000000000002' and ended_on is null;
+create temp table t_listing as select id from ownerships where owner_id = 'b0000000-0000-0000-0000-000000000002' and ended_on is null;
+grant select on t_listing to authenticated;
+insert into auth.users (id, email) values
+  ('b2000000-0000-0000-0000-000000000001', 'r1@x'), ('b2000000-0000-0000-0000-000000000002', 'r2@x'),
+  ('b2000000-0000-0000-0000-000000000003', 'r3@x'), ('b2000000-0000-0000-0000-000000000004', 'r4@x');
+update profiles set created_at = now() where id in
+  ('b2000000-0000-0000-0000-000000000001', 'b2000000-0000-0000-0000-000000000002', 'b2000000-0000-0000-0000-000000000003');
+set role authenticated;
+set request.jwt.claim.sub = 'b2000000-0000-0000-0000-000000000001';
+insert into reports (reporter_id, target_kind, target_id, reason) select 'b2000000-0000-0000-0000-000000000001', 'listing', id, 'scam' from t_listing;
+set request.jwt.claim.sub = 'b2000000-0000-0000-0000-000000000002';
+insert into reports (reporter_id, target_kind, target_id, reason) select 'b2000000-0000-0000-0000-000000000002', 'listing', id, 'scam' from t_listing;
+set request.jwt.claim.sub = 'b2000000-0000-0000-0000-000000000003';
+insert into reports (reporter_id, target_kind, target_id, reason) select 'b2000000-0000-0000-0000-000000000003', 'listing', id, 'scam' from t_listing;
+reset role;
+select pg_temp.check((select for_sale from ownerships where id = (select id from t_listing)), 'three brand-new accounts cannot take a listing down');
+update profiles set created_at = now() - interval '30 days' where id::text like 'b2000000-%';
+set role authenticated;
+set request.jwt.claim.sub = 'b2000000-0000-0000-0000-000000000004';
+insert into reports (reporter_id, target_kind, target_id, reason) select 'b2000000-0000-0000-0000-000000000004', 'listing', id, 'scam' from t_listing;
+reset role;
+select pg_temp.check((select not for_sale from ownerships where id = (select id from t_listing)), 'once those accounts are a week old, the reports count');
+set role authenticated;
+set request.jwt.claim.sub = 'b2000000-0000-0000-0000-000000000004';
+select pg_temp.denied($$insert into reports (reporter_id, target_kind, target_id, reason) values ('b2000000-0000-0000-0000-000000000004', 'meet', gen_random_uuid(), 'spam')$$, 'a report has to name a meet that exists');
+select pg_temp.denied($$insert into reports (reporter_id, target_kind, target_id, reason) values ('b2000000-0000-0000-0000-000000000004', 'listing', gen_random_uuid(), 'spam')$$, 'or a listing that exists');
+select pg_temp.denied($$insert into reports (reporter_id, target_kind, target_id, reason) values ('b2000000-0000-0000-0000-000000000004', 'vehicle', gen_random_uuid(), 'other')$$, 'or a car that exists');
+select public.report_claimed_vin('TEST00000000000A1');
+select pg_temp.check(true, 'report_claimed_vin reports a car the reporter cannot otherwise read');
+select pg_temp.denied($$select public.report_claimed_vin('TEST0000000000Z99')$$, 'and says so for a VIN Sonder has never seen');
+reset role;
+
+-- A finished period is history; a photo lives in its owner's folder.
+set role authenticated;
+set request.jwt.claim.sub = 'b0000000-0000-0000-0000-000000000001';
+select pg_temp.denied($$update entries set title = 'rewritten' where id = 'e0000000-0000-0000-0000-000000000001'$$, 'a seller cannot rewrite an entry from the finished period');
+select pg_temp.denied($$delete from entries where id = 'e0000000-0000-0000-0000-000000000001'$$, 'or delete it');
+select pg_temp.denied($$insert into entries (ownership_id, kind, title, occurred_on) values ('d0000000-0000-0000-0000-000000000001', 'mod', 'Backdated', '2019-01-01')$$, 'or add one to it');
+select pg_temp.denied($$insert into parts (entry_id, brand, name) values ('e0000000-0000-0000-0000-000000000001', 'X', 'Y')$$, 'or add a part to one');
+reset role;
+select pg_temp.check((select title = 'Private turbo' from entries where id = 'e0000000-0000-0000-0000-000000000001'), 'and the entry is exactly as it was');
+set role authenticated;
+set request.jwt.claim.sub = 'b0000000-0000-0000-0000-000000000002';
+insert into t_ids select 'bo_entry', null;
+with e as (insert into entries (ownership_id, kind, title, occurred_on)
+           select id, 'service', 'Bo''s own work', '2026-02-02' from ownerships where owner_id = 'b0000000-0000-0000-0000-000000000002' and ended_on is null
+           returning id)
+update t_ids set id = e.id from e where name = 'bo_entry';
+select pg_temp.check((select id is not null from t_ids where name = 'bo_entry'), 'the current owner can still add to the current period');
+update entries set title = 'Bo''s own work, fixed' where id = (select id from t_ids where name = 'bo_entry');
+select pg_temp.check((select count(*) from entries where title = 'Bo''s own work, fixed') = 1, 'and edit it');
+select pg_temp.denied($$insert into photos (entry_id, storage_path) select id, 'b0000000-0000-0000-0000-000000000009/stolen.jpg' from t_ids where name = 'bo_entry'$$, 'a photo cannot point into someone else''s folder');
+insert into photos (entry_id, storage_path) select id, 'b0000000-0000-0000-0000-000000000002/mine.jpg' from t_ids where name = 'bo_entry';
+select pg_temp.check(true, 'a photo in your own folder is fine');
+reset role;
+
+-- Meets: the car goes when it is sold, and a hidden meet takes no RSVPs.
+insert into meet_rsvps (meet_id, profile_id, vehicle_id) values
+  ('f1000000-0000-0000-0000-000000000001', 'b0000000-0000-0000-0000-000000000002', 'c0000000-0000-0000-0000-000000000001');
+update ownerships set ended_on = current_date where owner_id = 'b0000000-0000-0000-0000-000000000002' and ended_on is null;
+select pg_temp.check((select vehicle_id is null from meet_rsvps where meet_id = 'f1000000-0000-0000-0000-000000000001' and profile_id = 'b0000000-0000-0000-0000-000000000002'), 'selling a car takes it off its owner''s RSVP');
+set role authenticated;
+set request.jwt.claim.sub = 'b1000000-0000-0000-0000-000000000001';
+select pg_temp.denied($$insert into meet_rsvps (meet_id, profile_id) values ('f1000000-0000-0000-0000-000000000002', 'b1000000-0000-0000-0000-000000000001')$$, 'nobody can say they are going to a meet reports have hidden');
+insert into meet_rsvps (meet_id, profile_id) values ('f1000000-0000-0000-0000-000000000001', 'b1000000-0000-0000-0000-000000000001');
+select pg_temp.check(true, 'a visible meet still takes RSVPs');
 reset role;

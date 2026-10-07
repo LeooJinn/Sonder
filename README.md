@@ -137,7 +137,7 @@ integration: a new migration file pushed to `main` is applied to production
 automatically, and the "Supabase Preview" check on the commit reports how it went.
 Migrations 0001–0011 were applied by hand before the integration was connected and
 are recorded as applied in `supabase_migrations.schema_migrations`, so the
-integration skips them. Name new files with the next number, `0017_…sql` and on.
+integration skips them. Name new files with the next number, `0018_…sql` and on.
 
 The row-level security policies have tests. They apply every migration to a
 throwaway local Postgres and check, as an anonymous visitor and as signed-in
@@ -346,6 +346,29 @@ The rule: `lib/` knows nothing about the UI, and the UI knows nothing about HTTP
 that line intact is what will make this maintainable as it grows.
 
 ---
+
+## Who can see what
+
+Enforced by row-level security (0016, 0017), and checked by `supabase/tests/policies.sql`:
+
+- **Profiles.** A signed-in member can read a profile that is their own, that
+  belongs to someone who has published a car, or that they are connected to: they
+  follow each other either way, share a conversation, they blocked them, or one
+  hosts or is going to a meet the other can see. Anyone else stays private, which
+  includes a previous owner of a car who never published.
+- **Cars.** A member can read a vehicle they have owned, a published one, or one
+  going to a meet they can see. They cannot list the VINs in the system. Vehicle
+  rows are created by `ensure_vehicle()` and never overwritten; members do not
+  insert them.
+- **History.** A buyer inherits a car's earlier log only with the seller's transfer
+  code. Without it they start fresh and cannot publish what they never had. Once a
+  period has ended, nobody can change or delete its entries, parts or photos
+  through the API.
+- **Photos.** The bucket is public by URL, so a photo can be shown on a published
+  passport, but nobody can list it. A photo's path has to start with its owner's id.
+- **Reports.** Three reports act on their own, but only from accounts at least a week
+  old, and a report has to name something that exists. A host cannot undo the hiding
+  of their own meet.
 
 ## On safe driving
 

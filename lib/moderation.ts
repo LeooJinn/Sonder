@@ -50,10 +50,10 @@ export const reportMessage = (messageId: string, reason: ReportReason, note?: st
  * by itself; it is read in the dashboard (0016).
  */
 export async function reportClaimedVin(vin: string): Promise<void> {
-  const { data, error } = await supabase.from('vehicles').select('id').eq('vin', vin).maybeSingle();
+  // The reporter cannot read a car that is not theirs (0017), so the database
+  // finds it for them.
+  const { error } = await supabase.rpc('report_claimed_vin', { p_vin: vin });
   if (error) throw new Error(error.message);
-  if (!data) throw new Error('That car is not in Sonder yet.');
-  await report('vehicle', data.id, 'other', `Says this is their car: ${vin}`);
 }
 
 export async function blockMember(profileId: string): Promise<void> {

@@ -282,36 +282,27 @@ export async function addVehicle(vehicle: DecodedVehicle, transferCode?: string)
     throw new Error('That vehicle is already in your garage.');
   }
 
-  // upsert on the vin unique constraint: insert if absent, leave alone if
-  // present. ignoreDuplicates keeps one owner's decode from overwriting
-  // another's, which matters because vehicle rows are shared.
-  const { error: vehicleError } = await supabase.from('vehicles').upsert(
-    {
-      vin: vehicle.vin,
-      year: vehicle.year,
-      make: vehicle.make,
-      model: vehicle.model,
-      trim: vehicle.trim,
-      body_class: vehicle.bodyClass,
-      drive_type: vehicle.driveType,
-      cylinders: vehicle.cylinders,
-      displacement: vehicle.displacement,
-      fuel_type: vehicle.fuelType,
-      transmission: vehicle.transmission,
-      plant: vehicle.plant,
-    },
-    { onConflict: 'vin', ignoreDuplicates: true }
-  );
+  // The vehicle row is shared by everyone who has ever owned the VIN, and
+  // members do not write it directly (0017): ensure_vehicle creates it from
+  // this decode if there is none and leaves it alone if there is, so one
+  // owner's decode cannot overwrite another's. It returns the row's id, which
+  // the member may not be able to read yet.
+  const { data: vehicleId, error: vehicleError } = await supabase.rpc('ensure_vehicle', {
+    p_vin: vehicle.vin,
+    p_year: vehicle.year,
+    p_make: vehicle.make,
+    p_model: vehicle.model,
+    p_trim: vehicle.trim,
+    p_body_class: vehicle.bodyClass,
+    p_drive_type: vehicle.driveType,
+    p_cylinders: vehicle.cylinders,
+    p_displacement: vehicle.displacement,
+    p_fuel_type: vehicle.fuelType,
+    p_transmission: vehicle.transmission,
+    p_plant: vehicle.plant,
+  });
 
   if (vehicleError) throw new Error(vehicleError.message);
-
-  const { data: vehicleRow, error: lookupError } = await supabase
-    .from('vehicles')
-    .select('id')
-    .eq('vin', vehicle.vin)
-    .single();
-
-  if (lookupError) throw new Error(lookupError.message);
 
   if (transferCode?.trim()) {
     const { data: status, error: claimError } = await supabase.rpc('claim_vehicle_with_code', {
@@ -330,7 +321,7 @@ export async function addVehicle(vehicle: DecodedVehicle, transferCode?: string)
 
   const { data: ownership, error: ownershipError } = await supabase
     .from('ownerships')
-    .insert({ vehicle_id: vehicleRow.id, owner_id: userId })
+    .insert({ vehicle_id: vehicleId as string, owner_id: userId })
     .select('created_at')
     .single();
 
