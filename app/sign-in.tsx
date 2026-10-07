@@ -12,6 +12,7 @@ import { Link, Stack, useLocalSearchParams } from 'expo-router';
 import { supabase } from '../lib/supabase';
 import { describeError } from '../lib/errors';
 import { PassportCover } from '../components/PassportCover';
+import { LegalLinks } from '../components/LegalLinks';
 import { Button, Field, Notice, focusRing, type PressState } from '../components/ui';
 import { colors, fonts, radius, type } from '../lib/theme';
 
@@ -336,9 +337,28 @@ export default function SignInScreen() {
           />
         )}
 
+        {isSignUp && (
+          <Text style={styles.agree}>
+            By creating an account you agree to the{' '}
+            <Link href="/terms" style={styles.agreeLink}>
+              Terms of Use
+            </Link>{' '}
+            and the{' '}
+            <Link href="/privacy" style={styles.agreeLink}>
+              Privacy Policy
+            </Link>
+            .
+          </Text>
+        )}
+
         <Link href="/welcome" style={styles.about}>
           What is Sonder?
         </Link>
+        {!isSignUp && (
+          <View style={styles.legalRow}>
+            <LegalLinks />
+          </View>
+        )}
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -392,6 +412,9 @@ const styles = StyleSheet.create({
   helpRow: { flexDirection: 'row', justifyContent: 'space-between', flexWrap: 'wrap', marginTop: -8, marginBottom: 8 },
 
   submit: { marginTop: 8 },
+  agree: { ...type.small, color: colors.textFaint, textAlign: 'center', marginTop: 16 },
+  agreeLink: { fontFamily: fonts.bodyMedium, color: colors.textMuted, textDecorationLine: 'underline' },
+  legalRow: { alignItems: 'center', marginTop: 4 },
   back: { marginTop: 12 },
   about: {
     alignSelf: 'center',

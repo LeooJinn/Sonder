@@ -14,6 +14,7 @@ import {
   type NativeSyntheticEvent,
 } from 'react-native';
 import { Link, Stack, useRouter } from 'expo-router';
+import { LegalLinks } from '../components/LegalLinks';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { loadPassport, type Passport } from '../lib/passport';
 import { KIND_LABELS, type EntryKind } from '../lib/log';
@@ -389,6 +390,9 @@ export default function WelcomeScreen() {
               style={styles.closeButton}
             />
             <Text style={styles.footer}>Sonder. Every car has a life of its own.</Text>
+            <View style={styles.legal}>
+              <LegalLinks align="left" />
+            </View>
           </View>
         </View>
       </ScrollView>
@@ -601,4 +605,5 @@ const styles = StyleSheet.create({
   closeBody: { ...type.lead, color: colors.textMuted, marginTop: 14, maxWidth: 520 },
   closeButton: { alignSelf: 'flex-start', marginTop: 24, paddingHorizontal: 28 },
   footer: { ...type.small, color: colors.textFaint, marginTop: 56 },
+  legal: { marginTop: 10 },
 });
