@@ -1,5 +1,7 @@
 /**
- * Account deletion.
+ * The account itself: changing its email and password, and deleting it.
+ *
+ * Deletion:
  *
  * Identity is erased; history other people depend on is kept and anonymised.
  * Cars still owned leave with the account. Past ownership periods stay
@@ -63,4 +65,68 @@ export async function deleteAccount(): Promise<void> {
   // The session's user no longer exists; clear it locally so the app doesn't
   // sit holding a token for a deleted account.
   await supabase.auth.signOut();
+}
+
+// ---------------------------------------------------------------------------
+// Email and password
+// ---------------------------------------------------------------------------
+
+/**
+ * Check the password someone typed as their current one, by signing in with
+ * it, and return the address it belongs to. Changing the email or password
+ * asks for it so that a phone left unlocked and signed in is not enough to
+ * take the account over.
+ */
+async function confirmCurrentPassword(currentPassword: string): Promise<string> {
+  const { data: auth } = await supabase.auth.getUser();
+  const email = auth.user?.email;
+  if (!email) throw new Error('You need to be signed in.');
+  if (!currentPassword) throw new Error('Enter your current password.');
+
+  const { error } = await supabase.auth.signInWithPassword({ email, password: currentPassword });
+  if (error) {
+    if (error.code === 'invalid_credentials' || /invalid login credentials/i.test(error.message)) {
+      throw new Error('That is not your current password.');
+    }
+    throw new Error(error.message);
+  }
+  return email;
+}
+
+/**
+ * Ask to change the account's email. Nothing changes yet: Supabase emails a
+ * confirmation link (to both addresses when the project asks for that, which
+ * it should) and the address changes when it is followed.
+ */
+export async function changeEmail(currentPassword: string, newEmail: string): Promise<void> {
+  const next = newEmail.trim();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(next)) throw new Error('Enter a valid email address.');
+
+  const current = await confirmCurrentPassword(currentPassword);
+  if (next.toLowerCase() === current.toLowerCase()) throw new Error('That is already your email.');
+
+  const { error } = await supabase.auth.updateUser({ email: next });
+  if (error) throw new Error(error.message);
+}
+
+export async function changePassword(currentPassword: string, newPassword: string): Promise<void> {
+  if (newPassword.length < 8) throw new Error('Use at least 8 characters for your new password.');
+  if (newPassword === currentPassword) throw new Error('Choose a password different from the current one.');
+
+  await confirmCurrentPassword(currentPassword);
+  const { error } = await supabase.auth.updateUser({ password: newPassword });
+  if (error) throw new Error(error.message);
+}
+
+/**
+ * Use the token from a change-email link. With both addresses to confirm,
+ * `waitingForOther` is true after the first one: the change completes when the
+ * other link is followed too.
+ */
+export async function confirmEmailChange(
+  tokenHash: string
+): Promise<{ email?: string; waitingForOther: boolean }> {
+  const { data, error } = await supabase.auth.verifyOtp({ token_hash: tokenHash, type: 'email_change' });
+  if (error) throw error;
+  return { email: data.user?.email, waitingForOther: Boolean(data.user?.new_email) };
 }
