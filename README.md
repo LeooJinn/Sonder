@@ -89,6 +89,11 @@ one working slice at a time.
   Sonder's own `/reset-password` page and is only used up when a new password is
   saved, so a mail scanner opening it doesn't kill it. Needs the Reset Password
   template pasted in once (see "Sign-in email" below)
+- **Sign in with an emailed link**: "Email me a sign-in link" on the sign-in screen
+  signs an existing member in without a password. It never creates an account, and
+  answers the same whether or not the address has one. The link opens a page that signs
+  in only when its button is pressed. Needs the Magic Link template pasted in once (see
+  "Sign-in email" below)
 - **Change email and change password** in Profile, both asking for the current
   password first. A new email only takes effect once the confirmation link is followed
   (from both addresses, when Supabase is set to ask for that). Needs the Change Email
@@ -160,6 +165,11 @@ password"). Its link is built from the project's Site URL, so check that
 Authentication → URL Configuration → Site URL is `https://www.imsonder.com`. No Redirect
 URL needs adding. Supabase limits reset requests to one a minute per address, and the
 link expires after an hour.
+
+The sign-in link email is `supabase/email-templates/magic-link.html`, pasted into
+Authentication → Emails → Templates → **Magic Link** (subject: "Your Sonder sign-in
+link"). It reaches only people who already have an account: the app asks Supabase not to
+create one.
 
 The change-email message is `supabase/email-templates/change-email.html`, pasted into
 Authentication → Emails → Templates → **Change Email Address** (subject: "Confirm your
@@ -283,6 +293,7 @@ app/                          screens — a file's path is its route
   sign-in.tsx    /sign-in     sign in or create an account, or ask for a password reset
   reset-password.tsx /reset-password  where the reset email's link lands: choose a new password
   confirm-email.tsx /confirm-email    where a change-email link lands: press to confirm
+  sign-in-link.tsx /sign-in-link      where a sign-in link lands: press to sign in
   (tabs)/                     the four tabs; the group adds nothing to URLs
     index.tsx    /            the garage
     following.tsx /following  what followed cars and people have been doing
