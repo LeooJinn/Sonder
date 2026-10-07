@@ -644,6 +644,7 @@
       "Radii follow hierarchy: documents roundest, photos least.",
       "Drawn pictograms in one stroke weight (1.75, round ends), each with a single small motion that says what the thing is.",
       "Engraved paper: a fine guilloche interlace behind the ink, and a ghost of the cover's rosette in the corner of each tab screen.",
+      "A foil Barlow Condensed S on a cover-green tile over the cover's own rosette: the logo mark, shown only beside the wordmark.",
       "Motion is mechanical, never springy: it decelerates into place, and only things physically struck or swung overshoot."
     ],
     "rules": [
@@ -686,6 +687,11 @@
         "name": "The Detent Rule",
         "body": "Nothing overshoots unless it is physically struck or swung (a stamp, a hanging tag). A drum catches; it does not bounce.",
         "section": "motion"
+      },
+      {
+        "name": "The Mark Rule",
+        "body": "The logo mark (a foil S on a cover-green tile over the cover's rosette) is part of the wordmark, so it appears only beside the word \"Sonder\": the front page and the sign-in cover. It is flat, hairline-bordered, hidden from screen readers, and never used as decoration or as a button icon. The same S is the app icon, tab icon, home-screen icon and link-preview card.",
+        "section": "colors"
       }
     ],
     "dos": [
