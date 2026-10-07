@@ -85,6 +85,10 @@ one working slice at a time.
   its odometer, a VIN lookup, and a real published passport as the example
 - Shared passport links **preview** with the car's photo, name and history in
   iMessage, Instagram, Discord and anywhere else that unfurls links
+- **Forgot password**: a link on the sign-in screen emails a reset link. It goes to
+  Sonder's own `/reset-password` page and is only used up when a new password is
+  saved, so a mail scanner opening it doesn't kill it. Needs the Reset Password
+  template pasted in once (see "Sign-in email" below)
 - Everything stored in Postgres, so a garage follows the account to any
   device and survives reinstalling the app
 
@@ -145,6 +149,13 @@ SMTP Settings: `smtp.resend.com`, port 465, user `resend`, the sending-only API 
 password, sender `Sonder <noreply@imsonder.com>`). The email itself is
 `supabase/email-templates/confirm-signup.html`. Supabase doesn't read it from the repo, so a
 change here means pasting the body into Authentication → Emails → Templates → Confirm sign up.
+
+The password-reset email is `supabase/email-templates/reset-password.html`, pasted into
+Authentication → Emails → Templates → **Reset Password** (subject: "Reset your Sonder
+password"). Its link is built from the project's Site URL, so check that
+Authentication → URL Configuration → Site URL is `https://www.imsonder.com`. No Redirect
+URL needs adding. Supabase limits reset requests to one a minute per address, and the
+link expires after an hour.
 
 ### Turning on emails
 
@@ -259,7 +270,8 @@ key being secret.
 app/                          screens — a file's path is its route
   _layout.tsx                 wraps every screen, guards the signed-out ones
   welcome.tsx    /welcome     the front page for visitors: the odometer story and a VIN lookup
-  sign-in.tsx    /sign-in     sign in or create an account
+  sign-in.tsx    /sign-in     sign in or create an account, or ask for a password reset
+  reset-password.tsx /reset-password  where the reset email's link lands: choose a new password
   (tabs)/                     the four tabs; the group adds nothing to URLs
     index.tsx    /            the garage
     following.tsx /following  what followed cars and people have been doing
