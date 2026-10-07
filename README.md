@@ -41,9 +41,12 @@ one working slice at a time.
 - Accounts, with a handle, display name and region, and account deletion that
   erases identity without destroying history other people rely on
 - **Publish a passport** at a link anyone can open without an account
-- **Sell a car** — the history stays with the vehicle. The next owner inherits
-  a readable record of everything before them, and the previous owner keeps
-  credit for their own work
+- **Sell a car** — the history stays with the vehicle. Selling gives the seller a
+  transfer code; the buyer adds the car by its VIN and enters it to inherit a
+  readable record of everything before them, and the previous owner keeps credit
+  for their own work. Anyone who adds the car without the code starts a fresh log
+  and sees none of the earlier owners' entries. A lost code is replaced under
+  Sold cars in Profile (it works for 14 days, and ten wrong tries use one up)
 - **The full ownership chain** on a published passport: every owner's time with
   the car, as one timeline along the odometer. Previous owners are named only
   if they published their own period
@@ -134,7 +137,7 @@ integration: a new migration file pushed to `main` is applied to production
 automatically, and the "Supabase Preview" check on the commit reports how it went.
 Migrations 0001–0011 were applied by hand before the integration was connected and
 are recorded as applied in `supabase_migrations.schema_migrations`, so the
-integration skips them. Name new files with the next number, `0015_…sql` and on.
+integration skips them. Name new files with the next number, `0017_…sql` and on.
 
 The row-level security policies have tests. They apply every migration to a
 throwaway local Postgres and check, as an anonymous visitor and as signed-in

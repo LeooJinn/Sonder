@@ -39,7 +39,7 @@ export async function reminderEmailChecks({ port, admin }) {
     for (const f of files.filter((f) => f < '0015')) await c.query(fs.readFileSync(path.join(migrations, f), 'utf8'));
     // a member and a reminder that exist BEFORE 0015: backfill + silence
     await c.query(`insert into auth.users (id, email) values ('${U(30)}', 'old@x')`);
-    await c.query(`insert into vehicles (id, vin, year, make, model) values ('10000000-0000-0000-0000-000000000030','OLDVIN00000000030','2015','Mazda','MX-5')`);
+    await c.query(`insert into vehicles (id, vin, year, make, model) values ('10000000-0000-0000-0000-000000000030','0LDV1N00000000030','2015','Mazda','MX-5')`);
     await c.query(`insert into ownerships (id, vehicle_id, owner_id) values ('20000000-0000-0000-0000-000000000030','10000000-0000-0000-0000-000000000030','${U(30)}')`);
     await c.query(`insert into reminders (id, ownership_id, title, every_months, last_done_on, created_at) values ('60000000-0000-0000-0000-000000000030','20000000-0000-0000-0000-000000000030','Old overdue',6,'2025-01-01','2020-01-01')`);
     await c.query(fs.readFileSync(path.join(migrations, files.find((f) => f.startsWith('0015'))), 'utf8'));
@@ -51,10 +51,10 @@ export async function reminderEmailChecks({ port, admin }) {
     await c.query(`update reminder_email_settings set enabled = false where profile_id = '${U(30)}'`);
 
     await c.query(`insert into vehicles (id, vin, year, make, model) values
-      ('10000000-0000-0000-0000-000000000031','VIN00000000000031','2020','Ford','Escape'),
-      ('10000000-0000-0000-0000-000000000032','VIN00000000000032','2018','Honda','Civic'),
-      ('10000000-0000-0000-0000-000000000033','VIN00000000000033','2019','Evil <script>http://x.co/a?b=1',E'Click\\nnow'),
-      ('10000000-0000-0000-0000-000000000034','VIN00000000000034','2021','Kia','Soul')`);
+      ('10000000-0000-0000-0000-000000000031','V1N00000000000031','2020','Ford','Escape'),
+      ('10000000-0000-0000-0000-000000000032','V1N00000000000032','2018','Honda','Civic'),
+      ('10000000-0000-0000-0000-000000000033','V1N00000000000033','2019','Evil <script>http://x.co/a?b=1',E'Click\\nnow'),
+      ('10000000-0000-0000-0000-000000000034','V1N00000000000034','2021','Kia','Soul')`);
     await c.query(`insert into ownerships (id, vehicle_id, owner_id) values
       ('20000000-0000-0000-0000-000000000031','10000000-0000-0000-0000-000000000031','${U(31)}'),
       ('20000000-0000-0000-0000-000000000032','10000000-0000-0000-0000-000000000032','${U(31)}'),
@@ -86,7 +86,7 @@ export async function reminderEmailChecks({ port, admin }) {
     ok(!/Ford|Escape|Oil|Tire|Civic/.test(ann.subject), 'subject names no car or title');
     ok(ann.html.includes('Tire &lt;b&gt;rotation&lt;/b&gt;') && !ann.html.includes('<b>rotation'), 'titles escaped in html');
     ok(ann.html.includes('2020 Ford Escape') && ann.html.includes('2018 Honda Civic'), 'both car labels, grouped');
-    ok(!/VIN0000|61234|98765|SECRET|secret notes|\/vehicle\/|overdue by|2026-0|March/i.test(ann.html + ann.text), 'no VIN, mileage, cost, entry text, link to a vehicle, dates');
+    ok(!/V1N0000|61234|98765|SECRET|secret notes|\/vehicle\/|overdue by|2026-0|March/i.test(ann.html + ann.text), 'no VIN, mileage, cost, entry text, link to a vehicle, dates');
     ok(ann.html.includes('href="https://www.imsonder.com/"'), 'link is the garage root');
     const tok = (await one(`select unsubscribe_token t from reminder_email_settings where profile_id='${U(31)}'`)).t;
     ok(ann.headers['List-Unsubscribe'] === `<https://www.imsonder.com/api/unsubscribe?for=reminders&t=${tok}>` && ann.headers['List-Unsubscribe-Post'] === 'List-Unsubscribe=One-Click', 'one-click unsubscribe header, for= first');

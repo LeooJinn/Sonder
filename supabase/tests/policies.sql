@@ -18,9 +18,10 @@ insert into vehicles (id, vin, make, model) values
   ('10000000-0000-0000-0000-000000000002', 'SHHFK8G72KU201847', 'Honda', 'Civic');
 
 -- Car 1: Sam owned it privately, sold to Bea, Bea published.
-insert into ownerships (id, vehicle_id, owner_id, started_on, ended_on, is_public) values
-  ('20000000-0000-0000-0000-00000000000a', '10000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-00000000000a', '2008-01-01', '2025-06-01', false),
-  ('20000000-0000-0000-0000-00000000000b', '10000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-00000000000b', '2025-06-01', null, true);
+-- Bea bought it from Sam and inherits his history (0016: she was handed it).
+insert into ownerships (id, vehicle_id, owner_id, started_on, ended_on, is_public, inherits_history) values
+  ('20000000-0000-0000-0000-00000000000a', '10000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-00000000000a', '2008-01-01', '2025-06-01', false, false),
+  ('20000000-0000-0000-0000-00000000000b', '10000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-00000000000b', '2025-06-01', null, true, true);
 -- Car 2: Sam's, private.
 insert into ownerships (id, vehicle_id, owner_id, is_public) values
   ('20000000-0000-0000-0000-00000000000c', '10000000-0000-0000-0000-000000000002', '00000000-0000-0000-0000-00000000000a', false);
@@ -223,8 +224,8 @@ reset role;
 -- has no current owner since Bea deleted her account; Sam's old period of it
 -- is private. Dee buys the MX-5 and publishes it. Eve follows things.
 update profiles set handle = 'eve' where id = '00000000-0000-0000-0000-00000000000e';
-insert into ownerships (id, vehicle_id, owner_id, started_on, is_public) values
-  ('20000000-0000-0000-0000-00000000000d', '10000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-00000000000d', '2026-01-01', true);
+insert into ownerships (id, vehicle_id, owner_id, started_on, is_public, inherits_history) values
+  ('20000000-0000-0000-0000-00000000000d', '10000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-00000000000d', '2026-01-01', true, true);
 select pg_temp.check((select published_at is not null from ownerships where id = '20000000-0000-0000-0000-00000000000d'), 'publishing stamps published_at');
 update ownerships set is_public = false where id = '20000000-0000-0000-0000-00000000000d';
 select pg_temp.check((select published_at is not null from ownerships where id = '20000000-0000-0000-0000-00000000000d'), 'unpublishing keeps the old stamp');
@@ -328,7 +329,7 @@ insert into auth.users (id, email) values
 update profiles set handle = 'gia' where id = '00000000-0000-0000-0000-000000000011';
 update profiles set handle = 'hal' where id = '00000000-0000-0000-0000-000000000012';
 update profiles set handle = 'ivy' where id = '00000000-0000-0000-0000-000000000013';
-update profiles set handle = 'jo'  where id = '00000000-0000-0000-0000-000000000014';
+update profiles set handle = 'joe'  where id = '00000000-0000-0000-0000-000000000014';
 update profiles set handle = 'kit' where id = '00000000-0000-0000-0000-000000000015';
 insert into member_follows (follower_id, followed_id) values
   ('00000000-0000-0000-0000-000000000011', '00000000-0000-0000-0000-000000000012'),
@@ -604,7 +605,7 @@ insert into auth.users (id, email) values
   ('00000000-0000-0000-0000-000000000023', 'cy@x');
 update profiles set handle = 'ann', display_name = 'Ann <b>Bold</b>' where id = '00000000-0000-0000-0000-000000000021';
 update profiles set handle = 'ben', display_name = 'Ben' where id = '00000000-0000-0000-0000-000000000022';
-update profiles set handle = 'cy' where id = '00000000-0000-0000-0000-000000000023';
+update profiles set handle = 'cyn' where id = '00000000-0000-0000-0000-000000000023';
 select pg_temp.check(
   (select count(*) from message_email_settings where profile_id in
     ('00000000-0000-0000-0000-000000000021', '00000000-0000-0000-0000-000000000022', '00000000-0000-0000-0000-000000000023') and enabled) = 3,
@@ -742,3 +743,160 @@ reset role;
 
 delete from auth.users where id = '00000000-0000-0000-0000-000000000022';
 select pg_temp.check((select count(*) from message_email_settings where profile_id = '00000000-0000-0000-0000-000000000022') = 0, 'deleting an account removes its email setting');
+
+-- ---------------- 0016: ownership protection ----------------
+-- Una owns a WRX and logs private work. She sells it. A squatter, a buyer
+-- who has her code, and a bystander all go for it.
+reset role;
+create function pg_temp.denied(stmt text, what text) returns void language plpgsql as $$
+begin
+  begin execute stmt; exception when others then raise notice 'ok: %', what; return; end;
+  raise exception 'FAIL: % (it was allowed)', what;
+end $$;
+grant execute on function pg_temp.denied(text, text) to anon, authenticated;
+create temp table t_codes (name text, code text);
+grant all on t_codes to authenticated;
+
+insert into auth.users (id, email) values
+  ('b0000000-0000-0000-0000-000000000001', 'una@x'), ('b0000000-0000-0000-0000-000000000002', 'bo@x'),
+  ('b0000000-0000-0000-0000-000000000003', 'cass@x'), ('b0000000-0000-0000-0000-000000000004', 'dot@x'),
+  ('b0000000-0000-0000-0000-000000000005', 'eli@x');
+insert into vehicles (id, vin, year, make, model) values
+  ('c0000000-0000-0000-0000-000000000001', 'TEST00000000000A1', '2004', 'Subaru', 'WRX'),
+  ('c0000000-0000-0000-0000-000000000002', 'TEST00000000000A2', '2010', 'Mazda', 'Miata');
+insert into ownerships (id, vehicle_id, owner_id) values
+  ('d0000000-0000-0000-0000-000000000001', 'c0000000-0000-0000-0000-000000000001', 'b0000000-0000-0000-0000-000000000001');
+insert into entries (id, ownership_id, kind, title, notes, cost_cents, occurred_on) values
+  ('e0000000-0000-0000-0000-000000000001', 'd0000000-0000-0000-0000-000000000001', 'mod', 'Private turbo', 'secret notes', 123400, '2020-01-01');
+
+-- A member cannot forge a finished period on someone else's car, or move one.
+set role authenticated;
+set request.jwt.claim.sub = 'b0000000-0000-0000-0000-000000000003';
+select pg_temp.denied($$insert into ownerships (vehicle_id, owner_id, started_on, ended_on) values ('c0000000-0000-0000-0000-000000000001', 'b0000000-0000-0000-0000-000000000003', '2001-01-01', '2002-01-01')$$, 'a member cannot insert a finished period on someone else''s car');
+insert into ownerships (vehicle_id, owner_id, inherits_history) values ('c0000000-0000-0000-0000-000000000002', 'b0000000-0000-0000-0000-000000000003', true);
+select pg_temp.denied($$update ownerships set vehicle_id = 'c0000000-0000-0000-0000-000000000001' where owner_id = 'b0000000-0000-0000-0000-000000000003'$$, 'an ownership cannot be moved onto another car');
+select pg_temp.denied($$update ownerships set started_on = '1990-01-01' where owner_id = 'b0000000-0000-0000-0000-000000000003'$$, 'when an ownership started cannot be changed');
+update ownerships set inherits_history = true where owner_id = 'b0000000-0000-0000-0000-000000000003';
+reset role;
+select pg_temp.check((select not inherits_history from ownerships where owner_id = 'b0000000-0000-0000-0000-000000000003'), 'a member cannot give themselves inherited history, on insert or update');
+delete from ownerships where owner_id = 'b0000000-0000-0000-0000-000000000003';
+
+-- Selling ends the ownership and returns a code; only the owner can sell.
+set role authenticated;
+set request.jwt.claim.sub = 'b0000000-0000-0000-0000-000000000003';
+select pg_temp.denied($$select public.sell_vehicle('TEST00000000000A1')$$, 'a member cannot sell a car that is not theirs');
+set request.jwt.claim.sub = 'b0000000-0000-0000-0000-000000000001';
+insert into t_codes select 'first', public.sell_vehicle('TEST00000000000A1');
+select pg_temp.check((select code ~ '^[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}$' from t_codes where name = 'first'), 'selling returns a transfer code');
+select pg_temp.check((select ended_on is not null from ownerships where id = 'd0000000-0000-0000-0000-000000000001'), 'and ends the ownership');
+reset role;
+select pg_temp.check((select code_hash <> (select code from t_codes where name = 'first') from ownership_transfers limit 1), 'only a hash of the code is stored');
+
+-- A squatter adds the freed VIN. She starts a fresh log and sees nothing of Una's.
+set role authenticated;
+set request.jwt.claim.sub = 'b0000000-0000-0000-0000-000000000003';
+insert into ownerships (vehicle_id, owner_id) values ('c0000000-0000-0000-0000-000000000001', 'b0000000-0000-0000-0000-000000000003');
+select pg_temp.check((select count(*) from entries where id = 'e0000000-0000-0000-0000-000000000001') = 0, 'a member who adds the car without a code cannot read the seller''s entries');
+select pg_temp.check((select count(*) from ownerships where id = 'd0000000-0000-0000-0000-000000000001') = 0, 'or see the seller''s period');
+reset role;
+update ownerships set is_public = true where owner_id = 'b0000000-0000-0000-0000-000000000003' and vehicle_id = 'c0000000-0000-0000-0000-000000000001';
+set role anon;
+select pg_temp.check((select count(*) from entries where id = 'e0000000-0000-0000-0000-000000000001') = 0, 'publishing does not put the seller''s private entries on the public passport');
+select pg_temp.check((select count(*) from ownerships where vehicle_id = 'c0000000-0000-0000-0000-000000000001') = 1, 'the public passport shows only the publisher''s own period');
+reset role;
+
+-- The real buyer, with the code, finds the car taken. Wrong codes are counted.
+set role authenticated;
+set request.jwt.claim.sub = 'b0000000-0000-0000-0000-000000000002';
+select pg_temp.check((select public.claim_vehicle_with_code('TEST00000000000A1', code) from t_codes where name = 'first') = 'taken', 'a valid code on a car someone holds says it is taken');
+select pg_temp.check(public.claim_vehicle_with_code('TEST00000000000A1', 'AAAA-BBBB-CCCC') = 'invalid', 'a wrong code is invalid');
+reset role;
+select pg_temp.check((select attempts from ownership_transfers limit 1) = 1, 'and the wrong guess is counted');
+
+-- The squatter leaves; ten wrong guesses burn the code; the seller issues another.
+set role authenticated;
+set request.jwt.claim.sub = 'b0000000-0000-0000-0000-000000000003';
+delete from ownerships where owner_id = 'b0000000-0000-0000-0000-000000000003' and vehicle_id = 'c0000000-0000-0000-0000-000000000001';
+select pg_temp.denied($$select public.new_transfer_code('TEST00000000000A1')$$, 'someone who did not sell the car cannot ask for a code');
+set request.jwt.claim.sub = 'b0000000-0000-0000-0000-000000000002';
+select public.claim_vehicle_with_code('TEST00000000000A1', 'WRONG-' || g) from generate_series(1, 9) g;
+select pg_temp.check((select public.claim_vehicle_with_code('TEST00000000000A1', code) from t_codes where name = 'first') = 'invalid', 'after ten wrong guesses even the right code is refused');
+set request.jwt.claim.sub = 'b0000000-0000-0000-0000-000000000001';
+insert into t_codes select 'second', public.new_transfer_code('TEST00000000000A1');
+select pg_temp.check((select code <> (select code from t_codes where name = 'first') from t_codes where name = 'second'), 'the seller can get a new code while the car is free');
+
+-- The buyer claims with the new code, typed lower case with spaces.
+set request.jwt.claim.sub = 'b0000000-0000-0000-0000-000000000002';
+select pg_temp.check((select public.claim_vehicle_with_code('TEST00000000000A1', lower(replace(code, '-', ' '))) from t_codes where name = 'second') = 'ok', 'the buyer claims with the code however it is typed');
+select pg_temp.check((select count(*) from entries where id = 'e0000000-0000-0000-0000-000000000001') = 1, 'and inherits the seller''s history');
+select pg_temp.check((select count(*) from ownerships where id = 'd0000000-0000-0000-0000-000000000001') = 1, 'including the period');
+set request.jwt.claim.sub = 'b0000000-0000-0000-0000-000000000004';
+select pg_temp.check((select public.claim_vehicle_with_code('TEST00000000000A1', code) from t_codes where name = 'second') = 'invalid', 'a used code cannot be used again');
+set request.jwt.claim.sub = 'b0000000-0000-0000-0000-000000000001';
+select pg_temp.denied($$select public.new_transfer_code('TEST00000000000A1')$$, 'no new code once someone owns the car');
+
+-- A finished period cannot be deleted: that would wipe what the buyer inherited.
+delete from ownerships where id = 'd0000000-0000-0000-0000-000000000001';
+reset role;
+select pg_temp.check((select count(*) from ownerships where id = 'd0000000-0000-0000-0000-000000000001') = 1, 'a seller cannot delete the finished period');
+select pg_temp.check((select count(*) from entries where id = 'e0000000-0000-0000-0000-000000000001') = 1, 'so the buyer''s inherited history stays');
+
+-- The buyer inherited, so publishing opens the whole chain.
+update ownerships set is_public = true where owner_id = 'b0000000-0000-0000-0000-000000000002' and ended_on is null;
+set role anon;
+select pg_temp.check((select count(*) from entries where id = 'e0000000-0000-0000-0000-000000000001') = 1, 'a buyer who inherited publishes the whole history');
+reset role;
+
+-- A garage holds up to 25 cars.
+insert into vehicles (vin) select 'CAP' || lpad(g::text, 14, '0') from generate_series(1, 26) g;
+insert into ownerships (vehicle_id, owner_id)
+  select id, 'b0000000-0000-0000-0000-000000000005' from vehicles where vin like 'CAP%' order by vin limit 25;
+set role authenticated;
+set request.jwt.claim.sub = 'b0000000-0000-0000-0000-000000000005';
+select pg_temp.denied($$insert into ownerships (vehicle_id, owner_id) select id, 'b0000000-0000-0000-0000-000000000005' from vehicles where vin = 'CAP' || lpad('26', 14, '0')$$, 'a 26th car is refused');
+reset role;
+
+-- Vehicle rows have to look like vehicles.
+set role authenticated;
+set request.jwt.claim.sub = 'b0000000-0000-0000-0000-000000000003';
+select pg_temp.denied($$insert into vehicles (vin) values ('TEST0000000000I11')$$, 'a VIN with an I in it is refused');
+select pg_temp.denied($$insert into vehicles (vin, year) values ('TEST00000000000B1', 'abcd')$$, 'a year that is not four digits is refused');
+select pg_temp.denied($$insert into vehicles (vin, make) values ('TEST00000000000B2', repeat('x', 61))$$, 'a 61-character make is refused');
+reset role;
+
+-- Nobody can list the photo bucket; members see their own folder.
+insert into storage.objects (bucket_id, name) values
+  ('photos', 'b0000000-0000-0000-0000-000000000001/a.jpg'),
+  ('photos', 'b0000000-0000-0000-0000-000000000003/b.jpg');
+set role anon;
+select pg_temp.check((select count(*) from storage.objects where bucket_id = 'photos') = 0, 'a visitor cannot list the photo bucket');
+set role authenticated;
+set request.jwt.claim.sub = 'b0000000-0000-0000-0000-000000000001';
+select pg_temp.check((select count(*) from storage.objects where bucket_id = 'photos') = 1, 'a member sees only their own folder');
+reset role;
+
+-- A listing's price and contact line go when the listing does.
+update ownerships set for_sale = true, asking_price_cents = 500000, sale_contact = 'Text 555-0100'
+ where owner_id = 'b0000000-0000-0000-0000-000000000002' and ended_on is null;
+select pg_temp.check((select for_sale and sale_contact is not null from ownerships where owner_id = 'b0000000-0000-0000-0000-000000000002' and ended_on is null), 'a published car can be listed');
+update ownerships set for_sale = false where owner_id = 'b0000000-0000-0000-0000-000000000002' and ended_on is null;
+select pg_temp.check((select asking_price_cents is null and sale_contact is null from ownerships where owner_id = 'b0000000-0000-0000-0000-000000000002' and ended_on is null), 'ending a listing clears the price and the contact line');
+
+-- A host cannot undo the hiding of their own meet.
+insert into meets (id, host_id, title, region, place, starts_at, hidden_at) values
+  ('f0000000-0000-0000-0000-000000000001', 'b0000000-0000-0000-0000-000000000004', 'Hidden meet', 'us-ca-los-angeles', 'A car park', now() + interval '1 day', now());
+set role authenticated;
+set request.jwt.claim.sub = 'b0000000-0000-0000-0000-000000000004';
+update meets set hidden_at = null where id = 'f0000000-0000-0000-0000-000000000001';
+reset role;
+select pg_temp.check((select hidden_at is not null from meets where id = 'f0000000-0000-0000-0000-000000000001'), 'a host cannot un-hide a meet that reports hid');
+
+-- A claimed VIN can be reported; profile fields are checked.
+set role authenticated;
+set request.jwt.claim.sub = 'b0000000-0000-0000-0000-000000000004';
+insert into reports (reporter_id, target_kind, target_id, reason, note) values
+  ('b0000000-0000-0000-0000-000000000004', 'vehicle', 'c0000000-0000-0000-0000-000000000001', 'other', 'This is my car');
+select pg_temp.check(true, 'a member can report a VIN someone else has claimed');
+select pg_temp.denied($$update profiles set handle = 'AB' where id = 'b0000000-0000-0000-0000-000000000004'$$, 'a handle the app would refuse is refused by the database too');
+select pg_temp.denied($$update profiles set display_name = repeat('x', 61) where id = 'b0000000-0000-0000-0000-000000000004'$$, 'a 61-character display name is refused');
+reset role;

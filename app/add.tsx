@@ -11,11 +11,12 @@ import {
 } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import { decodeVin, type DecodedVehicle } from '../lib/vin';
-import { addVehicle } from '../lib/garage';
+import { addVehicle, CarTakenError } from '../lib/garage';
+import { reportClaimedVin } from '../lib/moderation';
 import { DataPage } from '../components/DataPage';
 import { Stamp } from '../components/Stamp';
 import { VinInput } from '../components/VinInput';
-import { Button, Notice } from '../components/ui';
+import { Button, Field, Notice } from '../components/ui';
 import { colors, column, type } from '../lib/theme';
 
 export default function AddVehicleScreen() {
@@ -23,6 +24,11 @@ export default function AddVehicleScreen() {
   const [preview, setPreview] = useState<DecodedVehicle | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  // From the seller, when the car was sold through Sonder: it brings the log.
+  const [code, setCode] = useState('');
+  // Set when someone else has this VIN in their garage: offers a report.
+  const [taken, setTaken] = useState(false);
+  const [reported, setReported] = useState(false);
   // True from the moment the car is saved until we move on: the stamp comes down.
   const [entered, setEntered] = useState(false);
   const router = useRouter();
@@ -53,6 +59,8 @@ export default function AddVehicleScreen() {
     if (vin.length !== 17) return;
     setBusy(true);
     setError(null);
+    setTaken(false);
+    setReported(false);
     setPreview(null);
 
     try {
@@ -70,13 +78,27 @@ export default function AddVehicleScreen() {
     setError(null);
 
     try {
-      await addVehicle(preview);
+      await addVehicle(preview, code);
       // The car is on the books: stamp the page, hold it a beat so it is seen,
       // then go. (replace, not push: after saving, backing out should return
       // to the garage rather than to this form with a stale VIN still in it.)
       setEntered(true);
     } catch (e) {
+      setTaken(e instanceof CarTakenError);
       setError(e instanceof Error ? e.message : 'Could not save that car.');
+      setBusy(false);
+    }
+  }
+
+  async function handleReport() {
+    if (!preview) return;
+    setBusy(true);
+    try {
+      await reportClaimedVin(preview.vin);
+      setReported(true);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Could not send that report.');
+    } finally {
       setBusy(false);
     }
   }
@@ -100,6 +122,8 @@ export default function AddVehicleScreen() {
             // A new VIN invalidates whatever was looked up before it.
             if (preview) setPreview(null);
             setError(null);
+            setTaken(false);
+            setReported(false);
           }}
           onSubmit={handleDecode}
         />
@@ -144,7 +168,34 @@ export default function AddVehicleScreen() {
                 />
               }
             />
+            <View style={styles.gap}>
+              <Field
+                label="Transfer code from the seller (optional)"
+                value={code}
+                onChangeText={setCode}
+                placeholder="ABCD-1234-EF56"
+                autoCapitalize="characters"
+                autoCorrect={false}
+              />
+            </View>
+            <Text style={styles.codeHint}>
+              Bought it through Sonder? With the seller&apos;s code you inherit the car&apos;s log.
+              Without one you start a fresh log.
+            </Text>
             <Button label="Add to garage" onPress={handleSave} busy={busy} style={styles.gap} glint />
+            {taken && !reported && (
+              <View style={styles.gap}>
+                <Text style={styles.codeHint}>
+                  If this is your car and someone else added it, tell us and we will look into it.
+                </Text>
+                <Button label="This is my car: report it" variant="quiet" onPress={handleReport} busy={busy} />
+              </View>
+            )}
+            {reported && (
+              <View style={styles.gap}>
+                <Notice tone="success">Thanks. We will look into it.</Notice>
+              </View>
+            )}
           </Animated.View>
         )}
       </ScrollView>
@@ -159,5 +210,6 @@ const styles = StyleSheet.create({
   intro: { ...type.lead, color: colors.textMuted, marginBottom: 24 },
   where: { ...type.small, color: colors.textFaint, marginTop: 20 },
   gap: { marginTop: 24 },
+  codeHint: { ...type.small, color: colors.textFaint, marginTop: 8 },
   found: { ...type.heading, color: colors.text, marginTop: 32, marginBottom: 14 },
 });

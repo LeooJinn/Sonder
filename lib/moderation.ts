@@ -20,7 +20,7 @@ export const REPORT_REASONS: { value: ReportReason; label: string; hint: string 
 
 export type BlockedMember = { id: string; handle?: string; displayName?: string };
 
-async function report(kind: 'meet' | 'listing' | 'message', targetId: string, reason: ReportReason, note?: string) {
+async function report(kind: 'meet' | 'listing' | 'message' | 'vehicle', targetId: string, reason: ReportReason, note?: string) {
   const reporterId = await requireUserId();
   const { error } = await supabase.from('reports').insert({
     reporter_id: reporterId,
@@ -44,6 +44,17 @@ export const reportListing = (ownershipId: string, reason: ReportReason, note?: 
 /** Only someone in the conversation can report one of its messages (0013). */
 export const reportMessage = (messageId: string, reason: ReportReason, note?: string) =>
   report('message', messageId, reason, note);
+
+/**
+ * "This is my car and someone else has it in their garage." Nothing acts on it
+ * by itself; it is read in the dashboard (0016).
+ */
+export async function reportClaimedVin(vin: string): Promise<void> {
+  const { data, error } = await supabase.from('vehicles').select('id').eq('vin', vin).maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!data) throw new Error('That car is not in Sonder yet.');
+  await report('vehicle', data.id, 'other', `Says this is their car: ${vin}`);
+}
 
 export async function blockMember(profileId: string): Promise<void> {
   const blockerId = await requireUserId();
