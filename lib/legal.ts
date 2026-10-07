@@ -9,7 +9,11 @@
 
 export const LEGAL_UPDATED = 'October 7, 2026';
 
-/** Where people write about their data or these terms. Empty hides the line. */
+/**
+ * Where people write about their data or these terms. While it is empty the
+ * pages say plainly that there is no public contact address yet, and point to
+ * what can be done in the app. Set it as soon as there is an address.
+ */
 export const CONTACT_EMAIL = '';
 
 export type LegalSection = { heading: string; paragraphs: string[]; bullets?: string[] };
@@ -93,7 +97,7 @@ export const PRIVACY: LegalDocument = {
     {
       heading: 'Children',
       paragraphs: [
-        'Sonder is not for children under 13, and we do not knowingly collect their information. If you believe a child has an account, tell us and we will remove it.',
+        'Sonder is not for children under 13, and we do not knowingly collect their information. If we learn that a child under 13 has an account, we will remove it.',
       ],
     },
     {
@@ -125,7 +129,7 @@ export const TERMS: LegalDocument = {
     {
       heading: 'Your account',
       paragraphs: [
-        'You must be at least 13. Give an accurate email address, keep your sign-in methods to yourself, and tell us if you think someone else has got into your account. You are responsible for what happens under your account.',
+        'You must be at least 13. Give an accurate email address, keep your sign-in methods to yourself, and if you think someone else has got into your account, change your password in Profile straight away. You are responsible for what happens under your account.',
       ],
     },
     {

@@ -45,7 +45,19 @@ export function LegalPage({ doc }: { doc: LegalDocument }) {
             Questions, or a request about your data or these terms: {CONTACT_EMAIL}
           </Text>
         </View>
-      ) : null}
+      ) : (
+        <View style={styles.section}>
+          <Text style={styles.heading} accessibilityRole="header">
+            Getting in touch
+          </Text>
+          <Text style={styles.paragraph}>
+            Sonder is a small project and does not have a public contact address yet. Almost
+            everything described here you can do yourself in the app: publish or unpublish a
+            car, switch emails off, block or report, change your email or password, and delete
+            your account. When a contact address exists, it will be listed here.
+          </Text>
+        </View>
+      )}
 
       <Text style={styles.other}>
         {doc.title === 'Privacy Policy' ? (
