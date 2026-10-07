@@ -260,7 +260,22 @@ export async function findVehicle(vin: string): Promise<SavedVehicle | null> {
  * owned this car before, or still does. The vehicle row is created only if
  * it's new; the ownership is always the user's own.
  */
-export async function addVehicle(vehicle: DecodedVehicle): Promise<SavedVehicle> {
+/**
+ * Someone else has this car in their garage. Its own class so the screen can
+ * offer to report it: nothing proves who really owns a VIN, and a claimed one
+ * is the case where a person may be locked out of their own car.
+ */
+export class CarTakenError extends Error {
+  constructor(public readonly vin: string) {
+    super('Someone else currently has that VIN in their garage.');
+  }
+}
+
+/**
+ * Add a car to the garage. With a transfer code from the seller the car comes
+ * with the history of everyone before; without one it starts a fresh log (0016).
+ */
+export async function addVehicle(vehicle: DecodedVehicle, transferCode?: string): Promise<SavedVehicle> {
   const userId = await requireUserId();
 
   if (await findOwnershipId(vehicle.vin)) {
@@ -298,6 +313,21 @@ export async function addVehicle(vehicle: DecodedVehicle): Promise<SavedVehicle>
 
   if (lookupError) throw new Error(lookupError.message);
 
+  if (transferCode?.trim()) {
+    const { data: status, error: claimError } = await supabase.rpc('claim_vehicle_with_code', {
+      vin: vehicle.vin,
+      code: transferCode,
+    });
+    if (claimError) throw new Error(claimError.message);
+    if (status === 'taken') throw new CarTakenError(vehicle.vin);
+    if (status !== 'ok') {
+      throw new Error(
+        "That code didn't work. Check it with the seller: codes last 14 days, and ten wrong tries use one up."
+      );
+    }
+    return { ...vehicle, addedAt: new Date().toISOString() };
+  }
+
   const { data: ownership, error: ownershipError } = await supabase
     .from('ownerships')
     .insert({ vehicle_id: vehicleRow.id, owner_id: userId })
@@ -307,7 +337,7 @@ export async function addVehicle(vehicle: DecodedVehicle): Promise<SavedVehicle>
   if (ownershipError) {
     // The partial unique index fires here if someone else currently owns it.
     if (ownershipError.code === '23505') {
-      throw new Error('Someone else currently has that VIN in their garage.');
+      throw new CarTakenError(vehicle.vin);
     }
     throw new Error(ownershipError.message);
   }
@@ -325,16 +355,21 @@ export async function addVehicle(vehicle: DecodedVehicle): Promise<SavedVehicle>
  *
  * This is the opposite of removeVehicle, which throws the history away.
  */
-export async function markSold(vin: string, soldOn?: string): Promise<void> {
-  const ownershipId = await findOwnershipId(vin);
-  if (!ownershipId) throw new Error('That vehicle is not in your garage.');
-
-  const { error } = await supabase
-    .from('ownerships')
-    .update({ ended_on: soldOn ?? today() })
-    .eq('id', ownershipId);
-
+/**
+ * Sell the car: it leaves the garage, the history stays, and the seller gets
+ * the transfer code to give the buyer (0016).
+ */
+export async function markSold(vin: string, soldOn?: string): Promise<string> {
+  const { data, error } = await supabase.rpc('sell_vehicle', { vin, sold_on: soldOn ?? today() });
   if (error) throw new Error(error.message);
+  return data as string;
+}
+
+/** A new code for a car the seller sold and nobody has added since. */
+export async function requestTransferCode(vin: string): Promise<string> {
+  const { data, error } = await supabase.rpc('new_transfer_code', { vin });
+  if (error) throw new Error(error.message);
+  return data as string;
 }
 
 /** Cars the user used to own. Their history is still theirs. */

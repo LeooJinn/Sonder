@@ -17,6 +17,8 @@ import { RegionPicker } from '../components/RegionPicker';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { AccountSecurity } from '../components/AccountSecurity';
 import { deleteAccount } from '../lib/account';
+import { loadPastVehicles, requestTransferCode, type SavedVehicle } from '../lib/garage';
+import { TransferCodeDialog } from '../components/TransferCodeDialog';
 import { loadBlocked, unblockMember, type BlockedMember } from '../lib/moderation';
 import { loadMyFollowers, type Follower } from '../lib/follows';
 import { loadMessageEmails, setMessageEmails } from '../lib/messages';
@@ -71,6 +73,10 @@ export default function ProfileScreen() {
   const [messageEmails, setMessageEmailsOn] = useState<boolean | null>(null);
   const [reminderEmails, setReminderEmailsOn] = useState<boolean | null>(null);
   const [emailError, setEmailError] = useState<string | null>(null);
+  // Cars this member sold, so a lost transfer code can be replaced.
+  const [soldCars, setSoldCars] = useState<SavedVehicle[]>([]);
+  const [newCode, setNewCode] = useState<{ code: string; car: string } | null>(null);
+  const [soldError, setSoldError] = useState<string | null>(null);
   // The handle as stored, not as typed: the page link must point somewhere real.
   const [savedHandle, setSavedHandle] = useState('');
   const router = useRouter();
@@ -80,7 +86,26 @@ export default function ProfileScreen() {
     loadMyFollowers().then(setFollowers).catch(() => {});
     loadMessageEmails().then(setMessageEmailsOn).catch(() => {});
     loadReminderEmails().then(setReminderEmailsOn).catch(() => {});
+    loadPastVehicles()
+      .then((cars) => setSoldCars([...new Map(cars.map((car) => [car.vin, car])).values()]))
+      .catch(() => {});
   }, []);
+
+  async function getNewCode(car: SavedVehicle) {
+    setSoldError(null);
+    try {
+      const code = await requestTransferCode(car.vin);
+      setNewCode({ code, car: [car.year, car.make, car.model].filter(Boolean).join(' ') || 'car' });
+    } catch (e) {
+      setSoldError(
+        /no sale/i.test(e instanceof Error ? e.message : '')
+          ? 'That car has a new owner already, so there is nothing left to hand over.'
+          : e instanceof Error
+            ? e.message
+            : 'That did not work. Try again.'
+      );
+    }
+  }
 
   async function toggleEmails(
     next: boolean,
@@ -219,6 +244,32 @@ export default function ProfileScreen() {
           </View>
         )}
 
+        {soldCars.length > 0 && (
+          <View style={styles.sold}>
+            <Text style={styles.emailsTitle}>Sold cars</Text>
+            <Text style={styles.hint}>
+              Lost the code you gave a buyer, or never gave it? Get a new one while nobody has added the car yet.
+            </Text>
+            {soldCars.map((car) => (
+              <View key={car.vin} style={styles.soldRow}>
+                <Text style={styles.soldName}>
+                  {[car.year, car.make, car.model].filter(Boolean).join(' ') || car.vin}
+                </Text>
+                <Button label="Get a new transfer code" variant="quiet" onPress={() => getNewCode(car)} />
+              </View>
+            ))}
+            {soldError ? <Text style={styles.emailError}>{soldError}</Text> : null}
+          </View>
+        )}
+
+        <TransferCodeDialog
+          visible={newCode !== null}
+          code={newCode?.code ?? ''}
+          title="Your new transfer code"
+          car={newCode?.car ?? 'car'}
+          onClose={() => setNewCode(null)}
+        />
+
         <View style={styles.account}>
           <Text style={styles.accountLabel}>Signed in as</Text>
           <Text style={styles.email}>{email}</Text>
@@ -326,6 +377,9 @@ const styles = StyleSheet.create({
   switchRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 16 },
   switchText: { flex: 1, gap: 4 },
   emailsTitle: { ...type.bodyStrong, color: colors.text },
+  sold: { marginTop: 40, paddingTop: 24, gap: 8, borderTopWidth: 1, borderTopColor: colors.border },
+  soldRow: { gap: 4, marginTop: 8 },
+  soldName: { ...type.body, color: colors.text },
   emailError: { ...type.caption, color: colors.danger, marginTop: 8 },
 
   account: {

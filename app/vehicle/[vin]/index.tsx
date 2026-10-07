@@ -35,6 +35,7 @@ import { DataPage } from '../../../components/DataPage';
 import { Reveal } from '../../../components/Reveal';
 import { Stamp } from '../../../components/Stamp';
 import { Timeline, ownerName, period, summarize, type Chapter } from '../../../components/Timeline';
+import { TransferCodeDialog } from '../../../components/TransferCodeDialog';
 import { ConfirmDialog } from '../../../components/ConfirmDialog';
 import { Button, ErrorState, Field, SectionHeader } from '../../../components/ui';
 import { colors, column, fonts, KIND_COLORS, radius, type } from '../../../lib/theme';
@@ -75,6 +76,7 @@ export default function VehicleScreen() {
   const [listingError, setListingError] = useState<string | null>(null);
   const [prior, setPrior] = useState<PriorPeriod[]>([]);
   const [askingSold, setAskingSold] = useState(false);
+  const [transferCode, setTransferCode] = useState<string | null>(null);
   const [askingRemove, setAskingRemove] = useState(false);
   const [ownershipId, setOwnershipId] = useState<string | null>(null);
   const [gallery, setGallery] = useState<Photo[]>([]);
@@ -111,8 +113,11 @@ export default function VehicleScreen() {
   }
 
   async function handleSold() {
-    await markSold(vin);
-    router.replace('/');
+    // The car leaves the garage and the seller is handed the code that gives
+    // the buyer its history. The code is shown before leaving this screen.
+    const code = await markSold(vin);
+    setAskingSold(false);
+    setTransferCode(code);
   }
 
   async function togglePublic(next: boolean) {
@@ -441,8 +446,8 @@ export default function VehicleScreen() {
       <View style={styles.section}>
         <SectionHeader title="Ownership" />
         <Text style={styles.ownershipBody}>
-          Selling it? Mark it as sold and the log goes with the car. The next owner reads your
-          time with it, and it stays credited to you.
+          Selling it? Mark it as sold and you get a code for the buyer. With the code they inherit
+          the log, and your entries stay credited to you. Without it they start a fresh log.
         </Text>
         <Button label="I sold this car" variant="secondary" onPress={() => setAskingSold(true)} />
 
@@ -462,10 +467,21 @@ export default function VehicleScreen() {
         title="Mark this car as sold?"
         body={`It leaves your garage, but nothing is deleted. Your ${entries.length} ${
           entries.length === 1 ? 'entry stays' : 'entries stay'
-        } with the car, credited to you, and the next owner can read them.`}
+        } with the car, credited to you. You will get a code to give the buyer: the log goes to whoever you give it to.`}
         confirmLabel="Mark as sold"
         onConfirm={handleSold}
         onCancel={() => setAskingSold(false)}
+      />
+
+      <TransferCodeDialog
+        visible={transferCode !== null}
+        code={transferCode ?? ''}
+        title="Sold. Hand over the log"
+        car={[vehicle?.year, vehicle?.make, vehicle?.model].filter(Boolean).join(' ') || 'car'}
+        onClose={() => {
+          setTransferCode(null);
+          router.replace('/');
+        }}
       />
 
       <ConfirmDialog

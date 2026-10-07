@@ -124,7 +124,7 @@ async function sameDecisionAsTheApp() {
   await client.query('begin');
   try {
     await client.query(`insert into auth.users (id, email) values ('00000000-0000-0000-0000-000000000099', 'k@x')`);
-    await client.query(`insert into vehicles (id, vin) values ('10000000-0000-0000-0000-000000000099', 'KMVIN000000000099')`);
+    await client.query(`insert into vehicles (id, vin) values ('10000000-0000-0000-0000-000000000099', 'KMVN0000000000099')`);
     await client.query(`insert into ownerships (id, vehicle_id, owner_id) values ('${car}', '10000000-0000-0000-0000-000000000099', '00000000-0000-0000-0000-000000000099')`);
     const scenarios = [
       { entries: [], reminders: [] },
