@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="760" viewBox="0 0 1400 760" role="img" aria-labelledby="title desc">
+  <title id="title">Sonder architecture</title>
+  <desc id="desc">Architecture diagram showing the Expo client, Vercel web layer, Supabase authentication, PostgreSQL with row-level security, storage, NHTSA vPIC, and email jobs.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1"><stop stop-color="#0f2e29"/><stop offset="1" stop-color="#173d35"/></linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="150%"><feDropShadow dx="0" dy="8" stdDeviation="10" flood-color="#061612" flood-opacity=".28"/></filter>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0 0L10 5L0 10Z" fill="#d9b96a"/></marker>
+    <style>
+      .label{font:700 18px ui-sans-serif,system-ui,sans-serif;fill:#f5f1e7}.sub{font:400 14px ui-sans-serif,system-ui,sans-serif;fill:#bdc9bd}.eyebrow{font:700 13px ui-sans-serif,system-ui,sans-serif;letter-spacing:2px;fill:#d9b96a}.box{fill:#21483e;stroke:#5c8372;stroke-width:1.5}.box2{fill:#f5f1e7;stroke:#d9b96a;stroke-width:2}.dark{fill:#1a3933;stroke:#5c8372;stroke-width:1.5}.arrow{fill:none;stroke:#d9b96a;stroke-width:2.5;marker-end:url(#arrow)}
+    </style>
+  </defs>
+  <rect width="1400" height="760" rx="28" fill="url(#bg)"/>
+  <text x="70" y="72" class="eyebrow">SONDER / SYSTEM MAP</text>
+  <text x="70" y="115" class="label" style="font-size:34px;letter-spacing:-1px">A car’s history, carried by the vehicle.</text>
+  <text x="70" y="146" class="sub">The ownership-period data model keeps provenance intact as a car changes hands.</text>
+
+  <rect x="70" y="220" width="250" height="150" rx="18" class="box" filter="url(#shadow)"/>
+  <text x="98" y="263" class="eyebrow">CLIENT</text><text x="98" y="300" class="label">Expo app</text><text x="98" y="329" class="sub">React Native · TypeScript</text><text x="98" y="352" class="sub">Garage · passport · messages</text>
+
+  <rect x="70" y="460" width="250" height="150" rx="18" class="dark" filter="url(#shadow)"/>
+  <text x="98" y="503" class="eyebrow">WEB</text><text x="98" y="540" class="label">Vercel</text><text x="98" y="569" class="sub">Public passport pages</text><text x="98" y="592" class="sub">Link previews · API routes</text>
+
+  <rect x="500" y="240" width="330" height="190" rx="18" class="box2" filter="url(#shadow)"/>
+  <text x="532" y="282" class="eyebrow" style="fill:#66734c">DATA + AUTH</text><text x="532" y="322" class="label" style="fill:#20322c">Supabase</text><text x="532" y="351" class="sub" style="fill:#5f6d64">Auth · Postgres · Storage</text><text x="532" y="382" class="sub" style="fill:#5f6d64">RLS protects every read/write</text><text x="532" y="408" class="sub" style="fill:#5f6d64">Ownership chain is the hinge</text>
+
+  <rect x="500" y="500" width="330" height="110" rx="18" class="box" filter="url(#shadow)"/>
+  <text x="532" y="540" class="eyebrow">EMAIL JOBS</text><text x="532" y="575" class="label">pg_cron → Resend</text><text x="532" y="598" class="sub">Message + reminder digests</text>
+
+  <rect x="1010" y="180" width="300" height="120" rx="18" class="box" filter="url(#shadow)"/>
+  <text x="1042" y="221" class="eyebrow">EXTERNAL API</text><text x="1042" y="260" class="label">NHTSA vPIC</text><text x="1042" y="285" class="sub">VIN → year · model · trim</text>
+
+  <rect x="1010" y="380" width="300" height="120" rx="18" class="dark" filter="url(#shadow)"/>
+  <text x="1042" y="421" class="eyebrow">PUBLIC SURFACE</text><text x="1042" y="460" class="label">Published passport</text><text x="1042" y="485" class="sub">Readable without an account</text>
+
+  <path d="M320 290H490" class="arrow"/><path d="M320 530H490" class="arrow"/><path d="M830 325H1000" class="arrow"/><path d="M830 420H1000" class="arrow"/><path d="M665 430V490" class="arrow"/><path d="M1010 240H850" class="arrow"/>
+  <text x="365" y="275" class="sub">secure client calls</text><text x="365" y="515" class="sub">public route</text><text x="873" y="310" class="sub">VIN lookup</text><text x="871" y="405" class="sub">published record</text><text x="687" y="469" class="sub">notifications</text>
+
+  <rect x="70" y="680" width="1240" height="1" fill="#5c8372" opacity=".55"/><text x="70" y="716" class="sub">Core invariant: the car owns the history; people own the credit for their work.</text>
+</svg>

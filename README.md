@@ -20,6 +20,16 @@ its own link, openable by anyone, no account needed:
 https://www.imsonder.com/p/<VIN>
 ```
 
+<p align="center">
+  <img src="docs/assets/sonder-welcome.jpg" alt="Sonder welcome screen showing the car passport experience" width="900" />
+</p>
+
+## Architecture
+
+Sonder is a React Native/Expo client backed by Supabase. The ownership-period model is the hinge: vehicle history stays with the car, while authorship stays with the person who recorded the work.
+
+![Sonder architecture](docs/architecture/sonder-architecture.svg)
+
 ---
 
 ## Status
