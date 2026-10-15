@@ -1,5 +1,15 @@
 import { useCallback, useRef, useState } from 'react';
-import { ActivityIndicator, FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
+import {
+  ActivityIndicator,
+  FlatList,
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+  useWindowDimensions,
+} from 'react-native';
 import { Stack, useFocusEffect, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { loadFeed, loadSuggestions, markFeedSeen, type FeedItem, type SuggestedCar } from '../../lib/feed';
@@ -14,9 +24,15 @@ import { FollowButton } from '../../components/FollowButton';
 import { ownerName } from '../../components/Timeline';
 import { ErrorState, focusRing, type PressState } from '../../components/ui';
 import { CoverTexture } from '../../components/CoverTexture';
+import { Guilloche } from '../../components/Guilloche';
+import { LiftPressable } from '../../components/LiftPressable';
 import { Reveal } from '../../components/Reveal';
 import { SkeletonRow } from '../../components/Skeleton';
-import { colors, column, fonts, KIND_COLORS, radius, type } from '../../lib/theme';
+import { TabIcon, type IconName } from '../../components/TabIcon';
+import { colors, fonts, KIND_COLORS_ON_PAPER, radius, type } from '../../lib/theme';
+
+/** The width at which the side rail appears and the feed gains a column beside it. */
+const WIDE = 900;
 
 /**
  * What the cars and people a member follows have been doing, newest first.
@@ -24,10 +40,15 @@ import { colors, column, fonts, KIND_COLORS, radius, type } from '../../lib/them
  * Written as a logbook, not a timeline of posts: each line says what happened
  * to which car, the way a service stamp would. The car leads every line
  * because on Sonder the car is the subject, and its owner is the byline.
+ *
+ * Every line is a small paper page, because each one is about a specific car.
+ * On a wide screen the feed sits beside a column of cars worth following.
  */
 export default function FollowingScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { width } = useWindowDimensions();
+  const wide = width >= WIDE;
   const { session } = useAuth();
   const [items, setItems] = useState<FeedItem[] | null>(null);
   const [nextBefore, setNextBefore] = useState<string | undefined>();
@@ -49,15 +70,18 @@ export default function FollowingScreen() {
           loadedOnce.current = true;
           // The dot on the tab is about what arrived since this moment.
           markFeedSeen().catch(() => {});
-          if (page.items.length === 0) {
+          // An empty feed is where following gets explained, with cars to
+          // follow. On a wide screen there is room to keep them beside a
+          // feed that has things in it too.
+          if (page.items.length === 0 || wide) {
             const profile = await loadMyProfile().catch(() => null);
             setPlace(regionLabel(profile?.region));
-            setSuggestions(await loadSuggestions(profile?.region));
+            setSuggestions(await loadSuggestions(profile?.region).catch(() => []));
           }
         })
         .catch((e) => setError(describeError(e)));
     },
-    [session]
+    [session, wide]
   );
 
   // Reload on every visit, quietly after the first: the list stays put while
@@ -96,53 +120,78 @@ export default function FollowingScreen() {
     else router.push(`/p/${item.car.vehicle.vin}`);
   }
 
+  const openCar = (vin: string) => router.push(`/p/${vin}`);
+  const showAside = wide && !!suggestions && suggestions.length > 0;
+
   return (
     <View style={[styles.screen, { paddingTop: insets.top }]}>
       <Stack.Screen options={{ headerShown: false, title: 'Following' }} />
       <CoverTexture />
-      <FlatList
-        data={items ?? []}
-        keyExtractor={(item) => item.key}
-        contentContainerStyle={styles.list}
-        onEndReached={more}
-        onEndReachedThreshold={0.5}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={colors.accent} />}
-        ListHeaderComponent={
-          <Reveal rise={8} style={styles.header}>
-            <Text style={styles.title} accessibilityRole="header">
-              Following
-            </Text>
-            <Text style={styles.intro}>
-              New work on the cars you follow, and what the people you follow get up to.
-            </Text>
-          </Reveal>
-        }
-        renderItem={({ item, index }) => (
-          <Reveal index={index} rise={12}>
-            <FeedLine item={item} onPress={() => open(item)} />
-          </Reveal>
-        )}
-        ListFooterComponent={
-          loadingMore ? <ActivityIndicator color={colors.accent} style={styles.more} /> : null
-        }
-        ListEmptyComponent={
-          error ? (
-            <ErrorState message={error} onRetry={() => load()} />
-          ) : items === null ? (
-            <View style={styles.loading}>
-              <SkeletonRow />
-              <SkeletonRow />
-              <SkeletonRow />
-            </View>
-          ) : (
-            <Empty
-              place={place}
-              suggestions={suggestions}
-              onOpen={(vin) => router.push(`/p/${vin}`)}
-            />
-          )
-        }
-      />
+      <View style={wide ? styles.shell : styles.flex}>
+        <FlatList
+          style={styles.flex}
+          data={items ?? []}
+          keyExtractor={(item) => item.key}
+          contentContainerStyle={[styles.list, wide && styles.listWide]}
+          onEndReached={more}
+          onEndReachedThreshold={0.5}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={colors.accent} />}
+          ListHeaderComponent={
+            <Reveal rise={8} style={styles.header}>
+              <Text style={[styles.title, wide && styles.titleWide]} accessibilityRole="header">
+                Following
+              </Text>
+              {wide && items && items.length > 0 ? (
+                <Text style={styles.count}>
+                  {items.length}
+                  {nextBefore ? '+' : ''} recent {items.length === 1 && !nextBefore ? 'update' : 'updates'}
+                </Text>
+              ) : null}
+              <Text style={styles.intro}>
+                New work on the cars you follow, and what the people you follow get up to.
+              </Text>
+            </Reveal>
+          }
+          renderItem={({ item, index }) => (
+            <Reveal index={index} rise={12} style={styles.cell}>
+              <FeedLine item={item} onPress={() => open(item)} />
+            </Reveal>
+          )}
+          ListFooterComponent={
+            loadingMore ? <ActivityIndicator color={colors.accent} style={styles.more} /> : null
+          }
+          ListEmptyComponent={
+            error ? (
+              <ErrorState message={error} onRetry={() => load()} />
+            ) : items === null ? (
+              <View style={styles.loading}>
+                <SkeletonRow />
+                <SkeletonRow />
+                <SkeletonRow />
+              </View>
+            ) : (
+              <Empty
+                wide={wide}
+                place={place}
+                suggestions={wide ? [] : suggestions}
+                onOpen={openCar}
+              />
+            )
+          }
+        />
+
+        {showAside ? (
+          <ScrollView
+            style={styles.aside}
+            contentContainerStyle={[styles.asideContent, { paddingTop: 48 }]}
+            showsVerticalScrollIndicator={false}
+          >
+            <Reveal rise={8} delay={200}>
+              <Suggestions suggestions={suggestions ?? []} place={place} onOpen={openCar} flush />
+            </Reveal>
+          </ScrollView>
+        ) : null}
+      </View>
     </View>
   );
 }
@@ -163,25 +212,28 @@ function carName(item: { vehicle: { year: string; make: string; model: string } 
 }
 
 /**
- * One line of the logbook. The headline is the event itself; the byline is
- * who and when. Entry photos are shown large, because a photo of the work is
- * most of why anyone follows a build.
+ * One line of the logbook, printed on its own small page. The headline is the
+ * event itself; the byline is who and when. Entry photos are shown large,
+ * because a photo of the work is most of why anyone follows a build.
  */
 function FeedLine({ item, onPress }: { item: FeedItem; onPress: () => void }) {
+  const { width } = useWindowDimensions();
   const who = item.actor ? ownerName(item.actor) : undefined;
   const when = formatAgo(item.at);
 
   let subject: string;
   let headline: string;
   let byline: string;
-  let kindLabel: { text: string; color: string } | undefined;
+  // What kind of thing this is, in its own ink: entries in their kind's, a sale
+  // in the milestone lilac the rail uses for one, the rest in plain ink.
+  let kindLabel: { text: string; color: string; spoken?: boolean };
   let photo: { url: string; thumbUrl?: string } | undefined;
 
   switch (item.kind) {
     case 'entry': {
       subject = carName(item.car);
       headline = item.entry.title;
-      kindLabel = { text: KIND_LABELS[item.entry.kind], color: KIND_COLORS[item.entry.kind] };
+      kindLabel = { text: KIND_LABELS[item.entry.kind], color: KIND_COLORS_ON_PAPER[item.entry.kind], spoken: true };
       const mileage = item.entry.odometer !== undefined ? ` at ${item.entry.odometer.toLocaleString('en-US')} mi` : '';
       byline = `${who ? `Logged by ${who}` : 'Logged'}${mileage}, ${when}.`;
       photo = item.entry.photos[0];
@@ -193,21 +245,25 @@ function FeedLine({ item, onPress }: { item: FeedItem; onPress: () => void }) {
         item.askingPriceCents !== undefined
           ? `For sale at ${formatCents(item.askingPriceCents)}`
           : 'For sale, open to offers';
+      kindLabel = { text: 'For sale', color: colors.ink };
       byline = `Listed by ${who ?? 'its owner'}, ${when}.`;
       break;
     case 'published':
       subject = carName(item.car);
       headline = 'Passport published';
+      kindLabel = { text: 'Passport', color: colors.ink };
       byline = `${who ?? 'Its owner'} put its history online, ${when}.`;
       break;
     case 'sold':
       subject = carName(item.car);
       headline = `Sold by ${who ?? 'its owner'} after ${heldFor(item.startedOn, item.endedOn)}`;
+      kindLabel = { text: 'Sold', color: KIND_COLORS_ON_PAPER.milestone };
       byline = `In ${formatMonthYear(item.endedOn)}. The history stays with the car.`;
       break;
     case 'meet':
       subject = 'Meet';
       headline = item.meet.title;
+      kindLabel = { text: 'Meet', color: colors.ink };
       byline = `Hosted by ${who ?? 'a member'}. ${formatClock(item.meet.startsAt)}, ${item.meet.place}.`;
       break;
   }
@@ -220,48 +276,58 @@ function FeedLine({ item, onPress }: { item: FeedItem; onPress: () => void }) {
     );
 
   return (
-    <Pressable
+    <LiftPressable
       onPress={onPress}
       accessibilityRole="link"
-      accessibilityLabel={`${subject}. ${kindLabel ? `${kindLabel.text}: ` : ''}${headline}. ${byline}`}
+      accessibilityLabel={`${subject}. ${kindLabel.spoken ? `${kindLabel.text}: ` : ''}${headline}. ${byline}`}
       style={(state) => {
-        const { pressed, focused, hovered } = state as PressState;
-        return [styles.line, (pressed || hovered) && styles.lineActive, focused && focusRing];
+        const { pressed, focused } = state as PressState;
+        return [styles.line, pressed && styles.linePressed, focused && focusRing];
       }}
     >
+      <Guilloche opacity={0.26} />
       <View style={styles.lineRow}>
         {lead}
         <View style={styles.lineBody}>
-          <Text style={styles.subject} numberOfLines={1}>
-            {subject}
-          </Text>
+          <View style={styles.lineTop}>
+            <Text style={styles.subject} numberOfLines={1}>
+              {subject}
+            </Text>
+            <View style={styles.kindRow}>
+              <View style={[styles.kindDot, { backgroundColor: kindLabel.color }]} />
+              <Text style={[styles.kind, { color: kindLabel.color }]}>{kindLabel.text}</Text>
+            </View>
+          </View>
           <Text style={styles.headline}>{headline}</Text>
-          <Text style={styles.byline}>
-            {kindLabel ? <Text style={[styles.kind, { color: kindLabel.color }]}>{kindLabel.text}. </Text> : null}
-            {byline}
-          </Text>
+          <Text style={styles.byline}>{byline}</Text>
         </View>
       </View>
       {photo ? (
         <PhotoImage
           url={photo.url}
           thumbUrl={photo.thumbUrl}
-          style={styles.photo}
+          style={[styles.photo, width >= WIDE && styles.photoWide]}
           resizeMode="cover"
           accessibilityLabel={`Photo from ${headline}`}
         />
       ) : null}
-    </Pressable>
+    </LiftPressable>
   );
 }
 
-function CarThumb({ car }: { car: { vehicle: { make: string }; photoUrl?: string; photoThumbUrl?: string } }) {
+function CarThumb({
+  car,
+  size = THUMB,
+}: {
+  car: { vehicle: { make: string }; photoUrl?: string; photoThumbUrl?: string };
+  size?: number;
+}) {
   if (car.photoUrl) {
     return (
       <PhotoImage
         url={car.photoUrl}
         thumbUrl={car.photoThumbUrl}
-        style={styles.thumb}
+        style={[styles.thumb, { width: size, height: size }]}
         resizeMode="cover"
         accessibilityLabel=""
       />
@@ -269,7 +335,7 @@ function CarThumb({ car }: { car: { vehicle: { make: string }; photoUrl?: string
   }
   // No photo: the make's initial on paper, like a monogram on a document.
   return (
-    <View style={[styles.thumb, styles.thumbBlank]}>
+    <View style={[styles.thumb, styles.thumbBlank, { width: size, height: size }]}>
       <Text style={styles.thumbInitial}>{car.vehicle.make.charAt(0) || '?'}</Text>
     </View>
   );
@@ -286,21 +352,77 @@ function CalendarSheet({ iso }: { iso: string }) {
   );
 }
 
+/** Cars recently published, each with its follow button. Used inline on a phone, as a column on desktop. */
+function Suggestions({
+  suggestions,
+  place,
+  onOpen,
+  flush,
+}: {
+  suggestions: SuggestedCar[];
+  place?: string;
+  onOpen: (vin: string) => void;
+  /** No space above: it already starts the column. */
+  flush?: boolean;
+}) {
+  const nearby = place && suggestions.some((s) => s.owner.region && regionLabel(s.owner.region) === place);
+
+  return (
+    <View style={[styles.suggestions, flush && styles.flush]}>
+      <Text style={styles.suggestTitle} accessibilityRole="header">
+        {nearby ? `Recently published in ${place}` : 'Recently published'}
+      </Text>
+      {suggestions.slice(0, 6).map((car, i) => (
+        <Reveal key={car.vehicleId} index={i} rise={8} style={styles.suggestion}>
+          <Pressable
+            onPress={() => onOpen(car.vehicle.vin)}
+            accessibilityRole="link"
+            style={(state) => {
+              const { pressed, hovered, focused } = state as PressState;
+              return [styles.suggestLink, (pressed || hovered) && styles.suggestActive, focused && focusRing];
+            }}
+          >
+            <CarThumb car={car} />
+            <View style={styles.lineBody}>
+              <Text style={styles.suggestMake}>
+                {car.vehicle.year} {car.vehicle.make}
+              </Text>
+              <Text style={styles.suggestModel}>{car.vehicle.model}</Text>
+              <Text style={styles.suggestBy} numberOfLines={1}>
+                {ownerName(car.owner, 'A member')}
+                {car.owner.region ? `, ${regionLabel(car.owner.region)}` : ''}
+              </Text>
+            </View>
+          </Pressable>
+          <FollowButton kind="car" id={car.vehicleId} name={carName(car)} compact />
+        </Reveal>
+      ))}
+    </View>
+  );
+}
+
+const WAYS: { icon: IconName; title: string; body: string }[] = [
+  { icon: 'garage', title: 'Follow a car', body: 'Its new log entries show up here, and you will know if it goes up for sale.' },
+  { icon: 'following', title: 'Follow a person', body: 'Get all of their published cars, and the meets they host.' },
+  { icon: 'meets', title: 'Come back often', body: 'This is a logbook, not a stream: it only ever says what happened to a car.' },
+];
+
 /**
  * A new member follows nothing, so the empty feed is where following gets
- * explained, with real cars to follow right there rather than a search box.
+ * explained. On a phone it carries real cars to follow right there rather
+ * than a search box; on desktop they wait in the column beside it.
  */
 function Empty({
+  wide,
   place,
   suggestions,
   onOpen,
 }: {
+  wide: boolean;
   place?: string;
   suggestions: SuggestedCar[] | null;
   onOpen: (vin: string) => void;
 }) {
-  const nearby = place && suggestions?.some((s) => s.owner.region && regionLabel(s.owner.region) === place);
-
   return (
     <View style={styles.empty}>
       <Text style={styles.emptyTitle}>Nothing followed yet</Text>
@@ -309,39 +431,23 @@ function Empty({
         sale. Follow a person and you get all of their published cars and the meets they host.
       </Text>
 
-      {suggestions === null ? (
-        <ActivityIndicator color={colors.accent} style={styles.loading} />
-      ) : suggestions.length > 0 ? (
-        <View style={styles.suggestions}>
-          <Text style={styles.suggestTitle} accessibilityRole="header">
-            {nearby ? `Recently published in ${place}` : 'Recently published'}
-          </Text>
-          {suggestions.map((car) => (
-            <View key={car.vehicleId} style={styles.suggestion}>
-              <Pressable
-                onPress={() => onOpen(car.vehicle.vin)}
-                accessibilityRole="link"
-                style={(state) => {
-                  const { pressed, focused } = state as PressState;
-                  return [styles.suggestLink, pressed && styles.pressed, focused && focusRing];
-                }}
-              >
-                <CarThumb car={car} />
-                <View style={styles.lineBody}>
-                  <Text style={styles.subject}>
-                    {car.vehicle.year} {car.vehicle.make}
-                  </Text>
-                  <Text style={styles.suggestModel}>{car.vehicle.model}</Text>
-                  <Text style={styles.byline}>
-                    {ownerName(car.owner, 'A member')}
-                    {car.owner.region ? `, ${regionLabel(car.owner.region)}` : ''}
-                  </Text>
-                </View>
-              </Pressable>
-              <FollowButton kind="car" id={car.vehicleId} name={carName(car)} compact />
-            </View>
+      {wide ? (
+        <View style={styles.ways}>
+          {WAYS.map((way, i) => (
+            <Reveal key={way.title} index={i} rise={8} style={styles.wayCell}>
+              <View style={styles.way}>
+                <Guilloche opacity={0.26} />
+                <TabIcon name={way.icon} active color={colors.ink} accent={colors.inkMuted} size={32} />
+                <Text style={styles.wayTitle}>{way.title}</Text>
+                <Text style={styles.wayBody}>{way.body}</Text>
+              </View>
+            </Reveal>
           ))}
         </View>
+      ) : suggestions === null ? (
+        <ActivityIndicator color={colors.accent} style={styles.loading} />
+      ) : suggestions.length > 0 ? (
+        <Suggestions suggestions={suggestions} place={place} onOpen={onOpen} />
       ) : null}
     </View>
   );
@@ -351,43 +457,49 @@ const THUMB = 64;
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
-  list: { paddingHorizontal: 20, paddingBottom: 32, flexGrow: 1, ...column },
+  flex: { flex: 1 },
+  shell: { flex: 1, flexDirection: 'row', width: '100%', maxWidth: 1240, alignSelf: 'center' },
+  list: { paddingHorizontal: 20, paddingBottom: 32, flexGrow: 1, width: '100%', maxWidth: 640, alignSelf: 'center' },
+  listWide: { maxWidth: 800, paddingHorizontal: 48, paddingTop: 48, paddingBottom: 64, alignSelf: 'stretch' },
 
-  header: { paddingTop: 20, marginBottom: 16 },
+  header: { paddingTop: 20, marginBottom: 20 },
   title: { ...type.hero, color: colors.text },
+  titleWide: { fontSize: 72, lineHeight: 68 },
+  count: { ...type.lead, color: colors.textMuted, marginTop: 8 },
   intro: { ...type.body, color: colors.textMuted, marginTop: 10, maxWidth: 520 },
 
   loading: { marginTop: 8 },
   more: { marginVertical: 24 },
+  cell: { marginBottom: 16 },
 
-  line: {
-    paddingVertical: 16,
-    paddingHorizontal: 8,
-    marginHorizontal: -8,
-    borderRadius: radius.control,
-  },
-  lineActive: { backgroundColor: colors.surface },
+  // One logbook line, on its own page of security paper.
+  line: { backgroundColor: colors.paper, borderRadius: radius.page, padding: 18, overflow: 'hidden' },
+  linePressed: { opacity: 0.85 },
   lineRow: { flexDirection: 'row', gap: 16 },
-  lineBody: { flex: 1 },
-  subject: { fontFamily: fonts.bodySemi, fontSize: type.compact.fontSize, lineHeight: 20, color: colors.textMuted },
-  headline: { fontFamily: fonts.bodySemi, fontSize: type.item.fontSize, lineHeight: 24, color: colors.text, marginTop: 2 },
-  byline: { ...type.small, color: colors.textFaint, marginTop: 4 },
-  kind: { fontFamily: fonts.bodySemi },
+  lineBody: { flex: 1, minWidth: 0 },
+  lineTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
+  subject: { flexShrink: 1, fontFamily: fonts.bodySemi, fontSize: type.compact.fontSize, lineHeight: 20, color: colors.inkMuted },
+  kindRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  kindDot: { width: 8, height: 8, borderRadius: 4 },
+  kind: { fontFamily: fonts.bodySemi, fontSize: 14, lineHeight: 18 },
+  headline: { fontFamily: fonts.displayBold, fontSize: 26, lineHeight: 28, color: colors.ink, marginTop: 4 },
+  byline: { ...type.small, color: colors.inkMuted, marginTop: 6 },
   photo: {
     width: '100%',
     aspectRatio: 3 / 2,
     borderRadius: radius.photo,
-    marginTop: 14,
-    backgroundColor: colors.surface,
+    marginTop: 16,
+    backgroundColor: colors.paperShade,
   },
 
-  thumb: { width: THUMB, height: THUMB, borderRadius: radius.photo, backgroundColor: colors.surface },
-  thumbBlank: { backgroundColor: colors.paper, alignItems: 'center', justifyContent: 'center' },
+  photoWide: { aspectRatio: 16 / 9 },
+  thumb: { borderRadius: radius.photo, backgroundColor: colors.paperShade },
+  thumbBlank: { alignItems: 'center', justifyContent: 'center' },
   thumbInitial: { fontFamily: fonts.displayBold, fontSize: 30, color: colors.inkMuted },
 
   sheet: {
     width: THUMB,
-    backgroundColor: colors.paper,
+    backgroundColor: colors.paperShade,
     borderRadius: radius.input,
     alignItems: 'center',
     paddingVertical: 8,
@@ -397,21 +509,32 @@ const styles = StyleSheet.create({
   sheetDay: { fontFamily: fonts.displayBold, fontSize: 30, lineHeight: 32, color: colors.ink },
   sheetMonth: { fontFamily: fonts.bodySemi, fontSize: 12, lineHeight: 16, color: colors.inkMuted },
 
+  aside: { width: 380 },
+  asideContent: { paddingRight: 48, paddingBottom: 64 },
+
   empty: { paddingTop: 8 },
   emptyTitle: { ...type.title, color: colors.text },
   emptyBody: { ...type.body, color: colors.textMuted, marginTop: 10, maxWidth: 520 },
+  ways: { marginTop: 32, flexDirection: 'row', gap: 16 },
+  wayCell: { flex: 1 },
+  way: { flex: 1, backgroundColor: colors.paper, borderRadius: radius.page, padding: 22, gap: 6, overflow: 'hidden' },
+  wayTitle: { ...type.title, fontSize: 24, lineHeight: 26, color: colors.ink, marginTop: 8 },
+  wayBody: { ...type.body, color: colors.inkMuted, maxWidth: 460 },
 
   suggestions: { marginTop: 36 },
+  flush: { marginTop: 0 },
   suggestTitle: { ...type.heading, color: colors.text, marginBottom: 8 },
   suggestion: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    paddingVertical: 12,
+    gap: 8,
+    paddingVertical: 10,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
   },
-  suggestLink: { flex: 1, flexDirection: 'row', gap: 16, alignItems: 'center', borderRadius: radius.control },
+  suggestLink: { flex: 1, flexDirection: 'row', gap: 14, alignItems: 'center', borderRadius: radius.control, padding: 4 },
+  suggestActive: { backgroundColor: colors.surface },
+  suggestMake: { fontFamily: fonts.bodySemi, fontSize: type.compact.fontSize, lineHeight: 20, color: colors.textMuted },
   suggestModel: { fontFamily: fonts.display, fontSize: type.heading.fontSize, lineHeight: 26, color: colors.text },
-  pressed: { opacity: 0.75 },
+  suggestBy: { ...type.small, color: colors.textFaint, marginTop: 2 },
 });
