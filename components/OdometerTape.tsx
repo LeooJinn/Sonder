@@ -85,9 +85,10 @@ export function OdometerTape({
     <View
       style={[styles.wrap, { width: compact ? '100%' : '100%' }]}
       onLayout={(e) => setWidth(e.nativeEvent.layout.width)}
-      accessible
-      accessibilityRole="text"
-      accessibilityLabel="Odometer"
+      // The reading glides through hundreds of values; a screen reader gets the
+      // mileage from the entry beside it and the caption below, not from this.
+      accessibilityElementsHidden
+      importantForAccessibility="no-hide-descendants"
     >
       <View style={styles.figureRow}>
         <Text style={[styles.figure, compact && styles.figureCompact, { color: ink }]}>{figure}</Text>

@@ -298,7 +298,9 @@ export default function WelcomeScreen() {
                 </Text>
                 <Text style={styles.kindTagMiles}>{event.miles.toLocaleString('en-US')} mi</Text>
               </View>
-              <Text style={[styles.eventHeading, wide && styles.eventHeadingWide]}>{event.heading}</Text>
+              <Text style={[styles.eventHeading, wide && styles.eventHeadingWide]} accessibilityRole="header" aria-level={2}>
+                {event.heading}
+              </Text>
               <Text style={styles.eventText}>{event.body}</Text>
               {sale ? (
                 <View style={styles.stamp}>
@@ -356,7 +358,7 @@ export default function WelcomeScreen() {
 
       {/* wide screens: the bar floats over the stage so the passport can start at the very top */}
       {wide ? (
-        <View style={[styles.topOverlay, { paddingTop: insets.top + 16 }]} pointerEvents="box-none">
+        <View style={[styles.topOverlay, { paddingTop: insets.top + 16 }]} pointerEvents="box-none" role="banner">
           <View style={styles.stageColumn} pointerEvents="box-none">
             {topBar}
           </View>
@@ -364,6 +366,7 @@ export default function WelcomeScreen() {
       ) : null}
 
       <ScrollView
+        role="main"
         onScroll={onScroll}
         scrollEventThrottle={16}
         stickyHeaderIndices={wide ? undefined : [1]}
@@ -427,7 +430,7 @@ export default function WelcomeScreen() {
             <Guilloche opacity={0.5} />
             <View style={[styles.column, wide && styles.proofWide]}>
               <View style={[styles.proofText, wide && styles.proofTextWide]}>
-                <Text style={[styles.proofHeading, wide && styles.proofHeadingWide]} accessibilityRole="header">
+                <Text style={[styles.proofHeading, wide && styles.proofHeadingWide]} accessibilityRole="header" aria-level={2}>
                   This one&apos;s real.
                 </Text>
                 <Text style={styles.proofBody}>
@@ -454,6 +457,7 @@ export default function WelcomeScreen() {
               <View style={[styles.proofPage, wide && styles.proofPageWide]}>
                 <Tilt>
                   <DataPage
+                    headingLevel={3}
                     vehicle={passport.vehicle}
                     photoUrl={proofPhotos[0]}
                     holder={realHolder}
@@ -467,7 +471,7 @@ export default function WelcomeScreen() {
         {/* 4 — the people around the cars */}
         <View style={styles.community}>
           <View style={styles.column}>
-            <Text style={[styles.proofHeading, wide && styles.proofHeadingWide, styles.onGround]} accessibilityRole="header">
+            <Text style={[styles.proofHeading, wide && styles.proofHeadingWide, styles.onGround]} accessibilityRole="header" aria-level={2}>
               More than a logbook.
             </Text>
             <Text style={[styles.proofBody, styles.onGroundMuted]}>
@@ -488,7 +492,7 @@ export default function WelcomeScreen() {
         <View style={styles.close}>
           <CoverTexture />
           <View style={[styles.column, styles.closeCentre]}>
-            <Text style={[styles.closeHeading, wide && styles.closeHeadingWide]} accessibilityRole="header">
+            <Text style={[styles.closeHeading, wide && styles.closeHeadingWide]} accessibilityRole="header" aria-level={2}>
               Start your car&apos;s passport.
             </Text>
             <Text style={styles.closeBody}>
@@ -761,14 +765,14 @@ const styles = StyleSheet.create({
   stageRow: { flexDirection: 'row', gap: 48, alignItems: 'flex-start' },
   stageLeft: { flex: 1, minWidth: 0 },
   stageRight: { width: 540, alignSelf: 'stretch' },
-  sticky: { position: 'sticky' as ViewStyle['position'], top: 0, paddingTop: 72, paddingBottom: 24 },
+  sticky: { position: 'sticky' as ViewStyle['position'], top: 0, paddingTop: 112, paddingBottom: 24 },
   spotlight: {
     position: 'absolute',
-    top: '4%',
+    top: 96,
     left: 0,
     right: '-12%',
-    height: '74%',
-    borderRadius: 600,
+    height: '66%',
+    borderRadius: '50%',
     backgroundColor: object.coverMid,
     opacity: 0.45,
   },

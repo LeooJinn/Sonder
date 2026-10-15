@@ -122,7 +122,7 @@ export default function MeetsScreen() {
           <>
             {groups.next ? (
               <Reveal rise={14} index={1} style={styles.featured}>
-                <Text style={styles.groupTitle}>Next up</Text>
+                <Text style={styles.groupTitle} accessibilityRole="header">Next up</Text>
                 <Ticket
                   meet={groups.next}
                   big={wide}
@@ -157,7 +157,7 @@ function Group({
   if (meets.length === 0) return null;
   return (
     <View style={styles.group}>
-      <Text style={styles.groupTitle}>{title}</Text>
+      <Text style={styles.groupTitle} accessibilityRole="header">{title}</Text>
       <View style={styles.grid}>
         {meets.map((meet, i) => (
           <Reveal key={meet.id} index={offset + i} rise={12} style={[styles.cell, wide && styles.cellWide]}>

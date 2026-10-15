@@ -1,18 +1,18 @@
 import { useEffect } from 'react';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ThreadView } from '../../components/ThreadView';
-import { useWide } from '../../components/useWide';
+import { useTwoPane } from '../../components/useWide';
 
 /**
  * One conversation. Route: /messages/:id
  *
- * On a phone it is a screen of its own. On a wide screen conversations live
+ * On a phone it is a screen of its own. Where there is room for two panes (see useTwoPane) conversations live
  * beside the inbox (see the Messages tab), so this route hands over to it.
  */
 export default function ThreadScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
-  const wide = useWide();
+  const wide = useTwoPane();
 
   useEffect(() => {
     if (wide && id) router.replace({ pathname: '/messages', params: { c: id } });

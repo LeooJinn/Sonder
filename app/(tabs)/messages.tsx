@@ -15,7 +15,7 @@ import { useAuth } from '../../lib/auth';
 import { Monogram } from '../../components/Monogram';
 import { TabIcon } from '../../components/TabIcon';
 import { ThreadView } from '../../components/ThreadView';
-import { useWide } from '../../components/useWide';
+import { useTwoPane } from '../../components/useWide';
 import { CoverTexture } from '../../components/CoverTexture';
 import { Reveal } from '../../components/Reveal';
 import { SkeletonBlock } from '../../components/Skeleton';
@@ -35,7 +35,8 @@ export default function MessagesScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { session } = useAuth();
-  const wide = useWide();
+  // "wide" here means the two-pane layout, which needs more room than the side rail does.
+  const wide = useTwoPane();
   const params = useLocalSearchParams<{ c?: string }>();
   // Wide screens show the conversation beside the inbox instead of opening a new screen.
   const [selected, setSelected] = useState<string | null>(params.c ?? null);

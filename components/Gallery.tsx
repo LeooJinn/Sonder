@@ -16,7 +16,7 @@ import type { Photo } from '../lib/photos';
 import { PhotoImage } from './PhotoImage';
 import { duration, ease, nativeDriver, useReducedMotion } from '../lib/motion';
 import { colors, radius, type } from '../lib/theme';
-import { Button, SectionHeader, focusRing, type PressState } from './ui';
+import { Button, SectionHeader, focusRing, noOutline, type PressState } from './ui';
 import { WIDE_BREAKPOINT } from './useWide';
 
 /**
@@ -144,7 +144,9 @@ function PhotoViewer({
   onRemove?: (photo: Photo) => Promise<void>;
   onCaption?: (photo: Photo, caption: string) => Promise<void>;
 }) {
+  const { height: windowHeight } = useWindowDimensions();
   const [caption, setCaption] = useState('');
+  const [captionFocused, setCaptionFocused] = useState(false);
   const [dirty, setDirty] = useState(false);
   const [working, setWorking] = useState(false);
   const [confirmingRemove, setConfirmingRemove] = useState(false);
@@ -185,14 +187,18 @@ function PhotoViewer({
           <View style={styles.viewer}>
             <Image
               source={{ uri: photo.url }}
-              style={[styles.viewerImage, { aspectRatio }]}
+              // Leave room under the photo for the counter and the buttons.
+              style={[styles.viewerImage, { aspectRatio, maxHeight: Math.max(240, windowHeight - 240) }]}
               resizeMode="contain"
             />
 
             {editable && onCaption ? (
               <View style={styles.captionBlock}>
                 <TextInput
-                  style={styles.captionInput}
+                  style={[styles.captionInput, noOutline, captionFocused && styles.captionInputFocused]}
+                  onFocus={() => setCaptionFocused(true)}
+                  onBlur={() => setCaptionFocused(false)}
+                  accessibilityLabel="Caption"
                   value={caption}
                   onChangeText={(text) => {
                     setCaption(text);
@@ -306,6 +312,7 @@ const styles = StyleSheet.create({
     minHeight: 72,
     textAlignVertical: 'top',
   },
+  captionInputFocused: { borderColor: colors.accent },
   captionSave: { alignSelf: 'flex-start', minHeight: 44 },
 
   readOnlyCaption: { ...type.body, color: colors.text },

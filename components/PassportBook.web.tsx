@@ -96,7 +96,7 @@ export function PassportBook({ story, restAt = -1 }: { story?: Animated.Value; r
   const coverBack = useRef<HTMLDivElement>(null);
   const shades = useRef<(HTMLDivElement | null)[]>([]);
 
-  const live = useRef({ u: restAt, px: 0, py: 0, tx: 0, ty: 0, w: 600, h: 600, visible: true });
+  const live = useRef({ u: restAt, px: 0, py: 0, tx: 0, ty: 0, w: 600, h: 600, visible: true, wake: undefined as undefined | (() => void) });
 
   // The story clock: kept in a ref for the animation loop; only the stage (which
   // entries are written) is React state, and it changes a handful of times.
@@ -123,6 +123,8 @@ export function PassportBook({ story, restAt = -1 }: { story?: Animated.Value; r
     resize.observe(el);
     const watch = new IntersectionObserver(([entry]) => {
       live.current.visible = entry.isIntersecting;
+      // The loop stops while the book is off screen; coming back starts it again.
+      if (entry.isIntersecting) live.current.wake?.();
     });
     watch.observe(el);
     return () => {
@@ -136,9 +138,12 @@ export function PassportBook({ story, restAt = -1 }: { story?: Animated.Value; r
     let smoothed = { x: 0, y: 0 };
 
     const draw = (now: number) => {
-      raf = requestAnimationFrame(draw);
       const s = live.current;
-      if (!s.visible) return;
+      if (!s.visible) {
+        raf = 0;
+        return;
+      }
+      raf = requestAnimationFrame(draw);
       const u = s.u;
       const o = turn(seg(u, OPEN));
       const f1 = turn(seg(u, FLIP1));
@@ -202,8 +207,15 @@ export function PassportBook({ story, restAt = -1 }: { story?: Animated.Value; r
       }
     };
 
+    live.current.wake = () => {
+      if (!raf) raf = requestAnimationFrame(draw);
+    };
     raf = requestAnimationFrame(draw);
-    return () => cancelAnimationFrame(raf);
+    return () => {
+      cancelAnimationFrame(raf);
+      raf = 0;
+      live.current.wake = undefined;
+    };
   }, [reduced]);
 
   const onMove = (event: React.PointerEvent<HTMLDivElement>) => {

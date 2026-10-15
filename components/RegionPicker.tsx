@@ -68,19 +68,31 @@ export function RegionPicker({
         onRequestClose={() => setOpen(false)}
       >
         {/* Tapping the dimmed area closes, which is what people expect. */}
-        <Pressable style={[styles.backdrop, wide && styles.backdropWide]} onPress={() => setOpen(false)}>
+        <Pressable focusable={false} accessible={false} style={[styles.backdrop, wide && styles.backdropWide]} onPress={() => setOpen(false)}>
           {/* Stops a tap inside the sheet from reaching the backdrop above. */}
-          <Pressable style={[styles.sheet, wide && styles.sheetWide]} onPress={() => {}}>
+          <Pressable focusable={false} accessible={false} style={[styles.sheet, wide && styles.sheetWide]} onPress={() => {}}>
             <View style={styles.sheetHeader}>
               <Text style={styles.sheetTitle}>{title}</Text>
-              <Pressable onPress={() => setOpen(false)} hitSlop={8}>
+              <Pressable
+                onPress={() => setOpen(false)}
+                hitSlop={8}
+                accessibilityRole="button"
+                accessibilityLabel="Close"
+                style={(state) => [(state as PressState).focused && focusRing]}
+              >
                 <Text style={styles.close}>Close</Text>
               </Pressable>
             </View>
 
             <ScrollView>
               <Pressable
-                style={(state) => [styles.option, ((state as PressState).pressed || (state as PressState).hovered) && styles.optionPressed]}
+                accessibilityRole="radio"
+                accessibilityState={{ checked: !value }}
+                style={(state) => [
+                  styles.option,
+                  ((state as PressState).pressed || (state as PressState).hovered) && styles.optionPressed,
+                  (state as PressState).focused && focusRing,
+                ]}
                 onPress={() => select('')}
               >
                 <Text style={[styles.optionText, !value && styles.optionTextActive]}>
@@ -97,7 +109,13 @@ export function RegionPicker({
                     return (
                       <Pressable
                         key={region.code}
-                        style={(state) => [styles.option, ((state as PressState).pressed || (state as PressState).hovered) && styles.optionPressed]}
+                        accessibilityRole="radio"
+                        accessibilityState={{ checked: selected }}
+                        style={(state) => [
+                          styles.option,
+                          ((state as PressState).pressed || (state as PressState).hovered) && styles.optionPressed,
+                          (state as PressState).focused && focusRing,
+                        ]}
                         onPress={() => select(region.code)}
                       >
                         <Text style={[styles.optionText, selected && styles.optionTextActive]}>

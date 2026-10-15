@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { ActivityIndicator, ScrollView, StyleSheet, Text, View, useWindowDimensions, type ViewStyle } from 'react-native';
 import { Link, Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { loadPassport, type Passport } from '../../lib/passport';
 import { regionLabel } from '../../lib/regions';
@@ -33,7 +33,9 @@ export default function PublicPassportScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
-  const { width } = useWindowDimensions();
+  const { width, height } = useWindowDimensions();
+  // Pinned once its foot is in view, so a long log doesn't leave the left half empty.
+  const [leftHeight, setLeftHeight] = useState(0);
   const wide = width >= WIDE_BREAKPOINT;
   const { session } = useAuth();
   const [reporting, setReporting] = useState(false);
@@ -141,7 +143,13 @@ export default function PublicPassportScreen() {
       </View>
 
       <View style={{ flexDirection: wide ? 'row' : 'column', gap: wide ? 48 : 0, alignItems: 'flex-start' }}>
-        <View style={{ width: wide ? 440 : '100%' }}>
+        <View
+          style={[
+            { width: wide ? 440 : '100%' },
+            wide && { position: 'sticky' as ViewStyle['position'], top: Math.min(16, height - 88 - leftHeight) },
+          ]}
+          onLayout={(e) => setLeftHeight(e.nativeEvent.layout.height)}
+        >
       <DataPage vehicle={vehicle} photoUrl={photo} holder={holder} />
 
       <View style={styles.followRow}>

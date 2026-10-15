@@ -194,7 +194,7 @@ export default function NewMeetScreen() {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
   content: { padding: 20, paddingBottom: 56, ...column },
-  contentWide: { maxWidth: 1120, paddingHorizontal: 48, paddingTop: 32 },
+  contentWide: { maxWidth: 1160, paddingHorizontal: 24, paddingTop: 32 },
   split: { flexDirection: 'row', gap: 64, alignItems: 'flex-start' },
   form: { width: 460 },
   preview: { flex: 1, minWidth: 0, paddingTop: 4 },

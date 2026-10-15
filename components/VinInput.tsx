@@ -46,6 +46,8 @@ export function VinInput({
         onPress={() => input.current?.focus()}
         style={styles.boxes}
         accessible={false}
+        // The hidden input is the tab stop; this wrapper only forwards a click to it.
+        focusable={false}
       >
         {GROUPS.map((group) => (
           <View key={group.label} style={{ flex: group.length }}>

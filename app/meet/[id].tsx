@@ -314,7 +314,7 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
   centered: { justifyContent: 'center', alignItems: 'center' },
   content: { padding: 20, paddingBottom: 56, ...column },
-  contentWide: { maxWidth: 1120, paddingHorizontal: 48, paddingTop: 32, paddingBottom: 72 },
+  contentWide: { maxWidth: 1160, paddingHorizontal: 24, paddingTop: 32, paddingBottom: 72 },
   heroWide: { gap: 32, alignItems: 'center' },
   sheetWide: { width: 132, paddingVertical: 18 },
   sheetDayWide: { fontSize: 72, lineHeight: 72 },

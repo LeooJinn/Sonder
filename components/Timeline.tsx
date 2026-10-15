@@ -1,4 +1,4 @@
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { PhotoImage } from './PhotoImage';
 import { formatCents, KIND_LABELS, type LogEntry } from '../lib/log';
 import { formatDay, formatMonthYear } from '../lib/dates';
@@ -55,6 +55,8 @@ export function ownerName(
  * until you see they're 400 miles apart.
  */
 export function Timeline({ chapters }: { chapters: Chapter[] }) {
+  // On a small phone the axis, rail and card gutters give back width to the cards.
+  const compact = useWindowDimensions().width < 420;
   return (
     <View>
       {chapters.map((chapter, c) => {
@@ -63,8 +65,8 @@ export function Timeline({ chapters }: { chapters: Chapter[] }) {
         return (
           <View key={chapter.key}>
             <View style={styles.row}>
-              <View style={styles.axis} />
-              <View style={styles.rail}>
+              <View style={[styles.axis, compact && styles.axisCompact]} />
+              <View style={[styles.rail, compact && styles.railCompact]}>
                 <View
                   style={[
                     styles.line,
@@ -75,7 +77,7 @@ export function Timeline({ chapters }: { chapters: Chapter[] }) {
                 <View style={styles.chapterMarker} />
               </View>
               <View style={styles.chapterText}>
-                <Text style={styles.chapterTitle} accessibilityRole="header">
+                <Text style={styles.chapterTitle} accessibilityRole="header" aria-level={2}>
                   {chapter.title}
                 </Text>
                 <Text style={styles.chapterSubtitle}>{chapter.subtitle}</Text>
@@ -91,6 +93,7 @@ export function Timeline({ chapters }: { chapters: Chapter[] }) {
                 key={entry.id}
                 entry={entry}
                 isLast={isLastChapter && i === chapter.entries.length - 1}
+                compact={compact}
                 onPress={chapter.onPressEntry ? () => chapter.onPressEntry!(entry) : undefined}
               />
             ))}
@@ -104,10 +107,12 @@ export function Timeline({ chapters }: { chapters: Chapter[] }) {
 function TimelineEntry({
   entry,
   isLast,
+  compact,
   onPress,
 }: {
   entry: LogEntry;
   isLast: boolean;
+  compact: boolean;
   onPress?: () => void;
 }) {
   const ink = KIND_COLORS[entry.kind];
@@ -116,7 +121,7 @@ function TimelineEntry({
   // A log entry is a printed line in the car's papers: security paper, ink, the
   // guilloché behind it. The kind's own ink stamps its dot and its label.
   const card = (
-    <View style={styles.card}>
+    <View style={[styles.card, compact && styles.cardCompact]}>
       <Guilloche opacity={0.28} />
       <View style={styles.entryHeader}>
         <View style={styles.kindRow}>
@@ -175,7 +180,7 @@ function TimelineEntry({
 
   return (
     <View style={styles.row}>
-      <View style={styles.axis}>
+      <View style={[styles.axis, compact && styles.axisCompact]}>
         {entry.odometer !== undefined ? (
           <>
             <Text style={styles.odometer}>{entry.odometer.toLocaleString('en-US')}</Text>
@@ -184,12 +189,12 @@ function TimelineEntry({
         ) : null}
       </View>
 
-      <View style={styles.rail}>
+      <View style={[styles.rail, compact && styles.railCompact]}>
         <View style={[styles.line, isLast && styles.lineToDot]} />
         <View style={[styles.dot, { borderColor: ink }]} />
       </View>
 
-      <View style={styles.entry}>
+      <View style={[styles.entry, compact && styles.entryCompact]}>
         {onPress ? (
           <LiftPressable
             onPress={onPress}
@@ -228,6 +233,10 @@ const styles = StyleSheet.create({
   odometerUnit: { ...type.caption, color: colors.textFaint },
 
   rail: { width: RAIL, alignItems: 'center' },
+  axisCompact: { width: 54 },
+  railCompact: { width: 22 },
+  entryCompact: { paddingLeft: 0 },
+  cardCompact: { paddingHorizontal: 14 },
   line: {
     position: 'absolute',
     top: 0,

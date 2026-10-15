@@ -121,7 +121,9 @@ export default function FollowingScreen() {
   }
 
   const openCar = (vin: string) => router.push(`/p/${vin}`);
-  const showAside = wide && !!suggestions && suggestions.length > 0;
+  // The side column needs room: the rail (236), a readable feed (about 560) and its own 380.
+  const roomForAside = width >= ASIDE_MIN_WIDTH;
+  const showAside = wide && roomForAside && !!suggestions && suggestions.length > 0;
 
   return (
     <View style={[styles.screen, { paddingTop: insets.top }]}>
@@ -173,7 +175,7 @@ export default function FollowingScreen() {
               <Empty
                 wide={wide}
                 place={place}
-                suggestions={wide ? [] : suggestions}
+                suggestions={showAside ? [] : suggestions}
                 onOpen={openCar}
               />
             )
@@ -446,7 +448,8 @@ function Empty({
         </View>
       ) : suggestions === null ? (
         <ActivityIndicator color={colors.accent} style={styles.loading} />
-      ) : suggestions.length > 0 ? (
+      ) : null}
+      {suggestions && suggestions.length > 0 ? (
         <Suggestions suggestions={suggestions} place={place} onOpen={onOpen} />
       ) : null}
     </View>
@@ -454,6 +457,8 @@ function Empty({
 }
 
 const THUMB = 64;
+/** Below this window width the feed takes the whole content area and the side column steps aside. */
+const ASIDE_MIN_WIDTH = 1180;
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
@@ -509,7 +514,8 @@ const styles = StyleSheet.create({
   sheetDay: { fontFamily: fonts.displayBold, fontSize: 30, lineHeight: 32, color: colors.ink },
   sheetMonth: { fontFamily: fonts.bodySemi, fontSize: 12, lineHeight: 16, color: colors.inkMuted },
 
-  aside: { width: 380 },
+  // A ScrollView grows by default on the web; pinned so it can't take the feed's width.
+  aside: { width: 380, flexGrow: 0, flexShrink: 0 },
   asideContent: { paddingRight: 48, paddingBottom: 64 },
 
   empty: { paddingTop: 8 },

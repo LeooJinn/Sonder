@@ -235,6 +235,34 @@ export function ThreadView({
     );
   }
 
+  // Who you're talking to, and what you can do about it. On a phone it scrolls
+  // with the messages (the stack header already names them); beside the inbox
+  // it stays put, so deep in a long thread you can still see who it is.
+  const identityBlock = (
+    <>
+          {other ? (
+            <View style={styles.identity}>
+              <Monogram name={name} size={embedded ? 48 : 52} />
+              <View style={styles.identityText}>
+                <Text style={[styles.name, embedded && styles.nameWide]} accessibilityRole="header">
+                  {name}
+                </Text>
+                {other.displayName && other.handle ? (
+                  <Text style={styles.handle}>@{other.handle}</Text>
+                ) : null}
+              </View>
+            </View>
+          ) : null}
+          <View style={styles.actions}>
+            {other?.handle ? (
+              <Button label="View profile" variant="subtle" onPress={() => router.push(`/u/${other.handle}`)} />
+            ) : null}
+            <Button label="Delete conversation" variant="subtle" onPress={() => setAskingDelete(true)} />
+            {other ? <Button label="Block" variant="subtle" onPress={() => setAskingBlock(true)} /> : null}
+          </View>
+    </>
+  );
+
   return (
     <KeyboardAvoidingView
       style={styles.screen}
@@ -242,6 +270,8 @@ export function ThreadView({
       keyboardVerticalOffset={Platform.OS === 'ios' ? 56 + insets.top : 0}
     >
       {!embedded && <Stack.Screen options={{ title }} />}
+
+      {embedded ? <View style={styles.pinned}>{identityBlock}</View> : null}
 
       <FlatList
         ref={list}
@@ -260,26 +290,7 @@ export function ThreadView({
         scrollEventThrottle={100}
         ListHeaderComponent={
           <View style={styles.top}>
-            {other ? (
-              <View style={styles.identity}>
-                <Monogram name={name} size={wide ? 64 : 52} />
-                <View style={styles.identityText}>
-                  <Text style={[styles.name, wide && styles.nameWide]} accessibilityRole="header">
-                    {name}
-                  </Text>
-                  {other.displayName && other.handle ? (
-                    <Text style={styles.handle}>@{other.handle}</Text>
-                  ) : null}
-                </View>
-              </View>
-            ) : null}
-            <View style={styles.actions}>
-              {other?.handle ? (
-                <Button label="View profile" variant="subtle" onPress={() => router.push(`/u/${other.handle}`)} />
-              ) : null}
-              <Button label="Delete conversation" variant="subtle" onPress={() => setAskingDelete(true)} />
-              {other ? <Button label="Block" variant="subtle" onPress={() => setAskingBlock(true)} /> : null}
-            </View>
+            {embedded ? null : identityBlock}
             {hasMore ? (
               <View style={styles.earlier}>
                 <Button
@@ -432,12 +443,22 @@ const styles = StyleSheet.create({
   listContent: { ...column, paddingHorizontal: 20, paddingTop: 8, paddingBottom: 16 },
 
   top: { paddingBottom: 8 },
-  listContentWide: { maxWidth: 760, paddingHorizontal: 40, paddingTop: 28 },
+  pinned: {
+    width: '100%',
+    maxWidth: 760,
+    alignSelf: 'center',
+    paddingHorizontal: 40,
+    paddingTop: 18,
+    paddingBottom: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  listContentWide: { maxWidth: 760, paddingHorizontal: 40, paddingTop: 20 },
   footInnerWide: { maxWidth: 760, paddingHorizontal: 40 },
   identity: { paddingTop: 8, flexDirection: 'row', alignItems: 'center', gap: 14 },
   identityText: { flex: 1 },
   name: { ...type.title, color: colors.text },
-  nameWide: { fontSize: 36, lineHeight: 38 },
+  nameWide: { fontSize: 30, lineHeight: 32 },
   handle: { ...type.small, color: colors.textMuted, marginTop: 2 },
   actions: { flexDirection: 'row', flexWrap: 'wrap', columnGap: 20, marginTop: 14, marginBottom: 2 },
   earlier: { alignItems: 'center', marginTop: 16 },

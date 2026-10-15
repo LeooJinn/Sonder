@@ -92,7 +92,7 @@ export const KIND_COLORS: Record<EntryKind, string> = {
  * that reads on paper while `danger` is the red that reads on green.
  */
 export const KIND_COLORS_ON_PAPER: Record<EntryKind, string> = {
-  mod: '#9A5A12',
+  mod: '#8F520F',
   service: '#2F6C97',
   repair: '#A8453F',
   milestone: '#6C58B0',

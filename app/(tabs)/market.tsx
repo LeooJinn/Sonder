@@ -140,12 +140,29 @@ export default function MarketScreen() {
   );
 }
 
+/**
+ * The feature card's model name is set big, but a long one ("AMG GT Black
+ * Series Coupe...") would run to a dozen lines in the narrow column beside the
+ * photo, so it steps down with the length of the name.
+ */
+function featureModelSize(model: string) {
+  if (model.length <= 12) return styles.cardModelFeature;
+  if (model.length <= 26) return styles.cardModelFeatureMid;
+  return styles.cardModelFeatureLong;
+}
+
 /** The asking price, printed as a tag: paper, ink, square-cornered. */
 function PriceTag({ listing, large }: { listing: MarketListing; large?: boolean }) {
+  const text = listing.askingPriceCents !== undefined ? formatCents(listing.askingPriceCents) : 'Offers';
+  // The big price shrinks as it gets longer, so "$127,000.50" never runs off the card.
+  const size = text.length <= 7 ? 64 : text.length <= 9 ? 52 : 40;
   return (
     <View style={[styles.tag, large && styles.tagLarge]}>
-      <Text style={[styles.price, large && styles.priceLarge]}>
-        {listing.askingPriceCents !== undefined ? formatCents(listing.askingPriceCents) : 'Offers'}
+      <Text
+        style={[styles.price, large && { fontSize: size, lineHeight: size }]}
+        numberOfLines={1}
+      >
+        {text}
       </Text>
     </View>
   );
@@ -203,12 +220,21 @@ function ListingCard({
       <View style={feature ? styles.featureBody : undefined}>
         <View style={styles.cardBody}>
           <Guilloche opacity={0.3} />
-          <View style={styles.cardMain}>
-            <Text style={styles.cardMake}>
+          <View style={[styles.cardMain, !feature && styles.cardMainGrid]}>
+            <Text style={styles.cardMake} numberOfLines={1}>
               {vehicle.year} {vehicle.make}
             </Text>
-            <Text style={[styles.cardModel, feature && styles.cardModelFeature]}>{vehicle.model}</Text>
-            {vehicle.trim ? <Text style={styles.cardTrim}>{vehicle.trim}</Text> : null}
+            <Text
+              style={[styles.cardModel, feature && featureModelSize(vehicle.model)]}
+              numberOfLines={feature ? 4 : 2}
+            >
+              {vehicle.model}
+            </Text>
+            {vehicle.trim ? (
+              <Text style={styles.cardTrim} numberOfLines={1}>
+                {vehicle.trim}
+              </Text>
+            ) : null}
           </View>
           {feature ? <PriceTag listing={listing} large /> : null}
         </View>
@@ -289,20 +315,23 @@ const styles = StyleSheet.create({
   initial: { fontFamily: fonts.displayBold, fontSize: 72, color: colors.inkMuted },
   featureMedia: { width: '58%' },
   featurePhoto: { width: '100%', height: '100%', minHeight: 340, backgroundColor: colors.paperShade },
-  featureBody: { flex: 1, justifyContent: 'space-between' },
+  featureBody: { flex: 1, minWidth: 0, justifyContent: 'space-between' },
 
   // The price tag: pinned to the photo's corner, square like a hang-tag.
   tagPin: { position: 'absolute', left: 14, bottom: 14 },
   tag: { backgroundColor: colors.paper, borderRadius: radius.tag, paddingVertical: 5, paddingHorizontal: 12 },
   tagLarge: { alignSelf: 'flex-start', paddingVertical: 8, paddingHorizontal: 0, backgroundColor: 'transparent' },
   price: { fontFamily: fonts.displayBold, fontSize: 28, lineHeight: 32, color: colors.ink, fontVariant: ['tabular-nums'] },
-  priceLarge: { fontSize: 64, lineHeight: 64 },
 
   cardBody: { paddingHorizontal: 18, paddingTop: 14, overflow: 'hidden' },
   cardMain: { flex: 1 },
   cardMake: { fontFamily: fonts.bodySemi, fontSize: type.compact.fontSize, color: colors.inkMuted },
   cardModel: { ...type.display, fontSize: 30, lineHeight: 32, color: colors.ink, marginTop: 2 },
   cardModelFeature: { fontSize: 56, lineHeight: 54, marginTop: 4 },
+  cardModelFeatureMid: { fontSize: 44, lineHeight: 44, marginTop: 4 },
+  cardModelFeatureLong: { fontSize: 34, lineHeight: 36, marginTop: 4 },
+  // Room for a two-line name, so cards in a row come out the same height.
+  cardMainGrid: { minHeight: 112 },
   cardTrim: { ...type.small, color: colors.inkMuted },
   cardMeta: {
     ...type.caption,

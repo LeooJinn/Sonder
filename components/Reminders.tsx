@@ -73,7 +73,7 @@ export function RemindersSummary({
         {rows.map(({ reminder, status }, i) => (
           <View key={reminder.id} style={[styles.row, i > 0 && styles.rowDivided]}>
             <View style={[styles.mark, { backgroundColor: STATE_INKS[status.state] }]} />
-            <Text style={styles.title} numberOfLines={1}>
+            <Text style={styles.title} numberOfLines={2}>
               {reminder.title}
             </Text>
             <Text style={[styles.status, { color: STATE_INKS[status.state] }]} numberOfLines={2}>
@@ -115,7 +115,7 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 14 },
   rowDivided: { borderTopWidth: 1, borderTopColor: colors.paperLine },
   mark: { width: 8, height: 8, borderRadius: 4 },
-  title: { ...type.bodyStrong, color: colors.ink, flex: 1 },
+  title: { ...type.bodyStrong, color: colors.ink, flex: 1, minWidth: 120 },
   status: { fontFamily: fonts.bodyMedium, fontSize: 14, lineHeight: 18, textAlign: 'right', flexShrink: 1, maxWidth: '55%' },
   basis: { ...type.caption, color: colors.textFaint, marginTop: 8 },
 });

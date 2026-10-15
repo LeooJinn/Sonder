@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Platform, ScrollView, Share, StyleSheet, Switch, Text, View, useWindowDimensions } from 'react-native';
+import { ActivityIndicator, Platform, ScrollView, Share, StyleSheet, Switch, Text, View, useWindowDimensions, type ViewStyle } from 'react-native';
 import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import {
   findOwnershipId,
@@ -85,7 +85,10 @@ export default function VehicleScreen() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [reminders, setReminders] = useState<Reminder[]>([]);
   const router = useRouter();
-  const { width } = useWindowDimensions();
+  const { width, height } = useWindowDimensions();
+  // The left column is pinned once its foot has scrolled into view, so a long log
+  // doesn't leave half the page empty. `top` goes negative for a column taller than the window.
+  const [leftHeight, setLeftHeight] = useState(0);
   const wide = width >= WIDE_BREAKPOINT;
 
   const photoCount =
@@ -285,7 +288,10 @@ export default function VehicleScreen() {
       <Stack.Screen options={{ title: `${vehicle.year} ${vehicle.make}` }} />
 
       <View style={wide ? styles.split : undefined}>
-      <View style={wide ? styles.splitLeft : undefined}>
+      <View
+        style={wide ? [styles.splitLeft, { position: 'sticky' as ViewStyle['position'], top: Math.min(16, height - 88 - leftHeight) }] : undefined}
+        onLayout={(e) => setLeftHeight(e.nativeEvent.layout.height)}
+      >
 
       <Reveal rise={20}>
         <DataPage
@@ -555,7 +561,7 @@ const styles = StyleSheet.create({
   removeHint: { ...type.caption, color: colors.textFaint, marginTop: 8 },
 
   loading: { justifyContent: 'center', alignItems: 'center' },
-  missing: { padding: 24, justifyContent: 'center', gap: 12 },
+  missing: { padding: 24, justifyContent: 'center', gap: 12, width: '100%', maxWidth: 480, alignSelf: 'center' },
   missingTitle: { ...type.title, color: colors.text },
   missingBody: { ...type.body, color: colors.textMuted, marginBottom: 12 },
 });

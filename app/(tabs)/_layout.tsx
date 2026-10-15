@@ -95,6 +95,7 @@ function TabBar({ state, descriptors, navigation }: TabBarProps) {
     <View
       style={[styles.bar, { paddingBottom: Math.max(insets.bottom, 8) }]}
       accessibilityRole="tablist"
+      aria-label="Main"
     >
       <View style={styles.inner} onLayout={(e) => setWidth(e.nativeEvent.layout.width)}>
         {width > 0 ? <Animated.View pointerEvents="none" style={[styles.rule, { transform: [{ translateX: rule }] }]} /> : null}
@@ -168,7 +169,7 @@ function SideRail({ state, descriptors, navigation }: TabBarProps) {
   }, [state.index, reduced, rule]);
 
   return (
-    <View style={[styles.rail, { paddingTop: insets.top + 24, paddingBottom: Math.max(insets.bottom, 20) }]} accessibilityRole="tablist">
+    <View style={[styles.rail, { paddingTop: insets.top + 24, paddingBottom: Math.max(insets.bottom, 20) }]} accessibilityRole="tablist" aria-label="Main">
       <View style={styles.railBrand}>
         <LogoMark size={36} />
         <Text style={styles.railWordmark}>Sonder</Text>
@@ -232,6 +233,7 @@ function RailItem({
     <Pressable
       accessibilityRole="tab"
       accessibilityState={{ selected }}
+      aria-selected={selected}
       accessibilityLabel={accessibilityLabel}
       onPress={onPress}
       style={(state) => {
@@ -292,6 +294,7 @@ function TabButton({
     <Pressable
       accessibilityRole="tab"
       accessibilityState={{ selected }}
+      aria-selected={selected}
       accessibilityLabel={accessibilityLabel}
       onPress={onPress}
       onPressIn={() => squeeze(0.9)}

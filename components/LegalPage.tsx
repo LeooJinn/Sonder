@@ -47,7 +47,7 @@ export function LegalPage({ doc }: { doc: LegalDocument }) {
     <View style={wide ? styles.bodyWide : undefined}>
       {doc.sections.map((section) => (
         <View key={section.heading} style={styles.section} onLayout={mark(section.heading)}>
-          <Text style={styles.heading} accessibilityRole="header">
+          <Text style={styles.heading} accessibilityRole="header" aria-level={2}>
             {section.heading}
           </Text>
           {section.paragraphs.map((paragraph) => (
@@ -66,7 +66,7 @@ export function LegalPage({ doc }: { doc: LegalDocument }) {
 
       {CONTACT_EMAIL ? (
         <View style={styles.section} onLayout={mark('Contact')}>
-          <Text style={styles.heading} accessibilityRole="header">
+          <Text style={styles.heading} accessibilityRole="header" aria-level={2}>
             Contact
           </Text>
           <Text style={styles.paragraph}>
@@ -75,7 +75,7 @@ export function LegalPage({ doc }: { doc: LegalDocument }) {
         </View>
       ) : (
         <View style={styles.section} onLayout={mark('Getting in touch')}>
-          <Text style={styles.heading} accessibilityRole="header">
+          <Text style={styles.heading} accessibilityRole="header" aria-level={2}>
             Getting in touch
           </Text>
           <Text style={styles.paragraph}>

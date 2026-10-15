@@ -124,6 +124,7 @@ export default function GarageScreen() {
                 vehicle={item}
                 index={index}
                 due={due.get(item.vin)}
+                fill={wide}
                 onPress={() => router.push(`/vehicle/${item.vin}`)}
               />
             </Reveal>
@@ -184,10 +185,13 @@ function GarageCard({
   vehicle,
   index,
   due,
+  fill,
   onPress,
 }: {
   vehicle: SavedVehicle;
   index: number;
+  /** In a grid row: stretch to the row's height so neighbours end together. */
+  fill?: boolean;
   /** The most pressing reminder, when one is overdue or coming up. */
   due?: { title: string; status: ReminderStatus };
   onPress: () => void;
@@ -227,6 +231,7 @@ function GarageCard({
   return (
     <Animated.View
       style={{
+        ...(fill ? { flex: 1 } : null),
         transform: [
           { translateY: lift.interpolate({ inputRange: [0, 1], outputRange: [0, -4] }) },
           { scale: press },
@@ -243,7 +248,7 @@ function GarageCard({
         accessibilityLabel={`${vehicle.year} ${vehicle.make} ${vehicle.model}`}
         style={(state) => {
           const { focused } = state as PressState;
-          return [styles.card, focused && focusRing];
+          return [styles.card, fill && styles.cardFill, focused && focusRing];
         }}
       >
         {vehicle.cover ? (
@@ -256,8 +261,14 @@ function GarageCard({
               accessibilityLabel={`Photo of the ${vehicle.year} ${vehicle.make} ${vehicle.model}`}
             />
           </Animated.View>
+        ) : fill ? (
+          // No photo, in a grid row beside one that has: the make's initial on paper,
+          // so the card keeps the shape of its neighbours.
+          <View style={styles.noPhoto} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+            <Text style={styles.noPhotoInitial}>{vehicle.make.charAt(0)}</Text>
+          </View>
         ) : null}
-        <View style={styles.cardBody}>
+        <View style={[styles.cardBody, fill && styles.cardBodyFill]}>
           <Guilloche opacity={0.32} />
           <View style={styles.cardTop}>
             <Text style={styles.cardMake}>
@@ -267,7 +278,7 @@ function GarageCard({
           </View>
           <Text style={styles.cardModel}>{vehicle.model}</Text>
           {vehicle.trim ? <Text style={styles.cardTrim}>{vehicle.trim}</Text> : null}
-          <View style={styles.cardFoot}>
+          <View style={[styles.cardFoot, fill && styles.cardFootFill]}>
             <Text style={styles.cardVin}>{groupVin(vehicle.vin)}</Text>
             {vehicle.odometer !== undefined ? (
               <View style={styles.reading} accessible accessibilityLabel={`${vehicle.odometer.toLocaleString()} miles`}>
@@ -324,6 +335,10 @@ const styles = StyleSheet.create({
     borderRadius: radius.page,
     overflow: 'hidden',
   },
+  cardFill: { flex: 1 },
+  noPhoto: { width: '100%', aspectRatio: 16 / 10, backgroundColor: colors.paperShade, alignItems: 'center', justifyContent: 'center' },
+  noPhotoInitial: { fontFamily: fonts.displayBold, fontSize: 120, lineHeight: 120, color: colors.paperLine },
+  cardBodyFill: { flex: 1 },
   cover: { width: '100%', aspectRatio: 16 / 10, backgroundColor: colors.paperShade },
   cardBody: { paddingHorizontal: 18, paddingTop: 14, paddingBottom: 16 },
   cardTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' },
@@ -332,6 +347,7 @@ const styles = StyleSheet.create({
   cardModel: { ...type.display, fontSize: 32, lineHeight: 34, color: colors.ink, marginTop: 2 },
   cardTrim: { ...type.small, color: colors.inkMuted },
   cardFoot: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', gap: 12, marginTop: 14 },
+  cardFootFill: { marginTop: 'auto', paddingTop: 14 },
   cardVin: {
     fontFamily: fonts.mono,
     fontSize: 14,

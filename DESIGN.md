@@ -366,6 +366,7 @@ Everything below is for 900px and up (`WIDE_BREAKPOINT` in `components/useWide.t
 - **Auth landing pages** (reset password, confirm email, sign-in link) share `AuthShell`: the passport beside the message on wide, the cover above it on a phone.
 - **Legal pages** read in a 680px measure with a pinned numbered contents column; the foil rule marks the current section.
 - **Member hero.** A member's public page is a flat hero (large monogram seal, name, public-car count, follow and message) over a grid of their cars. Guilloché stays on paper only.
+- **Breakpoints inside the wide range.** The Following side column needs 1180px; Messages shows two panes only from 1120px (`TWO_PANE_BREAKPOINT`), and between 900 and 1119px the inbox is one pane and a conversation opens as its own screen. Grid cards reserve two title lines so a row stays level.
 - **Gallery.** Tiles are larger and lean in on hover; the viewer steps with Previous, Next, a counter, and the arrow keys and Escape.
 
 ### Stamp

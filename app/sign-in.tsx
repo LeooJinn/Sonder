@@ -207,7 +207,7 @@ export default function SignInScreen() {
         </View>
       )}
       <ScrollView
-        style={wide ? styles.formPane : undefined}
+        style={wide ? styles.formPane : styles.formFill}
         contentContainerStyle={[styles.content, wide && styles.contentWide]}
         keyboardShouldPersistTaps="handled"
       >
@@ -459,6 +459,7 @@ const styles = StyleSheet.create({
   },
   showcaseBook: { width: '100%', height: '72%' },
   showcaseLine: { ...type.display, color: colors.text, textAlign: 'center', marginTop: 8, paddingHorizontal: 40 },
+  formFill: { flex: 1 },
   formPane: { flex: 1, maxWidth: 600, backgroundColor: colors.surface },
   contentWide: { paddingTop: 96, maxWidth: 440 },
 });

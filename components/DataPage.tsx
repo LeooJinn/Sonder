@@ -125,6 +125,7 @@ export function DataPage({
   photoUrl,
   holder,
   overlay,
+  headingLevel = 1,
 }: {
   vehicle: DecodedVehicle;
   photoUrl?: string;
@@ -132,6 +133,8 @@ export function DataPage({
   holder?: string;
   /** Something laid on the page itself, like a stamp. */
   overlay?: ReactNode;
+  /** The model name is the page's heading; where the page is part of a longer one, it sits lower. */
+  headingLevel?: number;
 }) {
   return (
     <View style={styles.page}>
@@ -150,7 +153,7 @@ export function DataPage({
           <Text style={styles.make}>{vehicle.make}</Text>
           <Text style={styles.year}>{vehicle.year}</Text>
         </View>
-        <Text style={styles.model} accessibilityRole="header">
+        <Text style={styles.model} accessibilityRole="header" aria-level={headingLevel}>
           {vehicle.model}
         </Text>
         {vehicle.trim ? <Text style={styles.trim}>{vehicle.trim}</Text> : null}

@@ -183,8 +183,9 @@ export function MessageComposer({ onSend }: { onSend: (body: string, car?: Messa
           onBlur={() => setFocused(false)}
           onKeyPress={(e) => {
             if (Platform.OS !== 'web') return;
-            const key = e.nativeEvent as unknown as { key: string; shiftKey?: boolean };
-            if (key.key === 'Enter' && !key.shiftKey) {
+            const key = e.nativeEvent as unknown as { key: string; shiftKey?: boolean; isComposing?: boolean };
+            // Enter that confirms an IME candidate (Chinese, Japanese, Korean) is not "send".
+            if (key.key === 'Enter' && !key.shiftKey && !key.isComposing) {
               (e as unknown as { preventDefault: () => void }).preventDefault();
               send();
             }

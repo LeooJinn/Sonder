@@ -178,7 +178,7 @@ export function Field({
 export function SectionHeader({ title, action }: { title: string; action?: ReactNode }) {
   return (
     <View style={styles.sectionHeader}>
-      <Text style={styles.sectionTitle} accessibilityRole="header">
+      <Text style={styles.sectionTitle} accessibilityRole="header" aria-level={2}>
         {title}
       </Text>
       {action}
