@@ -386,7 +386,8 @@ export default function WelcomeScreen() {
                 <View style={[styles.sticky, { height }]}>
                   <View style={styles.spotlight} pointerEvents="none" />
                   <View style={styles.bookArea}>
-                    <PassportBook story={reduceMotion ? undefined : story} />
+                    {/* Turning with the scroll is the reader's own movement, so it stays under reduced motion; the float and the tilt are what stop. */}
+                    <PassportBook story={story} />
                   </View>
                   <View style={styles.instrumentDock}>{instrument}</View>
                 </View>

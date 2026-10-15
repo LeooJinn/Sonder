@@ -7,6 +7,7 @@ import { formatCents } from '../../lib/log';
 import { formatAgo, ordinal } from '../../lib/dates';
 import { describeError } from '../../lib/errors';
 import { DataPage } from '../../components/DataPage';
+import { LogoMark } from '../../components/LogoMark';
 import { Gallery } from '../../components/Gallery';
 import { Timeline, ownerName, period, summarize } from '../../components/Timeline';
 import { Button, ErrorState } from '../../components/ui';
@@ -120,11 +121,19 @@ export default function PublicPassportScreen() {
       />
 
       <View style={styles.topBar}>
-        <Text style={styles.wordmark}>Sonder</Text>
+        <View style={styles.brand}>
+          {wide ? <LogoMark size={34} /> : null}
+          <Text style={styles.wordmark}>Sonder</Text>
+        </View>
         {/* Visitors arrive from a link and have nowhere to go back to; members
             arrive from For sale or their own car and do. */}
         {router.canGoBack() ? (
           <Button label="Back" variant="subtle" onPress={() => router.back()} />
+        ) : wide && !session ? (
+          <View style={styles.visitorActions}>
+            <Button label="Sign in" variant="quiet" onPress={() => router.push('/sign-in')} />
+            <Button label="Start a passport" onPress={() => router.push('/sign-in?mode=signup')} style={styles.visitorCta} />
+          </View>
         ) : (
           <Text style={styles.docType}>Vehicle passport</Text>
         )}
@@ -248,11 +257,14 @@ const styles = StyleSheet.create({
   topBar: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'baseline',
+    alignItems: 'center',
     paddingHorizontal: 4,
     paddingTop: 12,
     paddingBottom: 18,
   },
+  brand: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  visitorActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  visitorCta: { minHeight: 44, paddingHorizontal: 20 },
   wordmark: { fontFamily: fonts.displayBold, fontSize: 26, color: colors.accent },
   docType: { fontFamily: fonts.display, fontSize: 16, color: colors.textMuted },
 

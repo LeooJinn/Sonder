@@ -1,4 +1,4 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, column, fonts, radius, type } from '../lib/theme';
@@ -24,10 +24,13 @@ export function AppHeader({
 }) {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { width } = useWindowDimensions();
+  // Past 900px the screens beneath use a wider column; the header follows it.
+  const wide = width >= 900;
 
   return (
     <View style={[styles.bar, { paddingTop: insets.top }]}>
-      <View style={styles.inner}>
+      <View style={[styles.inner, wide && styles.innerWide]}>
         <Pressable
           onPress={canGoBack ? onBack : () => router.replace('/')}
           accessibilityRole="button"
@@ -40,7 +43,7 @@ export function AppHeader({
           <View style={styles.chevron} />
           {!canGoBack ? <Text style={styles.backLabel}>Garage</Text> : null}
         </Pressable>
-        <Text style={styles.title} numberOfLines={1} accessibilityRole="header">
+        <Text style={[styles.title, wide && styles.titleWide]} numberOfLines={1} accessibilityRole="header">
           {title}
         </Text>
       </View>
@@ -59,6 +62,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     gap: 4,
   },
+  innerWide: { maxWidth: 1160 + 16, paddingHorizontal: 32, minHeight: 72 },
+  titleWide: { fontSize: 30, lineHeight: 34 },
   back: {
     minWidth: 44,
     minHeight: 44,

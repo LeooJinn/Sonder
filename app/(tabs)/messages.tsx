@@ -1,6 +1,6 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
-import { Stack, useFocusEffect, useRouter } from 'expo-router';
+import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   loadInbox,
@@ -13,6 +13,9 @@ import { formatInboxTime } from '../../lib/dates';
 import { describeError } from '../../lib/errors';
 import { useAuth } from '../../lib/auth';
 import { Monogram } from '../../components/Monogram';
+import { TabIcon } from '../../components/TabIcon';
+import { ThreadView } from '../../components/ThreadView';
+import { useWide } from '../../components/useWide';
 import { CoverTexture } from '../../components/CoverTexture';
 import { Reveal } from '../../components/Reveal';
 import { SkeletonBlock } from '../../components/Skeleton';
@@ -32,6 +35,10 @@ export default function MessagesScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { session } = useAuth();
+  const wide = useWide();
+  const params = useLocalSearchParams<{ c?: string }>();
+  // Wide screens show the conversation beside the inbox instead of opening a new screen.
+  const [selected, setSelected] = useState<string | null>(params.c ?? null);
   const [inbox, setInbox] = useState<InboxItem[] | null>(null);
   const [mutuals, setMutuals] = useState<MessagePerson[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -70,11 +77,27 @@ export default function MessagesScreen() {
     setRefreshing(false);
   }
 
+  useEffect(() => {
+    if (params.c) setSelected(params.c);
+  }, [params.c]);
+
+  // Opening a conversation marks it read; pick that up in the list a moment later.
+  useEffect(() => {
+    if (!selected || !wide) return;
+    const timer = setTimeout(() => load(true), 1600);
+    return () => clearTimeout(timer);
+  }, [selected, wide, load]);
+
+  function open(conversationId: string) {
+    if (wide) setSelected(conversationId);
+    else router.push(`/messages/${conversationId}`);
+  }
+
   async function start(person: MessagePerson) {
     setStarting(person.id);
     setStartError(null);
     try {
-      router.push(`/messages/${await startConversation(person.id)}`);
+      open(await startConversation(person.id));
     } catch (e) {
       setStartError(describeError(e));
     } finally {
@@ -95,11 +118,7 @@ export default function MessagesScreen() {
   const startable = mutuals.filter((person) => !talking.has(person.id));
   const empty = inbox !== null && inbox.length === 0;
 
-  return (
-    <View style={[styles.screen, { paddingTop: insets.top }]}>
-      <Stack.Screen options={{ headerShown: false, title: 'Messages' }} />
-
-      <CoverTexture />
+  const list = (
       <FlatList
         data={inbox ?? []}
         keyExtractor={(item) => item.conversationId}
@@ -114,7 +133,7 @@ export default function MessagesScreen() {
         }
         renderItem={({ item, index }) => (
           <Reveal index={index} rise={10}>
-            <Row item={item} onPress={() => router.push(`/messages/${item.conversationId}`)} />
+            <Row item={item} selected={wide && selected === item.conversationId} onPress={() => open(item.conversationId)} />
           </Reveal>
         )}
         ListEmptyComponent={
@@ -130,7 +149,7 @@ export default function MessagesScreen() {
                 </View>
               ))}
             </View>
-          ) : empty ? (
+          ) : empty && !wide ? (
             <View style={styles.empty}>
               <Text style={styles.emptyTitle} accessibilityRole="header">
                 No messages yet
@@ -175,12 +194,59 @@ export default function MessagesScreen() {
           ) : null
         }
       />
+  );
+
+  if (!wide) {
+    return (
+      <View style={[styles.screen, { paddingTop: insets.top }]}>
+        <Stack.Screen options={{ headerShown: false, title: 'Messages' }} />
+        <CoverTexture />
+        {list}
+      </View>
+    );
+  }
+
+  return (
+    <View style={[styles.screen, styles.split]}>
+      <Stack.Screen options={{ headerShown: false, title: 'Messages' }} />
+      <View style={[styles.paneList, { paddingTop: insets.top + 24 }]}>{list}</View>
+      <View style={styles.paneThread}>
+        {selected ? (
+          <ThreadView
+            key={selected}
+            id={selected}
+            embedded
+            onLeave={() => {
+              setSelected(null);
+              router.setParams({ c: '' });
+              load(true);
+            }}
+          />
+        ) : (
+          <View style={styles.pick}>
+            <CoverTexture />
+            <Reveal rise={10}>
+              <View style={styles.pickIcon}>
+                <TabIcon name="messages" active={false} color={colors.accent} accent={colors.accent} size={56} />
+              </View>
+            </Reveal>
+            <Reveal rise={10} index={1}>
+              <Text style={styles.pickTitle}>{empty ? 'Nothing here yet' : 'Pick a conversation'}</Text>
+              <Text style={styles.pickBody}>
+                {empty
+                  ? 'Follow people and have them follow you back, and you can write to each other here.'
+                  : 'Your messages open here, beside the list. Cars you send arrive as a small paper page.'}
+              </Text>
+            </Reveal>
+          </View>
+        )}
+      </View>
     </View>
   );
 }
 
 /** One conversation: who, the last thing said, when, and whether there's news. */
-function Row({ item, onPress }: { item: InboxItem; onPress: () => void }) {
+function Row({ item, selected, onPress }: { item: InboxItem; selected?: boolean; onPress: () => void }) {
   const name = ownerName(item.other, 'A member who left');
   const unread = item.unread > 0;
   const preview = `${item.lastFromMe ? 'You: ' : ''}${item.lastBody}`;
@@ -189,12 +255,14 @@ function Row({ item, onPress }: { item: InboxItem; onPress: () => void }) {
     <Pressable
       onPress={onPress}
       accessibilityRole="button"
+      accessibilityState={{ selected: !!selected }}
       accessibilityLabel={`${name}${unread ? `, ${item.unread} unread` : ''}${item.canReply ? '' : ', closed'}. ${preview}`}
       style={(state) => {
         const { pressed, focused, hovered } = state as PressState;
-        return [styles.row, (pressed || hovered) && styles.rowActive, focused && focusRing];
+        return [styles.row, (pressed || hovered || selected) && styles.rowActive, focused && focusRing];
       }}
     >
+      {selected ? <View style={styles.rowRule} /> : null}
       <Monogram name={name} />
       <View style={styles.rowMain}>
         <View style={styles.rowTop}>
@@ -223,6 +291,13 @@ function Row({ item, onPress }: { item: InboxItem; onPress: () => void }) {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
+  split: { flexDirection: 'row' },
+  paneList: { width: 400, borderRightWidth: 1, borderRightColor: colors.border },
+  paneThread: { flex: 1, minWidth: 0 },
+  pick: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 40, overflow: 'hidden' },
+  pickIcon: { width: 96, height: 96, borderRadius: 48, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center', alignSelf: 'center' },
+  pickTitle: { ...type.display, color: colors.text, textAlign: 'center', marginTop: 24 },
+  pickBody: { ...type.lead, color: colors.textMuted, textAlign: 'center', marginTop: 12, maxWidth: 420 },
   content: { ...column, paddingHorizontal: 20, paddingBottom: 32, flexGrow: 1 },
   header: { paddingTop: 20, marginBottom: 14 },
   title: { ...type.hero, color: colors.text },
@@ -242,6 +317,8 @@ const styles = StyleSheet.create({
     borderBottomWidth: 0,
   },
   rowActive: { backgroundColor: colors.surface },
+  // The conversation open beside the list: foil marks where you are.
+  rowRule: { position: 'absolute', left: 0, top: 14, bottom: 14, width: 3, borderRadius: 2, backgroundColor: colors.accent },
   rowMain: { flex: 1, gap: 3 },
   rowTop: { flexDirection: 'row', alignItems: 'baseline', gap: 12 },
   name: { ...type.item, flex: 1, color: colors.text },

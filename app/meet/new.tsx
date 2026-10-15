@@ -9,11 +9,13 @@ import {
   View,
 } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
-import { createMeet } from '../../lib/meets';
+import { createMeet, type Meet } from '../../lib/meets';
 import { loadMyProfile } from '../../lib/profile';
 import { localDateTimeToIso, nextWeekday } from '../../lib/dates';
 import { describeError } from '../../lib/errors';
+import { MeetTicket } from '../../components/MeetTicket';
 import { RegionPicker } from '../../components/RegionPicker';
+import { useWide } from '../../components/useWide';
 import { Button, Field, Notice, focusRing, type PressState } from '../../components/ui';
 import { colors, column, fonts, radius, type } from '../../lib/theme';
 
@@ -26,6 +28,7 @@ const QUICK_DATES = [
 
 export default function NewMeetScreen() {
   const router = useRouter();
+  const wide = useWide();
   const [title, setTitle] = useState('');
   const [place, setPlace] = useState('');
   const [region, setRegion] = useState('');
@@ -62,6 +65,19 @@ export default function NewMeetScreen() {
     }
   }
 
+  // A live ticket beside the form on a wide screen, so the meet takes shape as it is typed.
+  const previewMeet = {
+    id: 'preview',
+    title: title.trim() || 'Sunday coffee and cars',
+    details: details.trim() || undefined,
+    region,
+    place: place.trim() || 'Where you meet',
+    startsAt: localDateTimeToIso(date, time) ?? new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString(),
+    host: { id: 'me' },
+    isMine: true,
+    goingCount: 1,
+  } as Meet;
+
   return (
     <KeyboardAvoidingView
       style={styles.screen}
@@ -69,7 +85,9 @@ export default function NewMeetScreen() {
     >
       <Stack.Screen options={{ title: 'Post a meet' }} />
 
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+      <ScrollView contentContainerStyle={[styles.content, wide && styles.contentWide]} keyboardShouldPersistTaps="handled">
+        <View style={wide ? styles.split : undefined}>
+        <View style={wide ? styles.form : undefined}>
         <Field
           label="Name"
           value={title}
@@ -157,6 +175,17 @@ export default function NewMeetScreen() {
           Signed-in members can see this meet and who says they&apos;re going. It never appears
           on public pages.
         </Text>
+        </View>
+        {wide ? (
+          <View style={styles.preview}>
+            <Text style={styles.previewTitle}>How it will look</Text>
+            <MeetTicket meet={previewMeet} showRegion={false} big onPress={() => {}} />
+            <Text style={styles.previewNote}>
+              This is the ticket members see in Meets. It fills in as you type.
+            </Text>
+          </View>
+        ) : null}
+        </View>
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -165,6 +194,12 @@ export default function NewMeetScreen() {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
   content: { padding: 20, paddingBottom: 56, ...column },
+  contentWide: { maxWidth: 1120, paddingHorizontal: 48, paddingTop: 32 },
+  split: { flexDirection: 'row', gap: 64, alignItems: 'flex-start' },
+  form: { width: 460 },
+  preview: { flex: 1, minWidth: 0, paddingTop: 4 },
+  previewTitle: { ...type.title, color: colors.text, marginBottom: 16 },
+  previewNote: { ...type.small, color: colors.textFaint, marginTop: 14, maxWidth: 420 },
 
   field: { marginBottom: 20 },
   label: { ...type.label, color: colors.textMuted, marginBottom: 8 },

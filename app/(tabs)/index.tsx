@@ -139,9 +139,13 @@ export default function GarageScreen() {
         // flashes for a moment on every launch.
         ListEmptyComponent={
           !loaded ? (
-            <View style={styles.skeletons}>
-              <SkeletonCard />
-              <SkeletonCard />
+            <View style={[styles.skeletons, wide && styles.skeletonsWide]}>
+              <View style={wide ? styles.skeletonCell : undefined}>
+                <SkeletonCard />
+              </View>
+              <View style={wide ? styles.skeletonCell : undefined}>
+                <SkeletonCard />
+              </View>
             </View>
           ) : isEmpty ? (
             <View style={styles.empty}>
@@ -344,6 +348,8 @@ const styles = StyleSheet.create({
   dueTextOverdue: { color: colors.stampInk },
 
   skeletons: { gap: 20, marginTop: 8 },
+  skeletonsWide: { flexDirection: 'row', gap: 24 },
+  skeletonCell: { flex: 1 },
   bay: { marginTop: 4 },
   empty: { paddingTop: 28, maxWidth: 460 },
   emptyTitle: { ...type.hero, fontSize: 44, lineHeight: 44, color: colors.text, marginTop: 20 },

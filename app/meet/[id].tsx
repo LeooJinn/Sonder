@@ -6,7 +6,10 @@ import { loadGarage, type SavedVehicle } from '../../lib/garage';
 import { calendarSheet, formatClock, formatMeetDay } from '../../lib/dates';
 import { regionLabel } from '../../lib/regions';
 import { describeError } from '../../lib/errors';
+import { Monogram } from '../../components/Monogram';
+import { Reveal } from '../../components/Reveal';
 import { ownerName } from '../../components/Timeline';
+import { useWide } from '../../components/useWide';
 import { ConfirmDialog } from '../../components/ConfirmDialog';
 import { ReportSheet } from '../../components/ReportSheet';
 import { FollowButton } from '../../components/FollowButton';
@@ -22,6 +25,7 @@ export default function MeetScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const userId = useAuth().session?.user.id;
+  const wide = useWide();
   const [meet, setMeet] = useState<MeetDetail | null | undefined>(undefined);
   const [garage, setGarage] = useState<SavedVehicle[]>([]);
   const [choice, setChoice] = useState(NO_CAR);
@@ -95,26 +99,28 @@ export default function MeetScreen() {
   const changedCar = going && choice !== (meet.myRsvp?.vin ?? NO_CAR);
 
   return (
-    <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
+    <ScrollView style={styles.screen} contentContainerStyle={[styles.content, wide && styles.contentWide]}>
       <Stack.Screen options={{ title: 'Meet' }} />
 
-      <View style={styles.hero}>
-        <View style={styles.sheet}>
+      <Reveal rise={12}>
+      <View style={[styles.hero, wide && styles.heroWide]}>
+        <View style={[styles.sheet, wide && styles.sheetWide]}>
           <Text style={styles.sheetWeekday}>{sheet.weekday}</Text>
-          <Text style={styles.sheetDay}>{sheet.day}</Text>
+          <Text style={[styles.sheetDay, wide && styles.sheetDayWide]}>{sheet.day}</Text>
           <Text style={styles.sheetMonth}>{sheet.month}</Text>
         </View>
         <View style={styles.heroText}>
-          <Text style={styles.title} accessibilityRole="header">
+          <Text style={[styles.title, wide && styles.titleWide]} accessibilityRole="header">
             {meet.title}
           </Text>
-          <Text style={styles.when}>
+          <Text style={[styles.when, wide && styles.whenWide]}>
             {formatMeetDay(meet.startsAt)} at {formatClock(meet.startsAt)}
           </Text>
         </View>
       </View>
+      </Reveal>
 
-      <View style={styles.facts}>
+      <View style={[styles.facts, wide && styles.factsWide]}>
         <Fact label="Where" value={`${meet.place}, ${regionLabel(meet.region) ?? meet.region}`} />
         <Fact
           label="Hosted by"
@@ -133,7 +139,8 @@ export default function MeetScreen() {
         </View>
       ) : null}
 
-      <View style={styles.section}>
+      <View style={wide ? styles.columns : undefined}>
+      <View style={[styles.section, wide && styles.colLeft]}>
         <SectionHeader title={going ? "You're going" : 'Going?'} />
 
         {garage.length > 0 && (
@@ -202,7 +209,7 @@ export default function MeetScreen() {
         )}
       </View>
 
-      <View style={styles.section}>
+      <View style={[styles.section, wide && styles.colRight]}>
         <SectionHeader title={`${meet.attendees.length} going`} />
         {cars.length > 0 && (
           <Text style={styles.carCount}>
@@ -213,6 +220,7 @@ export default function MeetScreen() {
           <View key={person.id} style={styles.attendee}>
             {/* The name opens their page when they have one; the car is what
                 most people scan this list for, so it sits right under it. */}
+            <Monogram name={ownerName(person, 'A member')} size={40} />
             <Pressable
               disabled={!person.handle}
               onPress={() => router.push(`/u/${person.handle}`)}
@@ -237,6 +245,8 @@ export default function MeetScreen() {
             ) : null}
           </View>
         ))}
+      </View>
+
       </View>
 
       {meet.isMine ? (
@@ -304,6 +314,16 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
   centered: { justifyContent: 'center', alignItems: 'center' },
   content: { padding: 20, paddingBottom: 56, ...column },
+  contentWide: { maxWidth: 1120, paddingHorizontal: 48, paddingTop: 32, paddingBottom: 72 },
+  heroWide: { gap: 32, alignItems: 'center' },
+  sheetWide: { width: 132, paddingVertical: 18 },
+  sheetDayWide: { fontSize: 72, lineHeight: 72 },
+  titleWide: { fontSize: 64, lineHeight: 60, letterSpacing: -0.8 },
+  whenWide: { ...type.lead, marginTop: 10 },
+  factsWide: { flexDirection: 'row', gap: 56, marginTop: 32 },
+  columns: { flexDirection: 'row', gap: 64, alignItems: 'flex-start' },
+  colLeft: { width: 420 },
+  colRight: { flex: 1, minWidth: 0 },
 
   hero: { flexDirection: 'row', gap: 16, alignItems: 'flex-start' },
   sheet: {
@@ -361,8 +381,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    gap: 12,
-    paddingVertical: 10,
+    gap: 14,
+    paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
   },
