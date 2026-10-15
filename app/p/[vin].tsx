@@ -17,6 +17,7 @@ import { loadCarFollow } from '../../lib/follows';
 import { reportListing } from '../../lib/moderation';
 import { useAuth } from '../../lib/auth';
 import { colors, column, fonts, radius, type } from '../../lib/theme';
+import { WIDE_BREAKPOINT } from '../../components/useWide';
 
 /**
  * A published passport. Route: /p/:vin
@@ -33,7 +34,7 @@ export default function PublicPassportScreen() {
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
   const { width } = useWindowDimensions();
-  const wide = width >= 900;
+  const wide = width >= WIDE_BREAKPOINT;
   const { session } = useAuth();
   const [reporting, setReporting] = useState(false);
   const [ownFollowers, setOwnFollowers] = useState<number | null>(null);

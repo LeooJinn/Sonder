@@ -39,6 +39,7 @@ import { TransferCodeDialog } from '../../../components/TransferCodeDialog';
 import { ConfirmDialog } from '../../../components/ConfirmDialog';
 import { Button, ErrorState, Field, SectionHeader } from '../../../components/ui';
 import { colors, column, fonts, KIND_COLORS, radius, type } from '../../../lib/theme';
+import { WIDE_BREAKPOINT } from '../../../components/useWide';
 
 /** Where a published passport lives. Local web builds link to themselves. */
 function passportUrl(vin: string): string {
@@ -85,7 +86,7 @@ export default function VehicleScreen() {
   const [reminders, setReminders] = useState<Reminder[]>([]);
   const router = useRouter();
   const { width } = useWindowDimensions();
-  const wide = width >= 900;
+  const wide = width >= WIDE_BREAKPOINT;
 
   const photoCount =
     entries.reduce((total, entry) => total + entry.photos.length, 0) + gallery.length;

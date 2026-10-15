@@ -17,6 +17,7 @@ import { PhotoImage } from './PhotoImage';
 import { duration, ease, nativeDriver, useReducedMotion } from '../lib/motion';
 import { colors, radius, type } from '../lib/theme';
 import { Button, SectionHeader, focusRing, type PressState } from './ui';
+import { WIDE_BREAKPOINT } from './useWide';
 
 /**
  * The car's gallery: photos with no log entry attached.
@@ -41,7 +42,7 @@ export function Gallery({
   const [viewing, setViewing] = useState<Photo | null>(null);
   const editable = Boolean(onRemove || onCaption);
   const { width } = useWindowDimensions();
-  const wide = width >= 900;
+  const wide = width >= WIDE_BREAKPOINT;
   const index = viewing ? photos.findIndex((p) => p.id === viewing.id) : -1;
   const step = (dir: 1 | -1) => {
     if (photos.length < 2 || index < 0) return;

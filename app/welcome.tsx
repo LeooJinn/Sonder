@@ -35,6 +35,7 @@ import { Tilt } from '../components/Tilt';
 import { ownerName } from '../components/Timeline';
 import { Button, focusRing, noOutline, type PressState } from '../components/ui';
 import { colors, fonts, KIND_COLORS, object, radius, type, wideColumn } from '../lib/theme';
+import { WIDE_BREAKPOINT } from '../components/useWide';
 
 /** The owner's real, published car: the proof under the story. */
 const EXAMPLE_VIN = '1FMCU0G65LUA35573';
@@ -117,7 +118,7 @@ export default function WelcomeScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { width, height } = useWindowDimensions();
-  const wide = width >= 900;
+  const wide = width >= WIDE_BREAKPOINT;
 
   const [vin, setVin] = useState('');
   const [passport, setPassport] = useState<Passport | null>(null);

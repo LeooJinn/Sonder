@@ -1,9 +1,9 @@
 import { useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { confirmEmailChange } from '../lib/account';
 import { describeError } from '../lib/errors';
-import { PassportCover } from '../components/PassportCover';
+import { AuthShell } from '../components/AuthShell';
 import { Button, Notice } from '../components/ui';
 import { colors, type } from '../lib/theme';
 
@@ -45,9 +45,8 @@ export default function ConfirmEmailScreen() {
   }
 
   return (
-    <ScrollView contentContainerStyle={styles.content} style={styles.screen}>
+    <AuthShell>
       <Stack.Screen options={{ headerShown: false, title: 'Confirm email' }} />
-      <PassportCover />
 
       {result ? (
         <View style={styles.block}>
@@ -82,21 +81,12 @@ export default function ConfirmEmailScreen() {
           <Button label="Confirm email change" onPress={confirm} busy={busy} glint />
         </View>
       )}
-    </ScrollView>
+    </AuthShell>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.background },
-  content: {
-    padding: 24,
-    paddingTop: 72,
-    paddingBottom: 48,
-    maxWidth: 440,
-    width: '100%',
-    alignSelf: 'center',
-  },
   block: { gap: 12 },
-  title: { ...type.bodyStrong, color: colors.text },
-  body: { ...type.small, color: colors.textMuted, marginBottom: 8 },
+  title: { ...type.title, color: colors.text },
+  body: { ...type.body, color: colors.textMuted, marginBottom: 8 },
 });

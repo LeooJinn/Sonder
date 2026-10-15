@@ -19,6 +19,7 @@ import { SkeletonCard } from '../../components/Skeleton';
 import { duration, ease, nativeDriver, useReducedMotion } from '../../lib/motion';
 import { Button, ErrorState, focusRing, type PressState } from '../../components/ui';
 import { colors, column, fonts, radius, type } from '../../lib/theme';
+import { WIDE_BREAKPOINT } from '../../components/useWide';
 
 /** A stand-in row for the "add a car" bay, so it sits in the grid with the cars. */
 const BAY = { vin: '__bay__' } as unknown as SavedVehicle;
@@ -33,7 +34,7 @@ export default function GarageScreen() {
   const { width } = useWindowDimensions();
   // Wide screens get the side rail (see _layout), so the screen drops its own
   // wordmark and Profile link and lays the cars out as a grid.
-  const wide = width >= 900;
+  const wide = width >= WIDE_BREAKPOINT;
   const { session } = useAuth();
 
   /**

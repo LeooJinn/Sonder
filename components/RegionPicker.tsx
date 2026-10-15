@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Modal, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { groupedRegions, regionLabel } from '../lib/regions';
 import { colors, fonts, radius, type } from '../lib/theme';
 import { focusRing, type PressState } from './ui';
 import { CheckMark } from './Marks';
+import { WIDE_BREAKPOINT } from './useWide';
 
 /**
  * A select, built from a Modal rather than a picker library.
@@ -33,6 +34,9 @@ export function RegionPicker({
   title?: string;
 }) {
   const [open, setOpen] = useState(false);
+  const { width } = useWindowDimensions();
+  // On a wide screen the list is a dialog in the middle, not a sheet from the foot.
+  const wide = width >= WIDE_BREAKPOINT;
   const label = regionLabel(value);
 
   function select(code: string) {
@@ -64,9 +68,9 @@ export function RegionPicker({
         onRequestClose={() => setOpen(false)}
       >
         {/* Tapping the dimmed area closes, which is what people expect. */}
-        <Pressable style={styles.backdrop} onPress={() => setOpen(false)}>
+        <Pressable style={[styles.backdrop, wide && styles.backdropWide]} onPress={() => setOpen(false)}>
           {/* Stops a tap inside the sheet from reaching the backdrop above. */}
-          <Pressable style={styles.sheet} onPress={() => {}}>
+          <Pressable style={[styles.sheet, wide && styles.sheetWide]} onPress={() => {}}>
             <View style={styles.sheetHeader}>
               <Text style={styles.sheetTitle}>{title}</Text>
               <Pressable onPress={() => setOpen(false)} hitSlop={8}>
@@ -76,7 +80,7 @@ export function RegionPicker({
 
             <ScrollView>
               <Pressable
-                style={({ pressed }) => [styles.option, pressed && styles.optionPressed]}
+                style={(state) => [styles.option, ((state as PressState).pressed || (state as PressState).hovered) && styles.optionPressed]}
                 onPress={() => select('')}
               >
                 <Text style={[styles.optionText, !value && styles.optionTextActive]}>
@@ -93,7 +97,7 @@ export function RegionPicker({
                     return (
                       <Pressable
                         key={region.code}
-                        style={({ pressed }) => [styles.option, pressed && styles.optionPressed]}
+                        style={(state) => [styles.option, ((state as PressState).pressed || (state as PressState).hovered) && styles.optionPressed]}
                         onPress={() => select(region.code)}
                       >
                         <Text style={[styles.optionText, selected && styles.optionTextActive]}>
@@ -141,6 +145,8 @@ const styles = StyleSheet.create({
     maxWidth: 640,
     alignSelf: 'center',
   },
+  backdropWide: { justifyContent: 'center', alignItems: 'center' },
+  sheetWide: { borderRadius: radius.page, maxWidth: 520, maxHeight: '70%', borderWidth: 1, borderColor: colors.border },
   sheetHeader: {
     flexDirection: 'row',
     alignItems: 'center',

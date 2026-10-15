@@ -8,15 +8,18 @@ import {
   StyleSheet,
   Text,
   View,
+  useWindowDimensions,
 } from 'react-native';
 import { ENTRY_KINDS, KIND_LABELS, parseCents, type EntryKind, type Part } from '../lib/log';
 import { today } from '../lib/dates';
 import { pickImages, type Photo } from '../lib/photos';
 import type { Reminder } from '../lib/reminders';
+import { EntryPreview } from './EntryPreview';
 import { PhotoImage } from './PhotoImage';
 import { CheckMark, CloseMark } from './Marks';
 import { Button, Field, Notice, focusRing, type PressState } from './ui';
 import { colors, column, fonts, KIND_COLORS, radius, type } from '../lib/theme';
+import { WIDE_BREAKPOINT } from './useWide';
 
 /**
  * Everything the form collects. Deliberately not a LogEntry: the form knows
@@ -81,6 +84,8 @@ export function EntryForm({
   const [completes, setCompletes] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const { width } = useWindowDimensions();
+  const wide = width >= WIDE_BREAKPOINT;
 
   async function handlePickPhotos() {
     setError(null);
@@ -152,12 +157,14 @@ export function EntryForm({
     }
   }
 
-  return (
-    <KeyboardAvoidingView
-      style={styles.screen}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+  const previewPhotos = [
+    ...existingPhotos.map((photo) => ({ key: photo.id, uri: photo.thumbUrl ?? photo.url })),
+    ...newPhotoUris.map((uri, index) => ({ key: `${uri}-${index}`, uri })),
+  ];
+  const odometerValue = odometer.trim() ? Number(odometer.replace(/[^\d]/g, '')) : undefined;
+
+  const fields = (
+    <View>
         <Text style={styles.label}>What happened</Text>
         <View style={styles.kinds} accessibilityRole="radiogroup">
           {ENTRY_KINDS.map((option) => {
@@ -259,7 +266,11 @@ export function EntryForm({
           keyboardType="decimal-pad"
           hint="Optional. Shown on the passport if you publish it."
         />
+    </View>
+  );
 
+  const media = (
+    <View>
         <View style={styles.subsection}>
           <View style={styles.subsectionHeader}>
             <Text style={styles.subsectionTitle}>Photos</Text>
@@ -359,10 +370,51 @@ export function EntryForm({
             ))
           )}
         </View>
+    </View>
+  );
 
+  const submit = (
+    <View>
         {error && <Notice tone="error">{error}</Notice>}
 
         <Button label={submitLabel} onPress={handleSubmit} busy={saving} />
+    </View>
+  );
+
+  return (
+    <KeyboardAvoidingView
+      style={styles.screen}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    >
+      <ScrollView contentContainerStyle={[styles.content, wide && styles.contentWide]} keyboardShouldPersistTaps="handled">
+        {wide ? (
+          <View style={styles.split}>
+            <View style={styles.splitLeft}>
+              {fields}
+              {submit}
+            </View>
+            <View style={styles.splitRight}>
+              <Text style={styles.previewTitle}>How it will read</Text>
+              <EntryPreview
+                kind={kind}
+                title={title}
+                occurredOn={occurredOn}
+                odometer={odometerValue}
+                notes={notes}
+                parts={parts}
+                costCents={parseCents(cost)}
+                photos={previewPhotos}
+              />
+              <View style={styles.mediaGap}>{media}</View>
+            </View>
+          </View>
+        ) : (
+          <>
+            {fields}
+            {media}
+            {submit}
+          </>
+        )}
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -416,6 +468,12 @@ function isValidDate(value: string): boolean {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
   content: { padding: 20, paddingBottom: 56, ...column },
+  contentWide: { maxWidth: 1120, paddingHorizontal: 40, paddingTop: 32 },
+  split: { flexDirection: 'row', gap: 56, alignItems: 'flex-start' },
+  splitLeft: { flex: 1, minWidth: 0 },
+  splitRight: { width: 460 },
+  previewTitle: { ...type.title, color: colors.text, marginBottom: 14 },
+  mediaGap: { marginTop: 32 },
 
   label: { ...type.label, color: colors.textMuted, marginBottom: 8 },
 

@@ -3,6 +3,7 @@ import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, column, fonts, radius, type } from '../lib/theme';
 import { focusRing, type PressState } from './ui';
+import { WIDE_BREAKPOINT } from './useWide';
 
 /**
  * The header on every stacked screen, in place of the navigator's own.
@@ -26,7 +27,7 @@ export function AppHeader({
   const router = useRouter();
   const { width } = useWindowDimensions();
   // Past 900px the screens beneath use a wider column; the header follows it.
-  const wide = width >= 900;
+  const wide = width >= WIDE_BREAKPOINT;
 
   return (
     <View style={[styles.bar, { paddingTop: insets.top }]}>

@@ -354,6 +354,20 @@ A 1px cover-rule rail with a ring for each entry, the ring stroked in the entry 
 A paper page (page radius, 22px padding, 440px max) over the cover scrim. Title in ink, body in faded ink. Destructive consequences are listed against a 2px stamp-red rule; the confirm button is a stamp-red outline, the cancel button a solid ink fill with paper text.
 
 
+### Wide-screen documents
+Everything below is for 900px and up (`WIDE_BREAKPOINT` in `components/useWide.ts`, the one definition); phones keep their layouts.
+
+- **Feed pages (Following).** Each update is a small paper page with a faint guilloché, a kind tag with a dot in its paper-safe ink, a 26px condensed headline, a byline and a 16:9 photo. A fixed "Recently published" column sits beside the feed.
+- **For sale.** The newest listing is a full-width horizontal feature card (56px model name, 64px price); the rest are a grid. On a standard card the price is a square-cornered paper tag pinned to the photo corner. A listing without a photo shows the make's initial on paper.
+- **Meet tickets.** Printed paper with a `paperShade` date stub, a dashed `paperLine` perforation and two notches (circles in the cover colour), guilloché behind, lift on hover. No shadows.
+- **Messages.** A two-pane inbox: a 400px list and the conversation beside it. The open conversation's row carries the foil bar, because foil means where you are. `/messages/[id]` redirects to `/messages?c=id` on wide.
+- **Service schedule.** Reminders are paper cards sorted by urgency, with a stamp-red wash behind overdue ones; state colours on paper come from `STATE_INKS` (paper-safe), never the cover tones.
+- **Entry preview.** The entry form shows "How it will read": the entry as it will print, in its kind ink, updated as you type.
+- **Auth landing pages** (reset password, confirm email, sign-in link) share `AuthShell`: the passport beside the message on wide, the cover above it on a phone.
+- **Legal pages** read in a 680px measure with a pinned numbered contents column; the foil rule marks the current section.
+- **Member hero.** A member's public page is a flat hero (large monogram seal, name, public-car count, follow and message) over a grid of their cars. Guilloché stays on paper only.
+- **Gallery.** Tiles are larger and lean in on hover; the viewer steps with Previous, Next, a counter, and the arrow keys and Escape.
+
 ### Stamp
 A rubber stamp: a 3px outer rule and a 1px inner rule in one ink, the label set in Barlow Condensed Bold with wide tracking (30px, or 22px compact) and a small line of B612 Mono beneath, tilted a few degrees. It is a milestone mark, not a status badge.
 

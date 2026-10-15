@@ -17,6 +17,7 @@ import { PassportBook } from '../components/PassportBook';
 import { LegalLinks } from '../components/LegalLinks';
 import { Button, Field, Notice, focusRing, type PressState } from '../components/ui';
 import { colors, fonts, object, radius, type } from '../lib/theme';
+import { WIDE_BREAKPOINT } from '../components/useWide';
 
 type Mode = 'signIn' | 'signUp' | 'reset' | 'link';
 
@@ -185,7 +186,7 @@ export default function SignInScreen() {
   }
 
   const { width } = useWindowDimensions();
-  const wide = width >= 900;
+  const wide = width >= WIDE_BREAKPOINT;
 
   return (
     <KeyboardAvoidingView

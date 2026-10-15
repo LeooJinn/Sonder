@@ -1,16 +1,19 @@
 import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { Link, Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { loadMember, type Member, type MemberCar } from '../../lib/members';
 import { regionLabel } from '../../lib/regions';
 import { calendarSheet, formatClock, formatMonthYear } from '../../lib/dates';
 import { describeError } from '../../lib/errors';
 import { useAuth } from '../../lib/auth';
+import { LiftPressable } from '../../components/LiftPressable';
+import { Monogram } from '../../components/Monogram';
 import { PhotoImage } from '../../components/PhotoImage';
 import { FollowButton } from '../../components/FollowButton';
 import { MessageButton } from '../../components/MessageButton';
 import { Button, ErrorState, focusRing, SectionHeader, type PressState } from '../../components/ui';
 import { colors, column, fonts, radius, type } from '../../lib/theme';
+import { WIDE_BREAKPOINT } from '../../components/useWide';
 
 /**
  * A member's page. Route: /u/:handle
@@ -23,6 +26,8 @@ import { colors, column, fonts, radius, type } from '../../lib/theme';
 export default function MemberScreen() {
   const { handle } = useLocalSearchParams<{ handle: string }>();
   const router = useRouter();
+  const { width } = useWindowDimensions();
+  const wide = width >= WIDE_BREAKPOINT;
   const { session } = useAuth();
   const [member, setMember] = useState<Member | null>(null);
   const [loading, setLoading] = useState(true);
@@ -82,7 +87,7 @@ export default function MemberScreen() {
   const place = regionLabel(member.region);
 
   return (
-    <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
+    <ScrollView style={styles.screen} contentContainerStyle={[styles.content, wide && styles.contentWide]}>
       <Stack.Screen options={{ headerShown: false, title: name }} />
 
       <View style={styles.topBar}>
@@ -94,16 +99,23 @@ export default function MemberScreen() {
         )}
       </View>
 
-      <View style={styles.identity}>
-        <Text style={styles.name} accessibilityRole="header">
-          {name}
-        </Text>
-        <Text style={styles.handleLine}>
-          {member.displayName ? `@${member.handle}` : ''}
-          {member.displayName && place ? ', ' : ''}
-          {place ?? ''}
-        </Text>
-        <View style={styles.follow}>
+      {/* The member, printed like the first page of a passport: a seal, a name, where they are. */}
+      <View style={[styles.identity, wide && styles.identityWide]}>
+        <Monogram name={name} size={wide ? 104 : 72} />
+        <View style={styles.identityText}>
+          <Text style={[styles.name, wide && styles.nameWide]} accessibilityRole="header" numberOfLines={2}>
+            {name}
+          </Text>
+          <Text style={styles.handleLine}>
+            {member.displayName ? `@${member.handle}` : ''}
+            {member.displayName && place ? ', ' : ''}
+            {place ?? ''}
+          </Text>
+          <Text style={styles.count}>
+            {member.cars.length} public {member.cars.length === 1 ? 'car' : 'cars'}
+          </Text>
+        </View>
+        <View style={[styles.follow, wide && styles.followWide]}>
           {isMe ? (
             <Text style={styles.selfNote}>
               This is your page. People see the cars you&apos;ve made public.
@@ -124,9 +136,9 @@ export default function MemberScreen() {
         {member.cars.length === 0 ? (
           <Text style={styles.none}>No cars published right now.</Text>
         ) : (
-          <View style={styles.cars}>
+          <View style={[styles.cars, wide && styles.carsWide]}>
             {member.cars.map((car) => (
-              <CarCard key={car.vehicleId} car={car} onPress={() => router.push(`/p/${car.vehicle.vin}`)} />
+              <CarCard key={car.vehicleId} car={car} wide={wide} onPress={() => router.push(`/p/${car.vehicle.vin}`)} />
             ))}
           </View>
         )}
@@ -135,6 +147,7 @@ export default function MemberScreen() {
       {member.meets.length > 0 && (
         <View style={styles.section}>
           <SectionHeader title="Hosting" />
+          <View style={wide ? styles.meetsWide : undefined}>
           {member.meets.map((meet) => {
             const sheet = calendarSheet(meet.startsAt);
             return (
@@ -161,6 +174,7 @@ export default function MemberScreen() {
               </Pressable>
             );
           })}
+          </View>
         </View>
       )}
 
@@ -181,16 +195,16 @@ export default function MemberScreen() {
 }
 
 /** A published car, printed on paper like the passport it opens. */
-function CarCard({ car, onPress }: { car: MemberCar; onPress: () => void }) {
+function CarCard({ car, onPress, wide }: { car: MemberCar; onPress: () => void; wide: boolean }) {
   const { vehicle } = car;
   return (
-    <Pressable
+    <LiftPressable
       onPress={onPress}
       accessibilityRole="link"
       accessibilityLabel={`${vehicle.year} ${vehicle.make} ${vehicle.model}${car.forSale ? ', for sale' : ''}`}
       style={(state) => {
         const { pressed, focused } = state as PressState;
-        return [styles.card, pressed && styles.cardPressed, focused && focusRing];
+        return [styles.card, wide && styles.cardWide, pressed && styles.cardPressed, focused && focusRing];
       }}
     >
       {car.photoUrl ? (
@@ -212,7 +226,7 @@ function CarCard({ car, onPress }: { car: MemberCar; onPress: () => void }) {
         </View>
         {car.forSale ? <Text style={styles.forSale}>For sale</Text> : null}
       </View>
-    </Pressable>
+    </LiftPressable>
   );
 }
 
@@ -232,10 +246,25 @@ const styles = StyleSheet.create({
   wordmark: { fontFamily: fonts.displayBold, fontSize: 26, color: colors.accent },
   docType: { fontFamily: fonts.display, fontSize: 16, color: colors.textMuted },
 
-  identity: { paddingHorizontal: 4, paddingTop: 8 },
-  name: { ...type.hero, color: colors.text },
-  handleLine: { ...type.body, color: colors.textMuted, marginTop: 4 },
-  follow: { marginTop: 20 },
+  contentWide: { maxWidth: 1120, paddingHorizontal: 40, paddingTop: 20 },
+  identity: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 16,
+    padding: 18,
+    borderRadius: radius.page,
+    backgroundColor: colors.surface,
+    overflow: 'hidden',
+  },
+  identityWide: { gap: 28, padding: 32 },
+  identityText: { flex: 1, minWidth: 200 },
+  name: { ...type.hero, fontSize: 40, lineHeight: 40, color: colors.text },
+  nameWide: { ...type.poster, fontSize: 76, lineHeight: 72 },
+  handleLine: { ...type.body, color: colors.textMuted, marginTop: 6 },
+  count: { ...type.small, color: colors.textFaint, marginTop: 4 },
+  follow: { width: '100%' },
+  followWide: { width: 220 },
   // Under the follow row rather than beside it, so Following doesn't move when Message appears.
   message: { marginTop: 10, alignSelf: 'flex-start' },
   selfNote: { ...type.small, color: colors.textMuted },
@@ -243,6 +272,9 @@ const styles = StyleSheet.create({
   section: { marginTop: 40, paddingHorizontal: 4 },
   none: { ...type.body, color: colors.textMuted },
   cars: { gap: 16 },
+  carsWide: { flexDirection: 'row', flexWrap: 'wrap', gap: 24 },
+  cardWide: { width: 340 },
+  meetsWide: { flexDirection: 'row', flexWrap: 'wrap', columnGap: 32 },
 
   card: { backgroundColor: colors.paper, borderRadius: radius.page, overflow: 'hidden' },
   cardPressed: { opacity: 0.85 },
@@ -274,6 +306,7 @@ const styles = StyleSheet.create({
 
   meet: {
     flexDirection: 'row',
+    minWidth: 320,
     gap: 16,
     paddingVertical: 12,
     paddingHorizontal: 8,

@@ -1,9 +1,9 @@
 import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { supabase } from '../lib/supabase';
 import { describeError } from '../lib/errors';
-import { PassportCover } from '../components/PassportCover';
+import { AuthShell } from '../components/AuthShell';
 import { Button, Field, Notice } from '../components/ui';
 import { colors, type } from '../lib/theme';
 
@@ -71,14 +71,8 @@ export default function ResetPasswordScreen() {
   const dead = !linkLooksRight || linkDead;
 
   return (
-    <KeyboardAvoidingView
-      style={styles.screen}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
+    <AuthShell>
       <Stack.Screen options={{ headerShown: false, title: 'Reset password' }} />
-
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        <PassportCover />
 
         {dead ? (
           <View style={styles.block}>
@@ -127,23 +121,13 @@ export default function ResetPasswordScreen() {
             <Button label="Save new password" onPress={handleSubmit} busy={busy} style={styles.submit} glint />
           </View>
         )}
-      </ScrollView>
-    </KeyboardAvoidingView>
+    </AuthShell>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.background },
-  content: {
-    padding: 24,
-    paddingTop: 72,
-    paddingBottom: 48,
-    maxWidth: 440,
-    width: '100%',
-    alignSelf: 'center',
-  },
   block: { gap: 12 },
-  title: { ...type.bodyStrong, color: colors.text },
-  body: { ...type.small, color: colors.textMuted, marginBottom: 8 },
+  title: { ...type.title, color: colors.text },
+  body: { ...type.body, color: colors.textMuted, marginBottom: 8 },
   submit: { marginTop: 8 },
 });

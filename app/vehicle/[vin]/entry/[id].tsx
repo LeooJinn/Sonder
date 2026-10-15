@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { findEntry, removeEntry, updateEntry, type LogEntry } from '../../../../lib/log';
 import { addPhoto, removePhoto } from '../../../../lib/photos';
@@ -8,6 +8,7 @@ import { EntryForm, type EntryFormValues } from '../../../../components/EntryFor
 import { ConfirmDialog } from '../../../../components/ConfirmDialog';
 import { Button } from '../../../../components/ui';
 import { colors, column, type } from '../../../../lib/theme';
+import { WIDE_BREAKPOINT } from '../../../../components/useWide';
 
 /** Edit or delete an existing log entry. Route: /vehicle/:vin/entry/:id */
 export default function EditEntryScreen() {
@@ -17,6 +18,8 @@ export default function EditEntryScreen() {
   const [loaded, setLoaded] = useState(false);
   const [askingDelete, setAskingDelete] = useState(false);
   const router = useRouter();
+  const { width } = useWindowDimensions();
+  const wide = width >= WIDE_BREAKPOINT;
   // What a failed try already did, so saving again does not upload the same
   // photos twice or remove the same photo twice.
   const uploaded = useRef(new Set<string>());
@@ -105,7 +108,7 @@ export default function EditEntryScreen() {
         onSubmit={handleSubmit}
       />
 
-      <View style={styles.deleteBar}>
+      <View style={[styles.deleteBar, wide && styles.deleteBarWide]}>
         <Button label="Delete entry" variant="danger" onPress={() => setAskingDelete(true)} />
       </View>
 
@@ -135,5 +138,6 @@ const styles = StyleSheet.create({
     borderTopColor: colors.border,
     ...column,
   },
+  deleteBarWide: { maxWidth: 1120, paddingHorizontal: 40, alignItems: 'flex-start' },
   missing: { ...type.body, color: colors.textMuted, padding: 20 },
 });

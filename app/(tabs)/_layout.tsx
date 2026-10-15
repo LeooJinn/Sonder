@@ -3,6 +3,7 @@ import { Animated, Pressable, StyleSheet, Text, View, useWindowDimensions } from
 import { Tabs, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { focusRing, type PressState } from '../../components/ui';
+import { WIDE_BREAKPOINT } from '../../components/useWide';
 import { LogoMark } from '../../components/LogoMark';
 import { TabIcon, type IconName } from '../../components/TabIcon';
 import { useUnreadMessages } from '../../components/useUnreadMessages';
@@ -31,7 +32,7 @@ export default function TabsLayout() {
   const { width } = useWindowDimensions();
   // On a wide screen the tabs become a rail down the left edge, the way a
   // desktop app lays out its places; on a phone they stay a bar at the foot.
-  const wide = width >= WIDE;
+  const wide = width >= WIDE_BREAKPOINT;
   return (
     <Tabs
       tabBar={(props) => (wide ? <SideRail {...props} /> : <TabBar {...props} />)}
@@ -259,8 +260,6 @@ function RailItem({
 }
 
 const RULE_WIDTH = 28;
-/** The width at which the tab bar becomes a side rail. */
-export const WIDE = 900;
 const RAIL_WIDTH = 236;
 const ITEM_HEIGHT = 48;
 const ITEM_GAP = 4;

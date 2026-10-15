@@ -1,6 +1,7 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { reminderStatus, type Reminder, type ReminderState } from '../lib/reminders';
 import { colors, fonts, radius, type } from '../lib/theme';
+import { Guilloche } from './Guilloche';
 import { Button, SectionHeader, focusRing, type PressState } from './ui';
 
 export const STATE_COLORS: Record<ReminderState, string> = {
@@ -9,6 +10,17 @@ export const STATE_COLORS: Record<ReminderState, string> = {
   soon: colors.text,
   ok: colors.textMuted,
   untracked: colors.textFaint,
+};
+
+/**
+ * The same four states, in inks that hold their contrast on paper: overdue in
+ * the stamp's red, soon in full ink, the rest faded.
+ */
+export const STATE_INKS: Record<ReminderState, string> = {
+  overdue: colors.stampInk,
+  soon: colors.ink,
+  ok: colors.inkMuted,
+  untracked: colors.inkMuted,
 };
 
 /**
@@ -57,13 +69,14 @@ export function RemindersSummary({
           (state as PressState).focused && focusRing,
         ]}
       >
+        <Guilloche opacity={0.26} />
         {rows.map(({ reminder, status }, i) => (
           <View key={reminder.id} style={[styles.row, i > 0 && styles.rowDivided]}>
-            <View style={[styles.mark, { backgroundColor: STATE_COLORS[status.state] }]} />
+            <View style={[styles.mark, { backgroundColor: STATE_INKS[status.state] }]} />
             <Text style={styles.title} numberOfLines={1}>
               {reminder.title}
             </Text>
-            <Text style={[styles.status, { color: STATE_COLORS[status.state] }]} numberOfLines={2}>
+            <Text style={[styles.status, { color: STATE_INKS[status.state] }]} numberOfLines={2}>
               {status.text}
             </Text>
           </View>
@@ -91,17 +104,18 @@ const styles = StyleSheet.create({
   inviteTitle: { ...type.bodyStrong, color: colors.text },
   inviteBody: { ...type.small, color: colors.textMuted, marginBottom: 6 },
 
+  // A service sheet: printed on paper like the car's other documents.
   list: {
-    borderWidth: 1,
-    borderColor: colors.border,
+    backgroundColor: colors.paper,
     borderRadius: radius.page,
-    paddingHorizontal: 16,
+    paddingHorizontal: 18,
+    overflow: 'hidden',
   },
-  pressed: { backgroundColor: colors.surface },
+  pressed: { backgroundColor: colors.paperShade },
   row: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 14 },
-  rowDivided: { borderTopWidth: 1, borderTopColor: colors.border },
+  rowDivided: { borderTopWidth: 1, borderTopColor: colors.paperLine },
   mark: { width: 8, height: 8, borderRadius: 4 },
-  title: { ...type.bodyStrong, color: colors.text, flex: 1 },
+  title: { ...type.bodyStrong, color: colors.ink, flex: 1 },
   status: { fontFamily: fonts.bodyMedium, fontSize: 14, lineHeight: 18, textAlign: 'right', flexShrink: 1, maxWidth: '55%' },
   basis: { ...type.caption, color: colors.textFaint, marginTop: 8 },
 });
