@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { Link, Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { loadPassport, type Passport } from '../../lib/passport';
 import { regionLabel } from '../../lib/regions';
@@ -31,6 +31,8 @@ export default function PublicPassportScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
+  const { width } = useWindowDimensions();
+  const wide = width >= 900;
   const { session } = useAuth();
   const [reporting, setReporting] = useState(false);
   const [ownFollowers, setOwnFollowers] = useState<number | null>(null);
@@ -112,7 +114,7 @@ export default function PublicPassportScreen() {
     .join(' ');
 
   return (
-    <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
+    <ScrollView style={styles.screen} contentContainerStyle={[styles.content, wide && styles.contentWide]}>
       <Stack.Screen
         options={{ headerShown: false, title: `${vehicle.year} ${vehicle.make} ${vehicle.model}` }}
       />
@@ -128,6 +130,8 @@ export default function PublicPassportScreen() {
         )}
       </View>
 
+      <View style={{ flexDirection: wide ? 'row' : 'column', gap: wide ? 48 : 0, alignItems: 'flex-start' }}>
+        <View style={{ width: wide ? 440 : '100%' }}>
       <DataPage vehicle={vehicle} photoUrl={photo} holder={holder} />
 
       <View style={styles.followRow}>
@@ -189,7 +193,9 @@ export default function PublicPassportScreen() {
         onClose={() => setReporting(false)}
       />
 
-      <View style={styles.section}>
+        </View>
+        <View style={{ flex: wide ? 1 : undefined, width: wide ? undefined : '100%', minWidth: 0 }}>
+      <View style={wide ? styles.sectionWide : styles.section}>
         <Timeline
           chapters={chapters.map((chapter, i) => ({
             key: chapter.ownershipId,
@@ -210,10 +216,13 @@ export default function PublicPassportScreen() {
       </View>
 
       {gallery.length > 0 && (
-        <View style={styles.section}>
+        <View style={wide ? styles.sectionWide : styles.section}>
           <Gallery photos={gallery} />
         </View>
       )}
+
+        </View>
+      </View>
 
       <View style={styles.footer}>
         <Text style={styles.footerLine}>Every car has a life of its own.</Text>
@@ -233,6 +242,8 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
   centered: { justifyContent: 'center', alignItems: 'center', padding: 32, gap: 10 },
   content: { padding: 16, paddingBottom: 56, ...column },
+  contentWide: { maxWidth: 1160, paddingHorizontal: 24 },
+  sectionWide: { marginTop: 0 },
 
   topBar: {
     flexDirection: 'row',

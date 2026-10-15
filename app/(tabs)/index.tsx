@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Animated, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Animated, FlatList, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { PhotoImage } from '../../components/PhotoImage';
 import { Stack, useFocusEffect, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -20,6 +20,9 @@ import { duration, ease, nativeDriver, useReducedMotion } from '../../lib/motion
 import { Button, ErrorState, focusRing, type PressState } from '../../components/ui';
 import { colors, column, fonts, radius, type } from '../../lib/theme';
 
+/** A stand-in row for the "add a car" bay, so it sits in the grid with the cars. */
+const BAY = { vin: '__bay__' } as unknown as SavedVehicle;
+
 export default function GarageScreen() {
   const [garage, setGarage] = useState<SavedVehicle[]>([]);
   const [loaded, setLoaded] = useState(false);
@@ -27,6 +30,10 @@ export default function GarageScreen() {
   const [due, setDue] = useState<Map<string, { title: string; status: ReminderStatus }>>(new Map());
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { width } = useWindowDimensions();
+  // Wide screens get the side rail (see _layout), so the screen drops its own
+  // wordmark and Profile link and lays the cars out as a grid.
+  const wide = width >= 900;
   const { session } = useAuth();
 
   /**
@@ -72,37 +79,57 @@ export default function GarageScreen() {
       <CoverTexture />
 
       <FlatList
-        data={garage}
+        // numColumns can't change on a mounted list, so a change of layout remounts it.
+        key={wide ? 'grid' : 'column'}
+        numColumns={wide ? 2 : 1}
+        columnWrapperStyle={wide ? styles.gridRow : undefined}
+        data={wide && loaded && !isEmpty ? [...garage, BAY] : garage}
         keyExtractor={(vehicle) => vehicle.vin}
-        contentContainerStyle={styles.list}
+        contentContainerStyle={[styles.list, wide && styles.listWide]}
         ListHeaderComponent={
           <Reveal rise={8} style={styles.header}>
-            <View style={styles.topBar}>
-              <Text style={styles.wordmark}>Sonder</Text>
-              <Button label="Profile" variant="quiet" onPress={() => router.push('/profile')} />
-            </View>
+            {wide ? null : (
+              <View style={styles.topBar}>
+                <Text style={styles.wordmark}>Sonder</Text>
+                <Button label="Profile" variant="quiet" onPress={() => router.push('/profile')} />
+              </View>
+            )}
             {loaded && !isEmpty ? (
               <View style={styles.titleRow}>
-                <Text style={styles.title} accessibilityRole="header">
-                  Garage
-                </Text>
+                <View>
+                  <Text style={[styles.title, wide && styles.titleWide]} accessibilityRole="header">
+                    Garage
+                  </Text>
+                  {wide ? (
+                    <Text style={styles.count}>
+                      {garage.length} {garage.length === 1 ? 'car' : 'cars'}
+                      {due.size > 0 ? `, ${due.size} with something due` : ''}
+                    </Text>
+                  ) : null}
+                </View>
                 <Button label="Add a car" variant="quiet" onPress={() => router.push('/add')} />
               </View>
             ) : null}
           </Reveal>
         }
-        renderItem={({ item, index }) => (
-          <Reveal index={index}>
-            <GarageCard
-              vehicle={item}
-              index={index}
-              due={due.get(item.vin)}
-              onPress={() => router.push(`/vehicle/${item.vin}`)}
-            />
-          </Reveal>
-        )}
+        renderItem={({ item, index }) =>
+          item === BAY ? (
+            <Reveal index={index} style={styles.cell}>
+              <ParkingBay number={garage.length + 1} onPress={() => router.push('/add')} />
+            </Reveal>
+          ) : (
+            <Reveal index={index} style={wide ? styles.cell : undefined}>
+              <GarageCard
+                vehicle={item}
+                index={index}
+                due={due.get(item.vin)}
+                onPress={() => router.push(`/vehicle/${item.vin}`)}
+              />
+            </Reveal>
+          )
+        }
         ListFooterComponent={
-          loaded && !isEmpty ? (
+          loaded && !isEmpty && !wide ? (
             <Reveal index={garage.length} style={styles.bay}>
               <ParkingBay number={garage.length + 1} onPress={() => router.push('/add')} />
             </Reveal>
@@ -261,6 +288,11 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
   list: { paddingHorizontal: 20, paddingBottom: 24, gap: 20, flexGrow: 1, ...column },
 
+  listWide: { maxWidth: 1120, paddingHorizontal: 48, paddingTop: 48, paddingBottom: 56 },
+  gridRow: { gap: 24 },
+  cell: { flex: 1, maxWidth: '50%' },
+  titleWide: { fontSize: 72, lineHeight: 68 },
+  count: { ...type.lead, color: colors.textMuted, marginTop: 8 },
   header: { paddingTop: 8 },
   topBar: {
     flexDirection: 'row',

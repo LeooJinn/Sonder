@@ -53,6 +53,29 @@ export const colors = {
 } as const;
 
 /**
+ * Physical objects (the passport itself) are the one thing in the system that
+ * may have depth: a lit cover, page edges, a soft contact shadow, foil that
+ * catches the light. These are the values they are built from. UI surfaces
+ * (cards, buttons, inputs) stay flat; see "The Object Rule" in DESIGN.md.
+ * Every value is still tinted from the cover's green, never gray or black.
+ */
+export const object = {
+  coverLit: '#2B5649',
+  coverMid: '#1C3F36',
+  coverDeep: '#0F2520',
+  coverEdge: '#0B1B17',
+  // The three tones of stamped gold foil, dark to light.
+  foilDark: '#8F742F',
+  foilMid: '#D4B46E',
+  foilLight: '#F5E8B8',
+  // The cut edge of a block of pages.
+  pageEdge: '#EEF1E6',
+  pageEdgeShade: '#C9D1C1',
+  // What a passport casts on the desk under it.
+  contact: '#050E0B8C',
+} as const;
+
+/**
  * Each kind of log entry is stamped in its own ink so a long history can be
  * scanned by colour before it's read.
  */
@@ -61,6 +84,18 @@ export const KIND_COLORS: Record<EntryKind, string> = {
   service: '#8EC5EB',
   repair: '#EF7F7A',
   milestone: '#BCA9F4',
+};
+
+/**
+ * The same four inks, deepened to hold their contrast on pale paper. The
+ * cover versions above are for the dark ground, the way `stamp` is the red
+ * that reads on paper while `danger` is the red that reads on green.
+ */
+export const KIND_COLORS_ON_PAPER: Record<EntryKind, string> = {
+  mod: '#9A5A12',
+  service: '#2F6C97',
+  repair: '#A8453F',
+  milestone: '#6C58B0',
 };
 
 /**

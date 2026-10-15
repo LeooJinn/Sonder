@@ -231,7 +231,7 @@ A tinted green cover, a pale green-grey paper, one gold foil, and a set of stamp
 - **Cover Scrims** (scrim, scrim-light, scrim-photo): the cover darkened at three opacities, behind dialogs, sheets and the photo viewer. Never black.
 
 ### Neutral (the data page)
-- **Security Paper** (paper): the ground of every document: the data page, garage and market cards, confirm dialogs, the odometer instrument band. Also the digit colour on an ink drum.
+- **Security Paper** (paper): the ground of every document: the data page, garage and market cards, confirm dialogs, the front page's odometer band on narrow screens. Also the digit colour on an ink drum.
 - **Paper Shade** (paper-shade): the MRZ strip along a page's foot, photo placeholders, the due-reminder tag on a card.
 - **Paper Rule** (paper-line): hairlines printed on paper, borders of fields on paper.
 - **Paper Field** (paper-field): an input printed on paper, a shade lighter than the page.
@@ -261,7 +261,7 @@ A tinted green cover, a pale green-grey paper, one gold foil, and a set of stamp
 ### Hierarchy
 - **Hero** (700, 56/54, -0.5 tracking): tab-screen titles (Garage, For sale, Meets) and the asking price on a listing.
 - **Display** (700, 38/38, -0.3 tracking): a car's model name on its data page and cards (cards tighten it to 30–32); a meet's title.
-- **Poster** (Condensed 700, 84/80, -1.2 tracking): the front page's headline at wide widths only.
+- **Poster** (Condensed 700, 108/100, -1.8 tracking): the front page's headline and its section headlines ("This one's real.", "Start your car's passport.") at wide widths only; section headlines step down to 96 and 104.
 - **Title** (600, 28/30): section headers, chapter titles in the timeline, dialog titles, error-state titles.
 - **Heading** (600, 22/26): subsection titles in forms, the stacked-screen header title, passport footer line.
 - **Item** (SemiBold 600, 18/24): list-item and log-entry titles; the tab bar sets it in Condensed.
@@ -285,7 +285,9 @@ The ramp is a modular scale of about 1.25. Display type is always sentence case;
 
 Sonder is a phone app first. App screens lay out in a single reading column (640px max, centred, full width below that) with a 20px side gutter; the cover still paints edge to edge and only the content is constrained. The stacked-screen header and the bottom tab bar share the same column, so titles and tabs line up with content on a desktop browser. Narrow forms and dialogs (sign-in, confirm, report sheet, error state) use a 440px column.
 
-The signed-out front page is the one exception: it lays out in a wider 1040px column (the `wideColumn` token) and switches to a two-column hero at 860px and up, where the odometer sits on its own paper panel beside the headline. Below 860px the odometer band sticks to the top of the scroll; above it, the band floats in and docks once the hero's own instrument has scrolled away.
+At 900px and up the app grows past the phone column. The bottom tab bar becomes a 236px side rail down the left edge (the wordmark with its mark, the five places as an icon beside its word, Profile at the foot, the same foil rule travelling vertically), and the Garage becomes a two-column grid with the add-a-car bay as a cell. A car's own page, and its published passport, split into a 440px data column and a wide column for the log, photos and sharing. On a phone nothing changes.
+
+The signed-out front page is the one exception. At 900px and up it lays out in a 1240px stage: the story scrolls on the left while the passport and the tape odometer stay pinned on the right, the passport opening as you read. Each life event is a ledger row with its mileage printed huge and faint behind it. Below 900px the odometer band sticks to the top of the scroll and the passport sits under the hero. After the story the page changes ground: the real example car is a full-bleed paper section (paper is a specific car's document, so it may run edge to edge), then a grid mixing paper and cover cells, then a centred close.
 
 Rhythm is set per screen rather than from a spacing scale: 8, 12, 14, 16, 20, 24 inside components; 36–56 between major sections, separated on the cover by a 1px border rule. Touch targets are at least 44px; buttons are 52px tall; tabs are 48px.
 
@@ -295,6 +297,8 @@ The system is flat. There are no shadows anywhere in the code. Depth is conveyed
 
 ### Named Rules
 **The Flat Paper Rule.** Documents lie flat on the cover. Separation comes from paper against green, a hairline rule, or a shade step, never from a drop shadow.
+
+**The Object Rule.** The one exception to flat paper: a physical object shown *as an object*, the passport on the front page and sign-in, may have depth, light and a soft contact shadow on its desk. It is drawn in CSS 3D on web (`PassportBook`) and stands as a flat cover on devices. Its colours are the `object` tokens in `lib/theme.ts` (cover greens, foil tones, page-edge cream). Interface surfaces around it, cards, bands, forms, stay flat. Nothing else gets a shadow.
 
 ## Shapes
 
@@ -344,7 +348,7 @@ A car's identity page, used for the add preview, the vehicle screen, the public 
 A row of mechanical drums in B612 Mono: ink windows with paper digits, 4px gap, 4px radius, the last (ones) drum in foil with ink digits. Drums roll like a real odometer: only the ones drum turns continuously, and each other drum turns only while the one to its right rolls 9 to 0. On the front page it sits on a paper instrument band captioned with the owner line ("miles, first owner") in Barlow SemiBold and the current life event in Barlow Condensed; scrolling drives the reading. Under reduced motion the reading steps between mileages instead of rolling.
 
 ### Timeline and stamps (signature)
-A 1px cover-rule rail with a ring for each entry, the ring stroked in the entry kind's ink over the cover. The kind label above an entry is SemiBold in its kind's ink; mileages sit in a column of Barlow tabular figures. A change of hands (the start of an owner's chapter) is marked on the rail by a 12px diamond in milestone lilac, in the app and on the front page alike; on the front page it is also stamped: "Sold" in Barlow Condensed with the mileage beneath, in a 2px milestone-lilac outline turned -4 degrees.
+A 1px cover-rule rail with a ring for each entry, the ring stroked in the entry kind's ink over the cover. Each entry itself is a printed log card on security paper (page radius, faint guilloché): the kind label in its paper ink (`KIND_COLORS_ON_PAPER`, the deeper tones that hold contrast on paper) with a dot, the title in Barlow Condensed 26, photos at 168 by 120, parts as ruled rows with the part number in mono, the cost right-aligned. Editable cards lift on hover like any pressable sheet. The kind label is SemiBold in its kind's ink; mileages sit in a column of Barlow tabular figures. A change of hands (the start of an owner's chapter) is marked on the rail by a 12px diamond in milestone lilac, in the app and on the front page alike; on the front page it is also stamped: "Sold" in Barlow Condensed with the mileage beneath, in a 2px milestone-lilac outline turned -4 degrees.
 
 ### Dialogs
 A paper page (page radius, 22px padding, 440px max) over the cover scrim. Title in ink, body in faded ink. Destructive consequences are listed against a 2px stamp-red rule; the confirm button is a stamp-red outline, the cancel button a solid ink fill with paper text.
@@ -396,7 +400,7 @@ Anything printed on paper carries a faint guilloché: two interlaced families of
 - **Do** set VINs, drums, part numbers and the MRZ strip in B612 Mono, and prose mileages in Barlow tabular figures.
 - **Do** stamp each log entry in its kind's ink (mod amber, service sky, repair coral, milestone lilac).
 - **Do** follow the radius hierarchy: page 14, control 10, input 8, photo 6, tag 4. Circles and pills are shapes, not steps.
-- **Do** set every size from the type ramp, including Compact (15) and Item (18); the front page's headline alone uses Poster (84).
+- **Do** set every size from the type ramp, including Compact (15) and Item (18); the front page's headlines alone use Poster (96 to 108).
 - **Do** use the red that fits the ground: danger on the cover, stamp on paper.
 - **Do** darken the cover for scrims; respect reduced motion by stepping instead of rolling.
 

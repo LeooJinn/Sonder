@@ -2,7 +2,9 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { PhotoImage } from './PhotoImage';
 import { formatCents, KIND_LABELS, type LogEntry } from '../lib/log';
 import { formatDay, formatMonthYear } from '../lib/dates';
-import { colors, fonts, KIND_COLORS, radius, type } from '../lib/theme';
+import { colors, fonts, KIND_COLORS, KIND_COLORS_ON_PAPER, radius, type } from '../lib/theme';
+import { Guilloche } from './Guilloche';
+import { LiftPressable } from './LiftPressable';
 import { focusRing, type PressState } from './ui';
 
 /**
@@ -109,6 +111,67 @@ function TimelineEntry({
   onPress?: () => void;
 }) {
   const ink = KIND_COLORS[entry.kind];
+  const paperInk = KIND_COLORS_ON_PAPER[entry.kind];
+
+  // A log entry is a printed line in the car's papers: security paper, ink, the
+  // guilloché behind it. The kind's own ink stamps its dot and its label.
+  const card = (
+    <View style={styles.card}>
+      <Guilloche opacity={0.28} />
+      <View style={styles.entryHeader}>
+        <View style={styles.kindRow}>
+          <View style={[styles.kindDot, { backgroundColor: paperInk }]} />
+          <Text style={[styles.kind, { color: paperInk }]}>{KIND_LABELS[entry.kind]}</Text>
+        </View>
+        <Text style={styles.date}>{formatDay(entry.occurredOn)}</Text>
+      </View>
+
+      <Text style={styles.title}>{entry.title}</Text>
+
+      {entry.notes ? (
+        <Text style={styles.notes} numberOfLines={4}>
+          {entry.notes}
+        </Text>
+      ) : null}
+
+      {entry.photos.length > 0 && (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.photos}
+          // Without this, dragging the strip is swallowed by the entry's press.
+          onStartShouldSetResponder={() => true}
+        >
+          <View style={styles.photoRow}>
+            {entry.photos.map((photo) => (
+              <PhotoImage
+                key={photo.id}
+                thumbUrl={photo.thumbUrl}
+                url={photo.url}
+                style={styles.photo}
+                accessibilityLabel={`Photo from ${entry.title}`}
+              />
+            ))}
+          </View>
+        </ScrollView>
+      )}
+
+      {entry.parts.length > 0 && (
+        <View style={styles.parts}>
+          {entry.parts.map((part, i) => (
+            <View key={i} style={[styles.partRow, i > 0 && styles.partRowRule]}>
+              <Text style={styles.partName}>
+                <Text style={styles.partBrand}>{part.brand}</Text> {part.name}
+              </Text>
+              {part.partNumber ? <Text style={styles.partNumber}>{part.partNumber}</Text> : null}
+            </View>
+          ))}
+        </View>
+      )}
+
+      {entry.costCents !== undefined && <Text style={styles.cost}>{formatCents(entry.costCents)}</Text>}
+    </View>
+  );
 
   return (
     <View style={styles.row}>
@@ -126,72 +189,20 @@ function TimelineEntry({
         <View style={[styles.dot, { borderColor: ink }]} />
       </View>
 
-      <Pressable
-        onPress={onPress}
-        disabled={!onPress}
-        accessibilityRole={onPress ? 'button' : undefined}
-        accessibilityHint={onPress ? 'Opens this entry to edit it' : undefined}
-        style={(state) => {
-          const { pressed, focused, hovered } = state as PressState;
-          return [
-            styles.entry,
-            (pressed || hovered) && onPress ? styles.entryActive : null,
-            focused && focusRing,
-          ];
-        }}
-      >
-        <View style={styles.entryHeader}>
-          <Text style={[styles.kind, { color: ink }]}>{KIND_LABELS[entry.kind]}</Text>
-          <Text style={styles.date}>{formatDay(entry.occurredOn)}</Text>
-        </View>
-
-        <Text style={styles.title}>{entry.title}</Text>
-
-        {entry.notes ? (
-          <Text style={styles.notes} numberOfLines={4}>
-            {entry.notes}
-          </Text>
-        ) : null}
-
-        {entry.photos.length > 0 && (
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            style={styles.photos}
-            // Without this, dragging the strip is swallowed by the entry's press.
-            onStartShouldSetResponder={() => true}
+      <View style={styles.entry}>
+        {onPress ? (
+          <LiftPressable
+            onPress={onPress}
+            accessibilityRole="button"
+            accessibilityHint="Opens this entry to edit it"
+            style={(state) => [(state as PressState).focused && focusRing, styles.press]}
           >
-            <View style={styles.photoRow}>
-              {entry.photos.map((photo) => (
-                <PhotoImage
-                  key={photo.id}
-                  thumbUrl={photo.thumbUrl}
-                  url={photo.url}
-                  style={styles.photo}
-                  accessibilityLabel={`Photo from ${entry.title}`}
-                />
-              ))}
-            </View>
-          </ScrollView>
+            {card}
+          </LiftPressable>
+        ) : (
+          card
         )}
-
-        {entry.parts.length > 0 && (
-          <View style={styles.parts}>
-            {entry.parts.map((part, i) => (
-              <View key={i}>
-                <Text style={styles.partName}>
-                  <Text style={styles.partBrand}>{part.brand}</Text> {part.name}
-                </Text>
-                {part.partNumber ? <Text style={styles.partNumber}>{part.partNumber}</Text> : null}
-              </View>
-            ))}
-          </View>
-        )}
-
-        {entry.costCents !== undefined && (
-          <Text style={styles.cost}>{formatCents(entry.costCents)}</Text>
-        )}
-      </Pressable>
+      </View>
     </View>
   );
 }
@@ -251,41 +262,40 @@ const styles = StyleSheet.create({
   chapterNote: { ...type.small, color: colors.textFaint, marginTop: 2 },
   chapterEmpty: { ...type.small, color: colors.textFaint, marginTop: 12 },
 
-  entry: {
-    flex: 1,
-    paddingVertical: 12,
-    paddingHorizontal: 8,
-    marginBottom: 6,
-    borderRadius: radius.control,
+  entry: { flex: 1, marginBottom: 14, paddingLeft: 4 },
+  press: { borderRadius: radius.page },
+  card: {
+    backgroundColor: colors.paper,
+    borderRadius: radius.page,
+    paddingVertical: 16,
+    paddingHorizontal: 18,
+    overflow: 'hidden',
   },
-  entryActive: { backgroundColor: colors.surface },
 
-  entryHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' },
+  entryHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  kindRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  kindDot: { width: 8, height: 8, borderRadius: 4 },
   kind: { fontFamily: fonts.bodySemi, fontSize: 14, lineHeight: 18 },
-  date: { ...type.caption, color: colors.textFaint },
+  date: { ...type.caption, color: colors.inkMuted },
 
-  title: {
-    fontFamily: fonts.bodySemi,
-    fontSize: type.item.fontSize,
-    lineHeight: 24,
-    color: colors.text,
-    marginTop: 2,
-  },
-  notes: { fontFamily: fonts.body, fontSize: type.compact.fontSize, lineHeight: 22, color: colors.textMuted, marginTop: 4 },
+  title: { fontFamily: fonts.displayBold, fontSize: 26, lineHeight: 28, color: colors.ink, marginTop: 8 },
+  notes: { fontFamily: fonts.body, fontSize: type.compact.fontSize, lineHeight: 22, color: colors.inkMuted, marginTop: 6 },
 
-  photos: { marginTop: 12 },
+  photos: { marginTop: 14 },
   photoRow: { flexDirection: 'row', gap: 8 },
   photo: {
-    width: 140,
-    height: 100,
+    width: 168,
+    height: 120,
     borderRadius: radius.photo,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.paperShade,
   },
 
-  parts: { marginTop: 12, gap: 8 },
-  partName: { ...type.small, color: colors.textMuted },
-  partBrand: { fontFamily: fonts.bodySemi, color: colors.text },
-  partNumber: { fontFamily: fonts.mono, fontSize: 12, lineHeight: 16, color: colors.textFaint },
+  parts: { marginTop: 14, borderTopWidth: 1, borderTopColor: colors.paperLine },
+  partRow: { paddingVertical: 9 },
+  partRowRule: { borderTopWidth: 1, borderTopColor: colors.paperLine },
+  partName: { ...type.small, color: colors.inkMuted },
+  partBrand: { fontFamily: fonts.bodySemi, color: colors.ink },
+  partNumber: { fontFamily: fonts.mono, fontSize: 12, lineHeight: 16, color: colors.inkMuted, marginTop: 2 },
 
-  cost: { fontFamily: fonts.bodyMedium, fontSize: type.compact.fontSize, color: colors.text, marginTop: 10 },
+  cost: { fontFamily: fonts.bodySemi, fontSize: 17, color: colors.ink, marginTop: 12, textAlign: 'right', fontVariant: ['tabular-nums'] },
 });

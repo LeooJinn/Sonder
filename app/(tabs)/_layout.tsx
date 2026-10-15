@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState, type ComponentProps } from 'react';
-import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
-import { Tabs } from 'expo-router';
+import { Animated, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { Tabs, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { focusRing, type PressState } from '../../components/ui';
+import { LogoMark } from '../../components/LogoMark';
 import { TabIcon, type IconName } from '../../components/TabIcon';
 import { useUnreadMessages } from '../../components/useUnreadMessages';
 import { hasNewInFeed } from '../../lib/feed';
@@ -27,10 +28,18 @@ const ICON_FOR: Record<string, IconName> = {
  * wherever you are.
  */
 export default function TabsLayout() {
+  const { width } = useWindowDimensions();
+  // On a wide screen the tabs become a rail down the left edge, the way a
+  // desktop app lays out its places; on a phone they stay a bar at the foot.
+  const wide = width >= WIDE;
   return (
     <Tabs
-      tabBar={(props) => <TabBar {...props} />}
-      screenOptions={{ headerShown: false, sceneStyle: { backgroundColor: colors.background } }}
+      tabBar={(props) => (wide ? <SideRail {...props} /> : <TabBar {...props} />)}
+      screenOptions={{
+        headerShown: false,
+        tabBarPosition: wide ? 'left' : 'bottom',
+        sceneStyle: { backgroundColor: colors.background },
+      }}
     >
       <Tabs.Screen name="index" options={{ title: 'Garage' }} />
       <Tabs.Screen name="following" options={{ title: 'Following' }} />
@@ -120,7 +129,141 @@ function TabBar({ state, descriptors, navigation }: TabBarProps) {
   );
 }
 
+/**
+ * The side rail: the same five places as the bottom bar, as a column of rows
+ * with the drawn icon beside its word. The foil rule is the same one shape that
+ * travels, standing on the rail's inner edge instead of along a tab's top.
+ */
+function SideRail({ state, descriptors, navigation }: TabBarProps) {
+  const insets = useSafeAreaInsets();
+  const router = useRouter();
+  const { session } = useAuth();
+  const reduced = useReducedMotion();
+  const unread = useUnreadMessages();
+  const current = state.routes[state.index]?.name;
+  const [fresh, setFresh] = useState(false);
+
+  useEffect(() => {
+    if (!session || current === 'following') return;
+    let live = true;
+    hasNewInFeed()
+      .then((next) => live && setFresh(next))
+      .catch(() => {});
+    return () => {
+      live = false;
+    };
+  }, [session, current]);
+
+  const rule = useRef(new Animated.Value(0)).current;
+  const placed = useRef(false);
+  useEffect(() => {
+    const y = state.index * (ITEM_HEIGHT + ITEM_GAP) + (ITEM_HEIGHT - RULE_WIDTH) / 2;
+    if (!placed.current || reduced) {
+      rule.setValue(y);
+      placed.current = true;
+      return;
+    }
+    Animated.timing(rule, { toValue: y, duration: duration.slow, easing: ease.out, useNativeDriver: nativeDriver }).start();
+  }, [state.index, reduced, rule]);
+
+  return (
+    <View style={[styles.rail, { paddingTop: insets.top + 24, paddingBottom: Math.max(insets.bottom, 20) }]} accessibilityRole="tablist">
+      <View style={styles.railBrand}>
+        <LogoMark size={36} />
+        <Text style={styles.railWordmark}>Sonder</Text>
+      </View>
+
+      <View style={styles.railItems}>
+        <Animated.View pointerEvents="none" style={[styles.railRule, { transform: [{ translateY: rule }] }]} />
+        {state.routes.map((route, index) => {
+          const selected = state.index === index;
+          const label = descriptors[route.key].options.title ?? route.name;
+          const badge = route.name === 'messages' && unread > 0 ? unread : 0;
+          const dot = route.name === 'following' && fresh && !selected;
+          const hint = badge > 0 ? `, ${badge} unread` : dot ? ', new' : '';
+          return (
+            <RailItem
+              key={route.key}
+              label={label}
+              selected={selected}
+              icon={ICON_FOR[route.name] ?? 'garage'}
+              badge={badge}
+              dot={dot}
+              accessibilityLabel={`${label}${hint}`}
+              onPress={() => {
+                const event = navigation.emit({ type: 'tabPress', target: route.key, canPreventDefault: true });
+                if (!selected && !event.defaultPrevented) navigation.navigate(route.name);
+              }}
+            />
+          );
+        })}
+      </View>
+
+      <Pressable
+        accessibilityRole="link"
+        onPress={() => router.push('/profile')}
+        style={(state) => [styles.railProfile, (state as PressState).focused && focusRing]}
+      >
+        <Text style={styles.railProfileText}>Profile</Text>
+      </Pressable>
+    </View>
+  );
+}
+
+function RailItem({
+  label,
+  selected,
+  icon,
+  badge,
+  dot,
+  accessibilityLabel,
+  onPress,
+}: {
+  label: string;
+  selected: boolean;
+  icon: IconName;
+  badge: number;
+  dot: boolean;
+  accessibilityLabel: string;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      accessibilityRole="tab"
+      accessibilityState={{ selected }}
+      accessibilityLabel={accessibilityLabel}
+      onPress={onPress}
+      style={(state) => {
+        const { hovered, focused } = state as PressState;
+        return [styles.railItem, (selected || hovered) && styles.railItemOn, focused && focusRing];
+      }}
+    >
+      <View>
+        <TabIcon
+          name={icon}
+          active={selected}
+          color={selected ? colors.accent : colors.textMuted}
+          accent={selected ? colors.accent : colors.textMuted}
+          size={24}
+        />
+        {badge > 0 ? (
+          <View style={styles.badge}>
+            <Text style={styles.badgeText}>{badge > 9 ? '9+' : badge}</Text>
+          </View>
+        ) : null}
+        {dot ? <View style={styles.dot} /> : null}
+      </View>
+      <Text style={[styles.railLabel, selected && styles.railLabelSelected]}>{label}</Text>
+    </Pressable>
+  );
+}
+
 const RULE_WIDTH = 28;
+/** The width at which the tab bar becomes a side rail. */
+export const WIDE = 900;
+const RAIL_WIDTH = 236;
+const ITEM_HEIGHT = 48;
+const ITEM_GAP = 4;
 
 function TabButton({
   label,
@@ -213,4 +356,22 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     backgroundColor: colors.danger,
   },
+
+  rail: {
+    width: RAIL_WIDTH,
+    backgroundColor: colors.background,
+    borderRightWidth: 1,
+    borderRightColor: colors.border,
+    paddingHorizontal: 16,
+  },
+  railBrand: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 8, marginBottom: 36 },
+  railWordmark: { fontFamily: fonts.displayBold, fontSize: 28, color: colors.accent, letterSpacing: 0.5 },
+  railItems: { gap: ITEM_GAP, flex: 1 },
+  railRule: { position: 'absolute', left: -16, top: 0, width: 3, height: RULE_WIDTH, borderRadius: 2, backgroundColor: colors.accent },
+  railItem: { flexDirection: 'row', alignItems: 'center', gap: 14, height: ITEM_HEIGHT, paddingHorizontal: 12, borderRadius: 10 },
+  railItemOn: { backgroundColor: colors.surface },
+  railLabel: { fontFamily: fonts.display, fontSize: 19, color: colors.textMuted },
+  railLabelSelected: { color: colors.text },
+  railProfile: { minHeight: 44, justifyContent: 'center', paddingHorizontal: 12, borderRadius: 10 },
+  railProfileText: { fontFamily: fonts.bodySemi, fontSize: 15, color: colors.textMuted },
 });

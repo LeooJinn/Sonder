@@ -7,14 +7,16 @@ import {
   StyleSheet,
   Text,
   View,
+  useWindowDimensions,
 } from 'react-native';
 import { Link, Stack, useLocalSearchParams } from 'expo-router';
 import { supabase } from '../lib/supabase';
 import { describeError } from '../lib/errors';
 import { PassportCover } from '../components/PassportCover';
+import { PassportBook } from '../components/PassportBook';
 import { LegalLinks } from '../components/LegalLinks';
 import { Button, Field, Notice, focusRing, type PressState } from '../components/ui';
-import { colors, fonts, radius, type } from '../lib/theme';
+import { colors, fonts, object, radius, type } from '../lib/theme';
 
 type Mode = 'signIn' | 'signUp' | 'reset' | 'link';
 
@@ -182,6 +184,9 @@ export default function SignInScreen() {
     setUnconfirmedEmail(null);
   }
 
+  const { width } = useWindowDimensions();
+  const wide = width >= 900;
+
   return (
     <KeyboardAvoidingView
       style={styles.screen}
@@ -189,10 +194,25 @@ export default function SignInScreen() {
     >
       <Stack.Screen options={{ headerShown: false, title: 'Sign in' }} />
 
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        <PassportCover />
+      <View style={styles.split}>
+      {wide && (
+        // The passport, closed, on its own desk. It only appears beside the form.
+        <View style={styles.showcase} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+          <View style={styles.spotlight} />
+          <View style={styles.showcaseBook}>
+            <PassportBook />
+          </View>
+          <Text style={styles.showcaseLine}>A logbook that stays with the car.</Text>
+        </View>
+      )}
+      <ScrollView
+        style={wide ? styles.formPane : undefined}
+        contentContainerStyle={[styles.content, wide && styles.contentWide]}
+        keyboardShouldPersistTaps="handled"
+      >
+        {!wide && <PassportCover />}
 
-        {!emailOnly && (
+        {!emailOnly && !wide && (
           <Text style={styles.lead}>
             A logbook that stays with the car. Mods, service and repairs, handed to the next owner
             when it sells.
@@ -360,6 +380,7 @@ export default function SignInScreen() {
           </View>
         )}
       </ScrollView>
+      </View>
     </KeyboardAvoidingView>
   );
 }
@@ -424,4 +445,19 @@ const styles = StyleSheet.create({
     fontSize: type.compact.fontSize,
     color: colors.textMuted,
   },
+
+  split: { flex: 1, flexDirection: 'row' },
+  showcase: { flex: 1.1, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+  spotlight: {
+    position: 'absolute',
+    width: '90%',
+    aspectRatio: 1,
+    borderRadius: 999,
+    backgroundColor: object.coverMid,
+    opacity: 0.45,
+  },
+  showcaseBook: { width: '100%', height: '72%' },
+  showcaseLine: { ...type.display, color: colors.text, textAlign: 'center', marginTop: 8, paddingHorizontal: 40 },
+  formPane: { flex: 1, maxWidth: 600, backgroundColor: colors.surface },
+  contentWide: { paddingTop: 96, maxWidth: 440 },
 });

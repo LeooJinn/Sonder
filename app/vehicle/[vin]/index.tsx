@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Platform, ScrollView, Share, StyleSheet, Switch, Text, View } from 'react-native';
+import { ActivityIndicator, Platform, ScrollView, Share, StyleSheet, Switch, Text, View, useWindowDimensions } from 'react-native';
 import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import {
   findOwnershipId,
@@ -84,6 +84,8 @@ export default function VehicleScreen() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [reminders, setReminders] = useState<Reminder[]>([]);
   const router = useRouter();
+  const { width } = useWindowDimensions();
+  const wide = width >= 900;
 
   const photoCount =
     entries.reduce((total, entry) => total + entry.photos.length, 0) + gallery.length;
@@ -278,8 +280,11 @@ export default function VehicleScreen() {
   ];
 
   return (
-    <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
+    <ScrollView style={styles.screen} contentContainerStyle={[styles.content, wide && styles.contentWide]}>
       <Stack.Screen options={{ title: `${vehicle.year} ${vehicle.make}` }} />
+
+      <View style={wide ? styles.split : undefined}>
+      <View style={wide ? styles.splitLeft : undefined}>
 
       <Reveal rise={20}>
         <DataPage
@@ -301,7 +306,9 @@ export default function VehicleScreen() {
         />
       </View>
 
-      <View style={styles.section}>
+      </View>
+      <View style={wide ? styles.splitRight : undefined}>
+      <View style={wide ? styles.sectionFirst : styles.section}>
         <Timeline chapters={chapters} />
       </View>
 
@@ -462,6 +469,9 @@ export default function VehicleScreen() {
         </Text>
       </View>
 
+      </View>
+      </View>
+
       <ConfirmDialog
         visible={askingSold}
         title="Mark this car as sold?"
@@ -506,6 +516,11 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
   content: { padding: 16, paddingBottom: 56, ...column },
 
+  contentWide: { maxWidth: 1160, paddingHorizontal: 24 },
+  split: { flexDirection: 'row', gap: 48, alignItems: 'flex-start' },
+  splitLeft: { width: 440 },
+  splitRight: { flex: 1, minWidth: 0 },
+  sectionFirst: { marginTop: 0 },
   addButton: { marginTop: 16 },
   section: { marginTop: 40 },
 
